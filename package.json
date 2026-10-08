@@ -6,15 +6,19 @@
     "dev": "next dev -H 0.0.0.0 -p 3001",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test src/lib/costing.test.ts",
+    "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
     "next": "16.4.0",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
