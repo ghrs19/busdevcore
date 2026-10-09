@@ -519,8 +519,8 @@ export default function HistoricalEstimatesDashboard() {
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
               {estimates.length === metrics.totalCount
-                ? 'Semua proyek tersimpan'
-                : `Terfilter dari ${estimates.length} total`}
+                ? 'Versi aktif / terbaru proyek'
+                : `Terfilter dari ${estimates.length} proyek aktif`}
             </div>
           </div>
 
@@ -541,7 +541,7 @@ export default function HistoricalEstimatesDashboard() {
               {formatIDR(metrics.totalCost)}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Akumulasi nilai kontrak estimasi
+              Dihitung dari versi terbaru tiap proyek
             </div>
           </div>
 
@@ -562,7 +562,7 @@ export default function HistoricalEstimatesDashboard() {
               {formatIDR(metrics.avgCost)}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Nilai per project estimate
+              Rata-rata dari versi terbaru proyek
             </div>
           </div>
 
@@ -582,7 +582,7 @@ export default function HistoricalEstimatesDashboard() {
               {metrics.totalHours} <span style={{ fontSize: '16px', fontWeight: 500 }}>Jam</span>
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Total estimasi waktu teknis
+              Manhours dari versi terbaru proyek
             </div>
           </div>
         </section>
@@ -780,9 +780,8 @@ export default function HistoricalEstimatesDashboard() {
                     <th style={{ width: '14%' }}>Kategori</th>
                     <th style={{ width: '8%' }}>Tag</th>
                     <th style={{ width: '9%', textAlign: 'right' }}>Total Hours</th>
-                    <th style={{ width: '12%', textAlign: 'right' }}>Total Cost</th>
-                    <th style={{ width: '5%', textAlign: 'center' }}>Status</th>
-                    <th style={{ width: '6%', textAlign: 'center' }}>Aksi</th>
+                    <th style={{ width: '13%', textAlign: 'right' }}>Total Cost</th>
+                    <th style={{ width: '8%', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -860,9 +859,6 @@ export default function HistoricalEstimatesDashboard() {
                         >
                           {formatIDR(est.total_cost)}
                         </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="badge badge-draft">{est.status}</span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -1047,9 +1043,6 @@ export default function HistoricalEstimatesDashboard() {
                         &quot;{inspectDetail.revision_notes}&quot;
                       </span>
                     )}
-                    <span className="badge badge-draft" style={{ fontSize: '10px', padding: '1px 6px' }}>
-                      {inspectDetail?.status || 'DRAFT'}
-                    </span>
                   </div>
                   <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {inspectDetail ? (inspectDetail.project_name || inspectDetail.title) : 'Memuat data...'}
