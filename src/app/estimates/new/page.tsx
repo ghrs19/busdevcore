@@ -2799,13 +2799,14 @@ export default function NewEstimatePage() {
                                   onChange={(e) => updateOperationalItem(oIdx, { unit_cost_per_day: Math.max(0, parseFloat(e.target.value) || 0) })}
                                 />
                               </td>
-                              <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#10b981', fontWeight: 600 }}>
+                              <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#10b981', fontWeight: 600, padding: '0 12px' }}>
                                 {formatIDR(lineTotal)}
                               </td>
                               <td>
                                 <input
                                   type="text"
                                   className="excel-cell-input"
+                                  style={{ padding: '6px 12px' }}
                                   value={item.notes || ''}
                                   onChange={(e) => updateOperationalItem(oIdx, { notes: e.target.value })}
                                   placeholder="Catatan / lokasi tujuan..."
