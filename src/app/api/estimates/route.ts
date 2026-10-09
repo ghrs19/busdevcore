@@ -8,6 +8,7 @@ import {
   type ModuleInput,
   type MaintenanceConfigInput,
   type InfrastructureItemInput,
+  type OperationalItemInput,
 } from '@/lib/costing';
 
 export async function GET() {
@@ -23,6 +24,7 @@ export async function GET() {
         e.notes,
         e.maintenance_config,
         e.infrastructure_items,
+        e.operational_items,
         e.billing_summary,
         e.created_at,
         e.updated_at,
@@ -100,6 +102,8 @@ export async function POST(req: Request) {
       maintenance_config,
       infrastructure,
       infrastructure_items,
+      operational,
+      operational_items,
     } = body;
 
     let effectiveTitle = typeof title === 'string' ? title.trim() : '';
@@ -196,6 +200,7 @@ export async function POST(req: Request) {
     const hasDevelopment = selectedCodes.includes('DEVELOPMENT');
     const hasMaintenance = selectedCodes.includes('MAINTENANCE');
     const hasInfrastructure = selectedCodes.includes('INFRASTRUCTURE');
+    const hasOperational = selectedCodes.includes('OPERATION');
 
     // Verify Tag rules
     let tag = null;
@@ -270,6 +275,9 @@ export async function POST(req: Request) {
     const infraInput: InfrastructureItemInput[] | undefined = hasInfrastructure
       ? (infrastructure || infrastructure_items || [])
       : undefined;
+    const opInput: OperationalItemInput[] | undefined = hasOperational
+      ? (operational || operational_items || [])
+      : undefined;
 
     const calculated = calculateEstimate({
       title: effectiveTitle || resolvedProjectName || 'Project Costing Estimate',
@@ -280,6 +288,7 @@ export async function POST(req: Request) {
       modules: hasDevelopment ? parsedModules : [],
       maintenance: maintInput,
       infrastructure: infraInput,
+      operational: opInput,
     });
 
     // Save in transaction
@@ -287,9 +296,9 @@ export async function POST(req: Request) {
 
     const estInsert = await client.query(
       `INSERT INTO project_estimates 
-        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes, maintenance_config, infrastructure_items, billing_summary)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-       RETURNING id, title, total_hours, total_cost, status, created_at, maintenance_config, infrastructure_items, billing_summary`,
+        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes, maintenance_config, infrastructure_items, operational_items, billing_summary)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       RETURNING id, title, total_hours, total_cost, status, created_at, maintenance_config, infrastructure_items, operational_items, billing_summary`,
       [
         calculated.title,
         company_id,
@@ -304,6 +313,7 @@ export async function POST(req: Request) {
         notes?.trim() || null,
         calculated.maintenance ? JSON.stringify(calculated.maintenance) : null,
         calculated.infrastructure ? JSON.stringify(calculated.infrastructure.items) : null,
+        calculated.operational ? JSON.stringify(calculated.operational.items) : null,
         JSON.stringify(calculated.billing_summary),
       ]
     );
@@ -365,6 +375,7 @@ export async function POST(req: Request) {
         rate_snapshots: snapshotRates,
         maintenance_config: calculated.maintenance,
         infrastructure_items: calculated.infrastructure?.items,
+        operational_items: calculated.operational?.items,
         billing_summary: calculated.billing_summary,
         ...estInsert.rows[0],
         breakdown: calculated,

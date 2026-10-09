@@ -8,12 +8,15 @@ import {
   calculateModule,
   calculateMaintenance,
   calculateInfrastructure,
+  calculateOperational,
   calculateBillingSummary,
   type RoleRateMap,
   type ModuleInput,
   type MaintenanceTaskInput,
   type InfrastructureItemInput,
   type InfraBillingType,
+  type OperationalItemInput,
+  type CalculatedOperationalItem,
 } from '@/lib/costing';
 
 interface Company {
@@ -161,6 +164,47 @@ export default function NewEstimatePage() {
     },
   ]);
 
+  // Operational WBS state (Section D)
+  const [operationalItems, setOperationalItems] = useState<OperationalItemInput[]>([
+    {
+      name: 'Tiket Pesawat PP & Transportasi',
+      people_count: 2,
+      days_count: 1,
+      unit_cost_per_day: 750000,
+      notes: 'Kickoff meeting client',
+    },
+    {
+      name: 'Hotel & Penginapan',
+      people_count: 2,
+      days_count: 2,
+      unit_cost_per_day: 650000,
+      notes: 'Akomodasi 2 malam',
+    },
+  ]);
+
+  const addOperationalItem = () => {
+    setOperationalItems((prev) => [
+      ...prev,
+      {
+        name: 'Item Operasional Baru',
+        people_count: 1,
+        days_count: 1,
+        unit_cost_per_day: 0,
+        notes: '',
+      },
+    ]);
+  };
+
+  const removeOperationalItem = (idx: number) => {
+    setOperationalItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateOperationalItem = (idx: number, patch: Partial<OperationalItemInput>) => {
+    setOperationalItems((prev) =>
+      prev.map((item, i) => (i === idx ? { ...item, ...patch } : item))
+    );
+  };
+
   // Infrastructure WBS state
   const [infraItems, setInfraItems] = useState<InfrastructureItemInput[]>([
     {
@@ -198,7 +242,7 @@ export default function NewEstimatePage() {
   ]);
 
   // Tab state for Section 4
-  const [wbsTab, setWbsTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE'>('ALL');
+  const [wbsTab, setWbsTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE' | 'OPERATION'>('ALL');
 
   // Loading & feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -229,6 +273,7 @@ export default function NewEstimatePage() {
           tasks: maintenanceTasks,
         } : null,
         infrastructure_items: isInfrastructure ? infraItems : [],
+        operational_items: isOperational ? operationalItems : [],
         notes: notes,
       };
 
@@ -451,6 +496,10 @@ export default function NewEstimatePage() {
     return selectedCategories.some((c) => c.code === 'MAINTENANCE');
   }, [selectedCategories]);
 
+  const isOperational = useMemo(() => {
+    return selectedCategories.some((c) => (c.code || '').toUpperCase() === 'OPERATION');
+  }, [selectedCategories]);
+
   const isInfrastructure = useMemo(() => {
     return selectedCategories.some((c) => c.code === 'INFRASTRUCTURE');
   }, [selectedCategories]);
@@ -572,17 +621,29 @@ export default function NewEstimatePage() {
     }
   }, [infraItems, isInfrastructure]);
 
+  // Operational Calculation
+  const opCalculation = useMemo(() => {
+    if (!isOperational) return null;
+    try {
+      return calculateOperational(operationalItems);
+    } catch {
+      return null;
+    }
+  }, [operationalItems, isOperational]);
+
   // Multi-Billing Summary
   const billingSummary = useMemo(() => {
     return calculateBillingSummary({
       hasDevelopment: isDevelopment,
       hasMaintenance: isMaintenance,
       hasInfrastructure: isInfrastructure,
+      hasOperational: isOperational,
       devCost: calculation.total_cost,
       maintenanceConfig: maintCalculation,
       infrastructure: infraCalculation,
+      operational: opCalculation,
     });
-  }, [isDevelopment, isMaintenance, isInfrastructure, calculation.total_cost, maintCalculation, infraCalculation]);
+  }, [isDevelopment, isMaintenance, isInfrastructure, isOperational, calculation.total_cost, maintCalculation, infraCalculation, opCalculation]);
 
   // Maintenance Handlers
   const addMaintenanceTask = () => {
@@ -688,6 +749,7 @@ export default function NewEstimatePage() {
       { name: 'Server Monitoring & Bug Fixes', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
     ]);
     setInfraItems([]);
+    setOperationalItems([]);
     setAiPrompt('');
     setAiFiles([]);
     setAiSummary('');
@@ -1121,6 +1183,7 @@ export default function NewEstimatePage() {
           tasks: maintenanceTasks,
         } : null,
         infrastructure_items: isInfrastructure ? infraItems : null,
+        operational_items: isOperational ? operationalItems : null,
       };
 
       const res = await fetch('/api/estimates', {
@@ -1807,8 +1870,8 @@ export default function NewEstimatePage() {
               Klasifikasi Layanan & Aturan Bisnis
             </h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-              {/* Service Type Pills */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px 24px' }}>
+              {/* Row 1, Col 1: Service Type */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
                   Service Type
@@ -1836,37 +1899,7 @@ export default function NewEstimatePage() {
                 </div>
               </div>
 
-              {/* Category Pills */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)' }}>
-                    Kategori Proyek (Multi-Select) *
-                  </label>
-                  <span style={{ fontSize: '11px', color: 'var(--accent-hover)' }}>
-                    {selectedCategoryIds.length} Terpilih
-                  </span>
-                </div>
-                <div className="pill-group">
-                  {availableCategories.map((c) => {
-                    const isSelected = selectedCategoryIds.includes(c.id);
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => handleToggleCategory(c.id)}
-                        className={`pill-item ${isSelected ? 'active' : ''}`}
-                      >
-                        {c.name}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                  Pilih kombinasi: Development, Maintenance, Infrastructure
-                </div>
-              </div>
-
-              {/* Tag Pills (Conditional) */}
+              {/* Row 1, Col 2: Tag Klasifikasi */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
                   Tag Klasifikasi {isDevelopment ? (
@@ -1892,10 +1925,41 @@ export default function NewEstimatePage() {
                     })}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '6px 0' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '8px 0', fontStyle: 'italic' }}>
                     Tag hanya aktif jika kategori menyertakan Development.
                   </div>
                 )}
+              </div>
+
+              {/* Row 2: Category Pills (Full Width Span 2 Cols) */}
+              <div style={{ gridColumn: 'span 2' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)' }}>
+                    Kategori Proyek (Multi-Select) *
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--accent-hover)' }}>
+                    {selectedCategoryIds.length} Terpilih
+                  </span>
+                </div>
+                <div className="pill-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '6px', height: 'auto', minHeight: '43px' }}>
+                  {availableCategories.map((c) => {
+                    const isSelected = selectedCategoryIds.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleToggleCategory(c.id)}
+                        className={`pill-item ${isSelected ? 'active' : ''}`}
+                        style={{ flex: '1 1 calc(25% - 8px)', minWidth: '130px', textAlign: 'center' }}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '6px' }}>
+                  Pilih kombinasi cakupan proyek: Development, Maintenance, Infrastructure, Operation
+                </div>
               </div>
             </div>
           </section>
@@ -2223,6 +2287,16 @@ export default function NewEstimatePage() {
                     style={{ fontSize: '12px', padding: '6px 14px' }}
                   >
                     Infrastructure Items ({formatIDR(infraCalculation ? infraCalculation.grand_total : 0)})
+                  </button>
+                )}
+                {isOperational && (
+                  <button
+                    type="button"
+                    onClick={() => setWbsTab('OPERATION')}
+                    className={wbsTab === 'OPERATION' ? 'btn-primary' : 'btn-secondary'}
+                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                  >
+                    Operation Items ({formatIDR(opCalculation ? opCalculation.grand_total : 0)})
                   </button>
                 )}
               </div>

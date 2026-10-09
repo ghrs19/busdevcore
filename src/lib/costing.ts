@@ -180,6 +180,31 @@ export interface CalculatedInfrastructure {
   grand_total: number;
 }
 
+
+// Operational WBS interfaces
+export interface OperationalItemInput {
+  name: string;
+  people_count: number;
+  days_count: number;
+  unit_cost_per_day?: number;
+  unit_cost?: number;
+  notes?: string;
+}
+
+export interface CalculatedOperationalItem {
+  name: string;
+  people_count: number;
+  days_count: number;
+  unit_cost_per_day: number;
+  total_cost: number;
+  notes?: string;
+}
+
+export interface CalculatedOperational {
+  items: CalculatedOperationalItem[];
+  grand_total: number;
+}
+
 // Billing summary
 export interface BillingSummary {
   one_time_dev: number;
@@ -219,10 +244,10 @@ export function validateEstimateRules(params: {
   }
 
   if (cats.length === 0) {
-    errors.push('Minimal 1 kategori proyek wajib dipilih (DEVELOPMENT, MAINTENANCE, atau INFRASTRUCTURE).');
+    errors.push('Minimal 1 kategori proyek wajib dipilih (DEVELOPMENT, MAINTENANCE, INFRASTRUCTURE, atau OPERATION).');
   }
 
-  const validCategories = ['DEVELOPMENT', 'MAINTENANCE', 'INFRASTRUCTURE'];
+  const validCategories = ['DEVELOPMENT', 'MAINTENANCE', 'INFRASTRUCTURE', 'OPERATION'];
   for (const c of cats) {
     if (!validCategories.includes(c)) {
       errors.push(`Kategori '${c}' tidak valid untuk IT. Harus salah satu dari: ${validCategories.join(', ')}.`);
@@ -471,13 +496,44 @@ export function calculateInfrastructure(
   };
 }
 
+export function calculateOperational(
+  items: OperationalItemInput[]
+): CalculatedOperational {
+  let grand_total = 0;
+  const calculatedItems: CalculatedOperationalItem[] = [];
+
+  for (const item of (items || [])) {
+    const people = Math.max(1, Number(item.people_count) || 1);
+    const days = Math.max(1, Number(item.days_count) || 1);
+    const unitCost = Math.max(0, Number(item.unit_cost_per_day ?? item.unit_cost) || 0);
+    const totalCost = people * days * unitCost;
+
+    grand_total += totalCost;
+    calculatedItems.push({
+      name: item.name || 'Operasional Baru',
+      people_count: people,
+      days_count: days,
+      unit_cost_per_day: unitCost,
+      total_cost: totalCost,
+      notes: item.notes || '',
+    });
+  }
+
+  return {
+    items: calculatedItems,
+    grand_total,
+  };
+}
+
 export function calculateBillingSummary(params: {
   hasDevelopment: boolean;
   hasMaintenance: boolean;
   hasInfrastructure: boolean;
+  hasOperational?: boolean;
   devCost?: number;
   maintenanceConfig?: CalculatedMaintenance | null;
   infrastructure?: CalculatedInfrastructure | null;
+  operational?: CalculatedOperational | null;
 }): BillingSummary {
   const one_time_dev = params.hasDevelopment ? (params.devCost || 0) : 0;
   
@@ -545,6 +601,7 @@ export interface CalculatedEstimate {
   };
   maintenance?: CalculatedMaintenance;
   infrastructure?: CalculatedInfrastructure;
+  operational?: CalculatedOperational;
   billing_summary: BillingSummary;
 }
 
@@ -558,6 +615,7 @@ export function calculateEstimate(params: {
   modules?: ModuleInput[];
   maintenance?: MaintenanceConfigInput;
   infrastructure?: InfrastructureItemInput[];
+  operational?: OperationalItemInput[];
 }): CalculatedEstimate {
   const rawCodes = params.categoryCodes 
     ? (Array.isArray(params.categoryCodes) ? params.categoryCodes : [params.categoryCodes])
@@ -586,6 +644,7 @@ export function calculateEstimate(params: {
   const hasDev = cats.includes('DEVELOPMENT');
   const hasMaint = cats.includes('MAINTENANCE');
   const hasInfra = cats.includes('INFRASTRUCTURE');
+  const hasOp = cats.includes('OPERATION');
 
   // Development calculation
   let calculatedModules: CalculatedModule[] = [];
@@ -627,13 +686,21 @@ export function calculateEstimate(params: {
     calculatedInfrastructure = calculateInfrastructure(params.infrastructure);
   }
 
+  // Operational calculation
+  let calculatedOperational: CalculatedOperational | undefined = undefined;
+  if (hasOp && params.operational) {
+    calculatedOperational = calculateOperational(params.operational);
+  }
+
   const billing_summary = calculateBillingSummary({
     hasDevelopment: hasDev,
     hasMaintenance: hasMaint,
     hasInfrastructure: hasInfra,
+    hasOperational: hasOp,
     devCost: dev_cost,
     maintenanceConfig: calculatedMaintenance || null,
     infrastructure: calculatedInfrastructure || null,
+    operational: calculatedOperational || null,
   });
 
   const total_hours = dev_hours + (calculatedMaintenance ? calculatedMaintenance.total_monthly_hours * calculatedMaintenance.duration_months : 0);
@@ -654,6 +721,7 @@ export function calculateEstimate(params: {
     cost_by_role,
     maintenance: calculatedMaintenance,
     infrastructure: calculatedInfrastructure,
+    operational: calculatedOperational,
     billing_summary,
   };
 }

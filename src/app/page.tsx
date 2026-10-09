@@ -87,6 +87,14 @@ interface SavedEstimate {
     total_cost: number;
     notes?: string;
   }> | null;
+  operational_items?: Array<{
+    name: string;
+    people_count: number;
+    days_count: number;
+    unit_cost_per_day: number;
+    total_cost: number;
+    notes?: string;
+  }> | null;
   billing_summary?: {
     one_time_dev: number;
     one_time_infra: number;
@@ -153,7 +161,7 @@ export default function HistoricalEstimatesDashboard() {
   const [inspectId, setInspectId] = useState<number | null>(null);
   const [inspectDetail, setInspectDetail] = useState<EstimateDetail | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
-  const [modalTab, setModalTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE'>('ALL');
+  const [modalTab, setModalTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE' | 'OPERATION'>('ALL');
 
   // Delete Confirmation Modal states
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
@@ -1121,6 +1129,16 @@ export default function HistoricalEstimatesDashboard() {
                           C. Infrastructure Items ({inspectDetail.infrastructure_items.length} Item)
                         </button>
                       )}
+                      {inspectDetail.operational_items && inspectDetail.operational_items.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setModalTab('OPERATION')}
+                          className={modalTab === 'OPERATION' ? 'btn-primary' : 'btn-secondary'}
+                          style={{ fontSize: '12px', padding: '5px 12px' }}
+                        >
+                          D. Operational Items ({inspectDetail.operational_items.length} Item)
+                        </button>
+                      )}
                     </div>
 
                     {/* Section A: Development WBS Breakdown */}
@@ -1300,6 +1318,54 @@ export default function HistoricalEstimatesDashboard() {
                               </tbody>
                             </table>
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section D: Operational Items */}
+                    {(modalTab === 'ALL' || modalTab === 'OPERATION') && inspectDetail.operational_items && inspectDetail.operational_items.length > 0 && (
+                      <div style={{ marginTop: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              D. Biaya Operasional / Operation Items ({inspectDetail.operational_items.length} Item)
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                              Transportasi, hotel, uang harian, dan akomodasi lapangan
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            Subtotal Operational: <strong style={{ color: '#10b981' }}>{formatIDR(inspectDetail.operational_items.reduce((acc: number, it: any) => acc + (Number(it.total_cost) || 0), 0))}</strong>
+                          </div>
+                        </div>
+
+                        <div style={{ overflowX: 'auto', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                          <table className="excel-table">
+                            <thead>
+                              <tr>
+                                <th style={{ width: '40px', textAlign: 'center' }}>NO</th>
+                                <th>NAMA ITEM OPERASIONAL</th>
+                                <th style={{ width: '100px', textAlign: 'center' }}>ORANG (PAX)</th>
+                                <th style={{ width: '100px', textAlign: 'center' }}>HARI</th>
+                                <th style={{ width: '140px', textAlign: 'right' }}>RATE/HARI/PAX</th>
+                                <th style={{ width: '150px', textAlign: 'right' }}>TOTAL BIAYA</th>
+                                <th style={{ width: '180px' }}>CATATAN</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {inspectDetail.operational_items.map((item: any, idx: number) => (
+                                <tr key={idx}>
+                                  <td style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
+                                  <td style={{ fontWeight: 500 }}>{item.name}</td>
+                                  <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{item.people_count} org</td>
+                                  <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{item.days_count} hari</td>
+                                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatIDR(item.unit_cost_per_day)}</td>
+                                  <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-hover)', fontFamily: 'var(--font-mono)' }}>{formatIDR(item.total_cost)}</td>
+                                  <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{item.notes || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
