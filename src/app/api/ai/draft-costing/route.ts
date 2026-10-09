@@ -26,10 +26,36 @@ if (typeof (globalThis as any).DOMMatrix === 'undefined') {
         }
       }
     }
+    scaleSelf(sx = 1, sy = sx) {
+      this.a *= sx;
+      this.b *= sx;
+      this.c *= sy;
+      this.d *= sy;
+      this.m11 = this.a; this.m12 = this.b;
+      this.m21 = this.c; this.m22 = this.d;
+      return this;
+    }
+    translateSelf(tx = 0, ty = 0) {
+      this.e += this.a * tx + this.c * ty;
+      this.f += this.b * tx + this.d * ty;
+      this.m41 = this.e;
+      this.m42 = this.f;
+      return this;
+    }
     multiply(other: any) { return new SimpleDOMMatrix(); }
-    translate(tx = 0, ty = 0) { return new SimpleDOMMatrix(); }
-    scale(sx = 1, sy = 1) { return new SimpleDOMMatrix(); }
+    multiplySelf(other: any) { return this; }
+    preMultiplySelf(other: any) { return this; }
+    invertSelf() { return this; }
+    translate(tx = 0, ty = 0) {
+      const copy = new SimpleDOMMatrix([this.a, this.b, this.c, this.d, this.e, this.f]);
+      return copy.translateSelf(tx, ty);
+    }
+    scale(sx = 1, sy = sx) {
+      const copy = new SimpleDOMMatrix([this.a, this.b, this.c, this.d, this.e, this.f]);
+      return copy.scaleSelf(sx, sy);
+    }
     rotate(angle = 0) { return new SimpleDOMMatrix(); }
+    rotateSelf(angle = 0) { return this; }
     inverse() { return new SimpleDOMMatrix(); }
     transformPoint(point: any) { return point || { x: 0, y: 0 }; }
   }
@@ -152,15 +178,28 @@ function parseSpreadsheet(buffer: Buffer, filename: string): string {
 // Helper: Parse PDF
 async function parsePdf(buffer: Buffer, filename: string): Promise<string> {
   try {
+    // Inject WorkerMessageHandler if not already registered
+    try {
+      // @ts-ignore
+      const workerModule = await import('pdfjs-dist/build/pdf.worker.mjs');
+      if (workerModule && workerModule.WorkerMessageHandler) {
+        (globalThis as any).pdfjsWorker = {
+          WorkerMessageHandler: workerModule.WorkerMessageHandler,
+        };
+      }
+    } catch {
+      // Ignore fallback
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfModule = require('pdf-parse');
-    if (typeof pdfModule === 'function') {
-      const data = await pdfModule(buffer);
-      return `[Dokumen PDF: ${filename}]\n${data.text || ''}\n\n`;
-    } else if (pdfModule.PDFParse) {
+    if (pdfModule.PDFParse) {
       const parser = new pdfModule.PDFParse({ data: buffer });
       const result = await parser.getText();
       return `[Dokumen PDF: ${filename}]\n${result.text || ''}\n\n`;
+    } else if (typeof pdfModule === 'function') {
+      const data = await pdfModule(buffer);
+      return `[Dokumen PDF: ${filename}]\n${data.text || ''}\n\n`;
     } else if (pdfModule.default && typeof pdfModule.default === 'function') {
       const data = await pdfModule.default(buffer);
       return `[Dokumen PDF: ${filename}]\n${data.text || ''}\n\n`;
