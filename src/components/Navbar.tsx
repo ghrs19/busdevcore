@@ -1,14 +1,55 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function Navbar() {
+function NavLinks() {
   const pathname = usePathname();
-
   const isDashboard = pathname === '/';
   const isNewEstimate = pathname === '/estimates/new';
+
+  return (
+    <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <Link
+        href="/"
+        className="pill-item"
+        style={{
+          textDecoration: 'none',
+          padding: '6px 14px',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: 500,
+          backgroundColor: isDashboard ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+          color: isDashboard ? '#a5b4fc' : 'var(--text-secondary)',
+          border: isDashboard ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <span>Estimates / Dashboard</span>
+      </Link>
+
+      <Link
+        href="/estimates/new"
+        className="pill-item"
+        style={{
+          textDecoration: 'none',
+          padding: '6px 14px',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: 500,
+          backgroundColor: isNewEstimate ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+          color: isNewEstimate ? '#a5b4fc' : 'var(--text-secondary)',
+          border: isNewEstimate ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <span>+ Buat Costing</span>
+      </Link>
+    </nav>
+  );
+}
+export default function Navbar() {
 
   return (
     <header
@@ -93,43 +134,9 @@ export default function Navbar() {
         </Link>
 
         {/* Global Navigation Links */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Link
-            href="/"
-            className="pill-item"
-            style={{
-              textDecoration: 'none',
-              padding: '6px 14px',
-              borderRadius: '6px',
-              fontSize: '13px',
-              fontWeight: 500,
-              backgroundColor: isDashboard ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-              color: isDashboard ? '#a5b4fc' : 'var(--text-secondary)',
-              border: isDashboard ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>Estimates / Dashboard</span>
-          </Link>
-
-          <Link
-            href="/estimates/new"
-            className="pill-item"
-            style={{
-              textDecoration: 'none',
-              padding: '6px 14px',
-              borderRadius: '6px',
-              fontSize: '13px',
-              fontWeight: 500,
-              backgroundColor: isNewEstimate ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-              color: isNewEstimate ? '#a5b4fc' : 'var(--text-secondary)',
-              border: isNewEstimate ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>+ Buat Costing</span>
-          </Link>
-        </nav>
+        <Suspense fallback={<nav style={{ height: '32px' }} />}>
+          <NavLinks />
+        </Suspense>
 
         {/* Status Badges */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
