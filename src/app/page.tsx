@@ -774,14 +774,14 @@ export default function HistoricalEstimatesDashboard() {
               <table className="linear-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '4%' }}>ID</th>
-                    <th style={{ width: '16%' }}>Company</th>
-                    <th style={{ width: '18%' }}>Project</th>
-                    <th style={{ width: '14%' }}>Kategori</th>
-                    <th style={{ width: '8%' }}>Tag</th>
-                    <th style={{ width: '9%', textAlign: 'right' }}>Total Hours</th>
+                    <th style={{ width: '5%' }}>ID</th>
+                    <th style={{ width: '18%' }}>Company</th>
+                    <th style={{ width: '22%' }}>Project</th>
+                    <th style={{ width: '16%' }}>Kategori</th>
+                    <th style={{ width: '9%' }}>Tag</th>
+                    <th style={{ width: '10%', textAlign: 'right' }}>Total Hours</th>
                     <th style={{ width: '13%', textAlign: 'right' }}>Total Cost</th>
-                    <th style={{ width: '8%', textAlign: 'center' }}>Aksi</th>
+                    <th style={{ width: '7%', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -885,17 +885,6 @@ export default function HistoricalEstimatesDashboard() {
                           >
                             ✏️
                           </a>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setInspectId(est.id);
-                            }}
-                            className="btn-secondary"
-                            style={{ height: '32px', fontSize: '11px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            Inspect
-                          </button>
                           <button
                             type="button"
                             onClick={(e) => {
