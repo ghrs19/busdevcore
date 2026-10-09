@@ -286,9 +286,9 @@ export default function HistoricalEstimatesDashboard() {
         // Search text: project title or company name
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
-          const matchTitle = est.title.toLowerCase().includes(q);
+          const matchProject = (est.project_name || est.title || '').toLowerCase().includes(q);
           const matchCompany = est.company_name.toLowerCase().includes(q);
-          if (!matchTitle && !matchCompany) return false;
+          if (!matchProject && !matchCompany) return false;
         }
 
         // Company filter
@@ -552,7 +552,7 @@ export default function HistoricalEstimatesDashboard() {
                 className="linear-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari berdasarkan judul proyek atau nama perusahaan..."
+                placeholder="Cari berdasarkan nama project atau perusahaan..."
                 style={{ padding: '9px 14px' }}
               />
             </div>
@@ -714,9 +714,8 @@ export default function HistoricalEstimatesDashboard() {
                 <thead>
                   <tr>
                     <th style={{ width: '4%' }}>ID</th>
-                    <th style={{ width: '18%' }}>Title</th>
-                    <th style={{ width: '12%' }}>Company</th>
-                    <th style={{ width: '12%' }}>Project</th>
+                    <th style={{ width: '16%' }}>Company</th>
+                    <th style={{ width: '18%' }}>Project</th>
                     <th style={{ width: '14%' }}>Kategori</th>
                     <th style={{ width: '8%' }}>Tag</th>
                     <th style={{ width: '9%', textAlign: 'right' }}>Total Hours</th>
@@ -744,8 +743,11 @@ export default function HistoricalEstimatesDashboard() {
                         </span>
                       </td>
                       <td>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{est.company_name}</span>
+                      </td>
+                      <td>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {est.title}
+                          {est.project_name || est.title || '-'}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
                           {new Date(est.created_at).toLocaleDateString('id-ID', {
@@ -754,14 +756,6 @@ export default function HistoricalEstimatesDashboard() {
                             year: 'numeric',
                           })}
                         </div>
-                      </td>
-                      <td>
-                        <span style={{ color: 'var(--text-secondary)' }}>{est.company_name}</span>
-                      </td>
-                      <td>
-                        <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '12px' }}>
-                          {est.project_name || '-'}
-                        </span>
                       </td>
                       <td>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -920,7 +914,7 @@ export default function HistoricalEstimatesDashboard() {
                     ESTIMATE #{inspectId}
                   </div>
                   <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {inspectDetail ? inspectDetail.title : 'Memuat data...'}
+                    {inspectDetail ? (inspectDetail.project_name || inspectDetail.title) : 'Memuat data...'}
                   </h2>
                 </div>
                 <button
