@@ -42,6 +42,9 @@ interface SavedEstimate {
   id: number;
   title: string;
   status: string;
+  parent_id?: number | null;
+  version?: number;
+  revision_notes?: string | null;
   total_hours: string | number;
   total_cost: string | number;
   rate_snapshots: Record<string, RoleSnapshotEntry | number>;
@@ -168,6 +171,12 @@ export default function HistoricalEstimatesDashboard() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Fork / Revision modal states
+  const [forkTarget, setForkTarget] = useState<SavedEstimate | null>(null);
+  const [forkNotes, setForkNotes] = useState('');
+  const [isForking, setIsForking] = useState(false);
+  const [forkError, setForkError] = useState<string | null>(null);
+
   // Toast Notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -244,6 +253,37 @@ export default function HistoricalEstimatesDashboard() {
       isMounted = false;
     };
   }, [inspectId]);
+
+  const handleForkEstimate = async () => {
+    if (!forkTarget) return;
+    setIsForking(true);
+    setForkError(null);
+
+    try {
+      const res = await fetch(`/api/estimates/${forkTarget.id}/fork`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ revision_notes: forkNotes || 'Revisi dari v' + (forkTarget.version || 1) }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setForkError(data.error || 'Gagal membuat revisi/fork estimate');
+        return;
+      }
+
+      showToast(`Revisi v${data.version} berhasil dibuat (#${data.new_estimate_id})!`);
+      setForkTarget(null);
+      setForkNotes('');
+      await loadData();
+      // Auto open inspect on the new fork
+      setInspectId(data.new_estimate_id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setForkError(msg);
+    } finally {
+      setIsForking(false);
+    }
+  };
 
   const handleDeleteEstimate = async () => {
     if (!deleteTarget) return;
@@ -817,6 +857,20 @@ export default function HistoricalEstimatesDashboard() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
+                              setForkTarget(est);
+                              setForkNotes(`Revisi ruang lingkup / diskon dari v${est.version || 1}`);
+                              setForkError(null);
+                            }}
+                            className="btn-secondary"
+                            style={{ fontSize: '11px', padding: '4px 8px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                            title="Buat Revisi / Fork Estimate Baru"
+                          >
+                            Fork v{(est.version || 1) + 1}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setInspectId(est.id);
                             }}
                             className="btn-secondary"
@@ -903,8 +957,36 @@ export default function HistoricalEstimatesDashboard() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--accent-hover)', fontWeight: 600 }}>
-                    ESTIMATE #{inspectId}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--accent-hover)', fontWeight: 600 }}>
+                      ESTIMATE #{inspectId}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        background: (inspectDetail?.version && inspectDetail.version > 1) ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                        color: (inspectDetail?.version && inspectDetail.version > 1) ? '#38bdf8' : 'var(--text-secondary)',
+                        border: (inspectDetail?.version && inspectDetail.version > 1) ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      v{inspectDetail?.version || 1}
+                    </span>
+                    {inspectDetail?.parent_id && (
+                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                        • Dasar Dokumen: #{inspectDetail.parent_id}
+                      </span>
+                    )}
+                    {inspectDetail?.revision_notes && (
+                      <span style={{ fontSize: '11px', color: '#38bdf8', fontStyle: 'italic' }}>
+                        &quot;{inspectDetail.revision_notes}&quot;
+                      </span>
+                    )}
+                    <span className="badge badge-draft" style={{ fontSize: '10px', padding: '1px 6px' }}>
+                      {inspectDetail?.status || 'DRAFT'}
+                    </span>
                   </div>
                   <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {inspectDetail ? (inspectDetail.project_name || inspectDetail.title) : 'Memuat data...'}
@@ -1456,12 +1538,33 @@ export default function HistoricalEstimatesDashboard() {
                 }}
               >
                 {inspectDetail ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeleteTarget(inspectDetail);
-                      setDeleteError(null);
-                    }}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForkTarget(inspectDetail);
+                        setForkNotes(`Revisi ruang lingkup / negosiasi harga dari v${inspectDetail.version || 1}`);
+                        setForkError(null);
+                      }}
+                      className="btn-secondary"
+                      style={{
+                        fontSize: '12px',
+                        padding: '6px 14px',
+                        color: '#38bdf8',
+                        borderColor: 'rgba(56, 189, 248, 0.4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>🔀 Buat Revisi (Fork v{(inspectDetail.version || 1) + 1})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteTarget(inspectDetail);
+                        setDeleteError(null);
+                      }}
                     style={{
                       fontSize: '12px',
                       padding: '6px 14px',
@@ -1478,6 +1581,7 @@ export default function HistoricalEstimatesDashboard() {
                   >
                     🗑️ Hapus Estimasi
                   </button>
+                  </div>
                 ) : (
                   <div />
                 )}
@@ -1627,6 +1731,124 @@ export default function HistoricalEstimatesDashboard() {
                     {isDeleting ? 'Menghapus...' : 'Hapus Estimasi'}
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fork / Revision Modal */}
+        {forkTarget && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 250,
+              padding: '16px',
+            }}
+            onClick={() => {
+              if (!isForking) setForkTarget(null);
+            }}
+          >
+            <div
+              className="linear-card-elevated"
+              style={{
+                width: '100%',
+                maxWidth: '480px',
+                padding: '24px',
+                background: '#0d0f11',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '20px' }}>🔀</span>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Buat Revisi (Fork Versioning)
+                  </h3>
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                    Membuat salinan independen untuk negosiasi atau penyesuaian scope.
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  marginBottom: '16px',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  <strong>Sumber:</strong> #{forkTarget.id} • {forkTarget.project_name || 'General Project'} ({forkTarget.company_name})
+                </div>
+                <div style={{ color: 'var(--text-secondary)' }}>
+                  <strong>Versi Baru yang Dibuat:</strong> <span style={{ color: '#38bdf8', fontWeight: 600 }}>v{(forkTarget.version || 1) + 1}</span> (Baseline v{forkTarget.version || 1} tetap tersimpan utuh)
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Catatan Revisi / Alasan Perubahan (Opsional):
+                </label>
+                <input
+                  type="text"
+                  className="input-linear"
+                  style={{ width: '100%', fontSize: '13px' }}
+                  value={forkNotes}
+                  onChange={(e) => setForkNotes(e.target.value)}
+                  placeholder="Contoh: Pemotongan modul QA, diskon negosiasi procurement..."
+                />
+              </div>
+
+              {forkError && (
+                <div style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', color: '#ef4444', fontSize: '12px', marginBottom: '16px' }}>
+                  {forkError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={isForking}
+                  onClick={() => setForkTarget(null)}
+                  style={{ fontSize: '13px', padding: '8px 16px' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleForkEstimate}
+                  disabled={isForking}
+                  style={{
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 18px',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: isForking ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {isForking ? 'Membuat Revisi...' : `Konfirmasi Fork v${(forkTarget.version || 1) + 1}`}
+                </button>
               </div>
             </div>
           </div>
