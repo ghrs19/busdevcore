@@ -2400,18 +2400,18 @@ export default function NewEstimatePage() {
                 </div>
 
                 {/* Infrastructure Items Table */}
-                <div style={{ overflowX: 'auto', marginBottom: '12px' }}>
-                  <table className="linear-table">
+                <div style={{ overflowX: 'auto', marginBottom: '12px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <table className="excel-table">
                     <thead>
                       <tr>
-                        <th style={{ minWidth: '180px' }}>Nama Item Infrastruktur</th>
+                        <th style={{ minWidth: '220px', textAlign: 'left' }}>Nama Item Infrastruktur</th>
                         <th style={{ width: '16%', textAlign: 'center' }}>Billing Type</th>
-                        <th style={{ width: '8%', textAlign: 'center' }}>Qty</th>
+                        <th style={{ width: '7%', textAlign: 'center' }}>Qty</th>
                         <th style={{ width: '15%', textAlign: 'right' }}>Unit Cost (Rp)</th>
-                        <th style={{ width: '12%', textAlign: 'center' }}>Durasi/Periode</th>
+                        <th style={{ width: '13%', textAlign: 'center' }}>Durasi/Periode</th>
                         <th style={{ width: '16%', textAlign: 'right' }}>Subtotal Biaya</th>
                         <th style={{ width: '15%' }}>Catatan</th>
-                        <th style={{ width: '4%', textAlign: 'center' }}></th>
+                        <th style={{ width: '36px', textAlign: 'center' }}></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2422,19 +2422,17 @@ export default function NewEstimatePage() {
                             <td>
                               <input
                                 type="text"
-                                className="linear-input"
+                                className="excel-cell-input"
                                 value={item.name}
                                 onChange={(e) => updateInfraItemField(iIdx, 'name', e.target.value)}
                                 placeholder="Contoh: Cloud VPS Hosting, Domain .com..."
-                                style={{ padding: '4px 8px', fontSize: '12px' }}
                               />
                             </td>
                             <td>
                               <select
-                                className="linear-select"
+                                className="excel-cell-select"
                                 value={item.billing_type}
                                 onChange={(e) => updateInfraItemField(iIdx, 'billing_type', e.target.value as InfraBillingType)}
-                                style={{ padding: '4px 8px', fontSize: '12px' }}
                               >
                                 <option value="ONE_TIME">ONE_TIME (Setup/Hardware)</option>
                                 <option value="MONTHLY">MONTHLY (Bulanan)</option>
@@ -2445,53 +2443,54 @@ export default function NewEstimatePage() {
                               <input
                                 type="number"
                                 min="1"
-                                className="linear-input font-mono-numbers"
+                                className="excel-cell-input font-mono-numbers"
                                 value={item.quantity}
                                 onChange={(e) => updateInfraItemField(iIdx, 'quantity', Math.max(1, Number(e.target.value) || 1))}
-                                style={{ textAlign: 'center', padding: '4px', fontSize: '12px' }}
+                                style={{ textAlign: 'center' }}
                               />
                             </td>
                             <td>
                               <input
                                 type="number"
                                 min="0"
-                                className="linear-input font-mono-numbers"
+                                className="excel-cell-input font-mono-numbers"
                                 value={item.unit_cost === 0 ? '' : item.unit_cost}
                                 onChange={(e) => updateInfraItemField(iIdx, 'unit_cost', Math.max(0, Number(e.target.value) || 0))}
-                                placeholder="0"
-                                style={{ textAlign: 'right', padding: '4px', fontSize: '12px' }}
+                                placeholder="-"
+                                style={{ textAlign: 'right' }}
                               />
                             </td>
                             <td style={{ textAlign: 'center' }}>
                               {item.billing_type === 'ONE_TIME' ? (
-                                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>1x Setup</span>
+                                <div className="excel-cell-static" style={{ color: 'var(--text-tertiary)', textAlign: 'center' }}>1x Setup</div>
                               ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', height: '100%', justifyContent: 'center' }}>
                                   <input
                                     type="number"
                                     min="1"
-                                    className="linear-input font-mono-numbers"
+                                    className="excel-cell-input font-mono-numbers"
                                     value={item.period_count || 1}
                                     onChange={(e) => updateInfraItemField(iIdx, 'period_count', Math.max(1, Number(e.target.value) || 1))}
-                                    style={{ width: '48px', textAlign: 'center', padding: '2px 4px', fontSize: '12px' }}
+                                    style={{ textAlign: 'center', width: '50px' }}
                                   />
-                                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', paddingRight: '6px' }}>
                                     {item.billing_type === 'MONTHLY' ? 'Bln' : 'Thn'}
                                   </span>
                                 </div>
                               )}
                             </td>
-                            <td className="font-mono-numbers" style={{ textAlign: 'right', fontSize: '12px', fontWeight: 600, color: '#10b981' }}>
-                              {calcItem ? formatIDR(calcItem.total_cost) : 'Rp 0'}
+                            <td style={{ textAlign: 'right' }}>
+                              <div className="excel-cell-static font-mono-numbers" style={{ fontWeight: 600, color: '#10b981' }}>
+                                {calcItem ? formatIDR(calcItem.total_cost) : 'Rp 0'}
+                              </div>
                             </td>
                             <td>
                               <input
                                 type="text"
-                                className="linear-input"
+                                className="excel-cell-input"
                                 value={item.notes || ''}
                                 onChange={(e) => updateInfraItemField(iIdx, 'notes', e.target.value)}
-                                placeholder="Keterangan..."
-                                style={{ padding: '4px 8px', fontSize: '11px' }}
+                                placeholder="Catatan..."
                               />
                             </td>
                             <td style={{ textAlign: 'center' }}>
@@ -2499,7 +2498,7 @@ export default function NewEstimatePage() {
                                 type="button"
                                 onClick={() => removeInfraItem(iIdx)}
                                 className="btn-ghost"
-                                style={{ color: 'var(--color-danger)', padding: '2px 6px', fontSize: '12px' }}
+                                style={{ color: 'var(--color-danger)', padding: '4px', fontSize: '12px', width: '100%', height: '100%' }}
                                 title="Hapus Item Infra"
                               >
                                 ✕
