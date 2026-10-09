@@ -2734,13 +2734,13 @@ export default function NewEstimatePage() {
                   <table className="excel-table">
                     <thead>
                       <tr>
-                        <th style={{ minWidth: '220px', textAlign: 'left' }}>Nama Item Operasional</th>
-                        <th style={{ width: '13%', textAlign: 'center' }}>Jumlah Orang</th>
-                        <th style={{ width: '13%', textAlign: 'center' }}>Jumlah Hari</th>
-                        <th style={{ width: '18%', textAlign: 'right' }}>Rate / Hari / Pax (Rp)</th>
-                        <th style={{ width: '18%', textAlign: 'right' }}>Subtotal Biaya</th>
-                        <th style={{ width: '20%' }}>Catatan / Keterangan</th>
-                        <th style={{ width: '36px', textAlign: 'center' }}></th>
+                        <th style={{ width: '28%', minWidth: '220px', textAlign: 'left' }}>Nama Item Operasional</th>
+                        <th style={{ width: '9%', minWidth: '85px', textAlign: 'center' }}>Orang (Pax)</th>
+                        <th style={{ width: '8%', minWidth: '75px', textAlign: 'center' }}>Hari</th>
+                        <th style={{ width: '16%', minWidth: '130px', textAlign: 'right' }}>Rate / Hari / Pax (Rp)</th>
+                        <th style={{ width: '16%', minWidth: '130px', textAlign: 'right' }}>Subtotal Biaya</th>
+                        <th style={{ width: '20%', minWidth: '160px' }}>Catatan / Keterangan</th>
+                        <th style={{ width: '40px', minWidth: '40px', textAlign: 'center' }}></th>
                       </tr>
                     </thead>
                     <tbody>
