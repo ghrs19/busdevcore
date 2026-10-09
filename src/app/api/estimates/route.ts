@@ -20,28 +20,52 @@ export async function GET() {
         e.notes,
         e.created_at,
         e.updated_at,
+        e.project_id,
+        p.name as project_name,
         c.id as company_id,
         c.name as company_name,
         st.id as service_type_id,
         st.code as service_type_code,
         st.name as service_type_name,
-        cat.id as category_id,
-        cat.code as category_code,
-        cat.name as category_name,
+        COALESCE(cat.id, (SELECT ec.category_id FROM estimate_categories ec WHERE ec.estimate_id = e.id LIMIT 1)) as category_id,
+        COALESCE(cat.code, (SELECT c_sub.code FROM estimate_categories ec JOIN categories c_sub ON ec.category_id = c_sub.id WHERE ec.estimate_id = e.id LIMIT 1)) as category_code,
+        COALESCE(cat.name, (SELECT c_sub.name FROM estimate_categories ec JOIN categories c_sub ON ec.category_id = c_sub.id WHERE ec.estimate_id = e.id LIMIT 1)) as category_name,
         t.id as tag_id,
         t.code as tag_code,
         t.name as tag_name,
         (SELECT COUNT(*)::int FROM estimate_modules m WHERE m.estimate_id = e.id) as module_count,
-        (SELECT COUNT(*)::int FROM estimate_tasks tk JOIN estimate_modules m ON tk.module_id = m.id WHERE m.estimate_id = e.id) as task_count
+        (SELECT COUNT(*)::int FROM estimate_tasks tk JOIN estimate_modules m ON tk.module_id = m.id WHERE m.estimate_id = e.id) as task_count,
+        COALESCE(
+          (
+            SELECT json_agg(json_build_object('id', c_sub.id, 'code', c_sub.code, 'name', c_sub.name) ORDER BY c_sub.id)
+            FROM estimate_categories ec
+            JOIN categories c_sub ON ec.category_id = c_sub.id
+            WHERE ec.estimate_id = e.id
+          ),
+          CASE WHEN cat.id IS NOT NULL 
+            THEN json_build_array(json_build_object('id', cat.id, 'code', cat.code, 'name', cat.name))
+            ELSE '[]'::json
+          END
+        ) as categories
       FROM project_estimates e
       JOIN companies c ON e.company_id = c.id
       JOIN service_types st ON e.service_type_id = st.id
-      JOIN categories cat ON e.category_id = cat.id
+      LEFT JOIN projects p ON e.project_id = p.id
+      LEFT JOIN categories cat ON e.category_id = cat.id
       LEFT JOIN tags t ON e.tag_id = t.id
       ORDER BY e.id DESC
     `);
 
-    return NextResponse.json({ success: true, estimates: res.rows });
+    const estimates = res.rows.map((row) => {
+      const cats = Array.isArray(row.categories) ? row.categories : [];
+      return {
+        ...row,
+        categories: cats,
+        category_codes: cats.map((c: { code: string }) => c.code),
+      };
+    });
+
+    return NextResponse.json({ success: true, estimates });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown database error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
@@ -54,8 +78,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const {
       company_id,
+      project_id,
+      new_project_name,
+      project_name,
       service_type_id,
       category_id,
+      category_ids,
       tag_id,
       title,
       notes,
@@ -77,6 +105,49 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Perusahaan tidak ditemukan.' }, { status: 404 });
     }
 
+    // Resolve or create project
+    let resolvedProjectId: number | null = null;
+    let resolvedProjectName: string | null = null;
+
+    if (project_id && project_id !== 'new') {
+      const pId = parseInt(String(project_id), 10);
+      if (!isNaN(pId)) {
+        const pCheck = await client.query('SELECT id, name, company_id FROM projects WHERE id = $1', [pId]);
+        if (pCheck.rows.length > 0) {
+          resolvedProjectId = pCheck.rows[0].id;
+          resolvedProjectName = pCheck.rows[0].name;
+        }
+      }
+    }
+
+    const onTheFlyName = new_project_name || (!resolvedProjectId && project_name ? project_name : null);
+    if (!resolvedProjectId && onTheFlyName && typeof onTheFlyName === 'string' && onTheFlyName.trim()) {
+      const pInsert = await client.query(
+        'INSERT INTO projects (company_id, name) VALUES ($1, $2) RETURNING id, name',
+        [company_id, onTheFlyName.trim()]
+      );
+      resolvedProjectId = pInsert.rows[0].id;
+      resolvedProjectName = pInsert.rows[0].name;
+    }
+
+    if (!resolvedProjectId) {
+      const pDef = await client.query(
+        'SELECT id, name FROM projects WHERE company_id = $1 ORDER BY id ASC LIMIT 1',
+        [company_id]
+      );
+      if (pDef.rows.length > 0) {
+        resolvedProjectId = pDef.rows[0].id;
+        resolvedProjectName = pDef.rows[0].name;
+      } else {
+        const pNew = await client.query(
+          'INSERT INTO projects (company_id, name, description) VALUES ($1, $2, $3) RETURNING id, name',
+          [company_id, 'General Project', 'Auto-created default project']
+        );
+        resolvedProjectId = pNew.rows[0].id;
+        resolvedProjectName = pNew.rows[0].name;
+      }
+    }
+
     // Verify service type
     const stCheck = await client.query('SELECT id, code, is_active FROM service_types WHERE id = $1', [service_type_id]);
     if (stCheck.rows.length === 0) {
@@ -90,20 +161,38 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Verify category
-    const catCheck = await client.query('SELECT id, code, name FROM categories WHERE id = $1', [category_id]);
+    // Resolve category_ids (support multi-category array or legacy single category_id)
+    const rawCategoryIds: number[] = Array.isArray(category_ids)
+      ? category_ids.map((id: unknown) => parseInt(String(id), 10)).filter((n: number) => !isNaN(n))
+      : (category_id ? [parseInt(String(category_id), 10)].filter((n: number) => !isNaN(n)) : []);
+
+    if (rawCategoryIds.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Minimal 1 kategori proyek wajib dipilih (Development, Maintenance, Infrastructure).',
+      }, { status: 400 });
+    }
+
+    const catCheck = await client.query(
+      'SELECT id, code, name FROM categories WHERE id = ANY($1::int[])',
+      [rawCategoryIds]
+    );
+
     if (catCheck.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Kategori tidak valid.' }, { status: 400 });
     }
-    const category = catCheck.rows[0];
+
+    const selectedCategories = catCheck.rows;
+    const selectedCodes = selectedCategories.map((c) => c.code.toUpperCase());
+    const hasDevelopment = selectedCodes.includes('DEVELOPMENT');
 
     // Verify Tag rules
     let tag = null;
-    if (category.code === 'DEVELOPMENT') {
+    if (hasDevelopment) {
       if (!tag_id) {
         return NextResponse.json({
           success: false,
-          error: "Untuk kategori 'Development', Tag (Initial / Change Request) wajib dipilih.",
+          error: "Untuk kategori yang menyertakan 'Development', Tag (Initial / Change Request) wajib dipilih.",
         }, { status: 400 });
       }
       const tagCheck = await client.query('SELECT id, code, name FROM tags WHERE id = $1', [tag_id]);
@@ -111,11 +200,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: 'Tag tidak valid.' }, { status: 400 });
       }
       tag = tagCheck.rows[0];
-    } else if (category.code === 'MAINTENANCE') {
+    } else {
       if (tag_id) {
         return NextResponse.json({
           success: false,
-          error: "Tag HANYA berlaku untuk kategori Development. Kategori Maintenance tidak boleh memiliki Tag.",
+          error: 'Tag HANYA berlaku jika kategori menyertakan Development. Untuk Maintenance/Infrastructure tanpa Development, Tag tidak boleh diisi.',
         }, { status: 400 });
       }
     }
@@ -138,7 +227,7 @@ export async function POST(req: Request) {
     const calculated = calculateEstimate({
       title: title.trim(),
       serviceTypeCode: serviceType.code,
-      categoryCode: category.code,
+      categoryCodes: selectedCodes,
       tagCode: tag ? tag.code : null,
       rates: effectiveRates,
       modules: parsedModules,
@@ -149,14 +238,15 @@ export async function POST(req: Request) {
 
     const estInsert = await client.query(
       `INSERT INTO project_estimates 
-        (title, company_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id, title, total_hours, total_cost, status, created_at`,
       [
         calculated.title,
         company_id,
+        resolvedProjectId,
         service_type_id,
-        category_id,
+        rawCategoryIds[0],
         tag ? tag.id : null,
         'DRAFT',
         JSON.stringify(effectiveRates),
@@ -167,6 +257,13 @@ export async function POST(req: Request) {
     );
 
     const estimateId = estInsert.rows[0].id;
+
+    for (const catId of rawCategoryIds) {
+      await client.query(
+        'INSERT INTO estimate_categories (estimate_id, category_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [estimateId, catId]
+      );
+    }
 
     for (let mIdx = 0; mIdx < calculated.modules.length; mIdx++) {
       const mod = calculated.modules[mIdx];
@@ -207,6 +304,10 @@ export async function POST(req: Request) {
       success: true,
       estimate: {
         id: estimateId,
+        project_id: resolvedProjectId,
+        project_name: resolvedProjectName,
+        categories: selectedCategories,
+        category_codes: selectedCodes,
         ...estInsert.rows[0],
         breakdown: calculated,
       },

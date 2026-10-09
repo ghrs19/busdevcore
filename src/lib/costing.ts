@@ -72,32 +72,43 @@ export interface EstimateValidationResult {
 
 export function validateEstimateRules(params: {
   serviceTypeCode: string;
-  categoryCode: string;
+  categoryCode?: string;
+  categoryCodes?: string | string[];
   tagCode?: string | null;
 }): EstimateValidationResult {
   const errors: string[] = [];
 
   const st = params.serviceTypeCode?.trim().toUpperCase();
-  const cat = params.categoryCode?.trim().toUpperCase();
+  const rawCodes = params.categoryCodes 
+    ? (Array.isArray(params.categoryCodes) ? params.categoryCodes : [params.categoryCodes])
+    : (params.categoryCode ? [params.categoryCode] : []);
+
+  const cats = rawCodes.map((c) => c.trim().toUpperCase()).filter(Boolean);
   const tag = params.tagCode ? params.tagCode.trim().toUpperCase() : null;
 
   if (st !== 'IT') {
     errors.push(`Service type '${params.serviceTypeCode}' tidak diizinkan. Hanya 'IT' yang aktif (Digital masih reserved).`);
   }
 
-  if (cat !== 'DEVELOPMENT' && cat !== 'MAINTENANCE') {
-    errors.push(`Kategori '${params.categoryCode}' tidak valid untuk IT. Harus 'DEVELOPMENT' atau 'MAINTENANCE'.`);
+  if (cats.length === 0) {
+    errors.push('Minimal 1 kategori proyek wajib dipilih (DEVELOPMENT, MAINTENANCE, atau INFRASTRUCTURE).');
   }
 
-  if (cat === 'DEVELOPMENT') {
-    if (!tag || (tag !== 'INITIAL' && tag !== 'CR')) {
-      errors.push("Kategori 'Development' wajib memilih Tag: 'Initial' atau 'CR'.");
+  const validCategories = ['DEVELOPMENT', 'MAINTENANCE', 'INFRASTRUCTURE'];
+  for (const c of cats) {
+    if (!validCategories.includes(c)) {
+      errors.push(`Kategori '${c}' tidak valid untuk IT. Harus salah satu dari: ${validCategories.join(', ')}.`);
     }
   }
 
-  if (cat === 'MAINTENANCE') {
+  const hasDev = cats.includes('DEVELOPMENT');
+  if (hasDev) {
+    if (!tag || (tag !== 'INITIAL' && tag !== 'CR')) {
+      errors.push("Kategori 'Development' wajib memilih Tag: 'Initial' atau 'CR'.");
+    }
+  } else {
     if (tag) {
-      errors.push("Kategori 'Maintenance' tidak boleh memiliki Tag (Tag HANYA berlaku untuk Development).");
+      errors.push("Tag HANYA berlaku untuk kategori Development (tidak boleh memiliki Tag jika tidak menyertakan Development).");
     }
   }
 
@@ -200,6 +211,7 @@ export interface CalculatedEstimate {
   title: string;
   serviceTypeCode: string;
   categoryCode: string;
+  categoryCodes: string[];
   tagCode?: string | null;
   rates: RoleRateMap;
   modules: CalculatedModule[];
@@ -224,14 +236,21 @@ export interface CalculatedEstimate {
 export function calculateEstimate(params: {
   title: string;
   serviceTypeCode: string;
-  categoryCode: string;
+  categoryCode?: string;
+  categoryCodes?: string | string[];
   tagCode?: string | null;
   rates?: RoleRateMap;
   modules: ModuleInput[];
 }): CalculatedEstimate {
+  const rawCodes = params.categoryCodes 
+    ? (Array.isArray(params.categoryCodes) ? params.categoryCodes : [params.categoryCodes])
+    : (params.categoryCode ? [params.categoryCode] : []);
+
+  const cats = rawCodes.map((c) => c.trim().toUpperCase()).filter(Boolean);
+
   const validation = validateEstimateRules({
     serviceTypeCode: params.serviceTypeCode,
-    categoryCode: params.categoryCode,
+    categoryCodes: cats,
     tagCode: params.tagCode,
   });
 
@@ -271,7 +290,8 @@ export function calculateEstimate(params: {
   return {
     title: params.title,
     serviceTypeCode: params.serviceTypeCode.toUpperCase(),
-    categoryCode: params.categoryCode.toUpperCase(),
+    categoryCode: cats[0] || '',
+    categoryCodes: cats,
     tagCode: params.tagCode ? params.tagCode.toUpperCase() : null,
     rates: effectiveRates,
     modules: calculatedModules,

@@ -47,6 +47,13 @@ interface RoleMaster {
   is_active?: boolean;
 }
 
+interface Project {
+  id: number;
+  company_id: number;
+  name: string;
+  description: string | null;
+}
+
 const formatIDR = (val: number | string) => {
   const num = typeof val === 'string' ? parseFloat(val) : val;
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
@@ -62,6 +69,16 @@ export default function NewEstimatePage() {
   const [roles, setRoles] = useState<RoleMaster[]>([]);
   const [rates, setRates] = useState<RoleRateMap>(DEFAULT_ROLE_RATES);
 
+  // Project states
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | ''>('');
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [projectError, setProjectError] = useState<string | null>(null);
+
   // New Role Modal state
   const [isNewRoleModalOpen, setIsNewRoleModalOpen] = useState(false);
   const [newRoleCode, setNewRoleCode] = useState('');
@@ -74,7 +91,7 @@ export default function NewEstimatePage() {
   const [title, setTitle] = useState('Djarum Urban - Microsite');
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | ''>('');
   const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<number | ''>('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | ''>('');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [selectedTagId, setSelectedTagId] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
 
@@ -166,7 +183,11 @@ export default function NewEstimatePage() {
         if (itType) setSelectedServiceTypeId(itType.id);
 
         const devCat = (data.categories || []).find((c: Category) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
-        if (devCat) setSelectedCategoryId(devCat.id);
+        if (devCat) {
+          setSelectedCategoryIds([devCat.id]);
+        } else if ((data.categories || []).length > 0) {
+          setSelectedCategoryIds([data.categories[0].id]);
+        }
 
         const initTag = (data.tags || []).find((t: Tag) => t.code === 'INITIAL');
         if (initTag) setSelectedTagId(initTag.id);
@@ -180,15 +201,91 @@ export default function NewEstimatePage() {
     }
   }, []);
 
+  // Load projects whenever selected company changes
+  const loadProjectsForCompany = useCallback(async (companyId: number) => {
+    setIsLoadingProjects(true);
+    try {
+      const res = await fetch(`/api/projects?company_id=${companyId}`);
+      const data = await res.json();
+      if (data.success) {
+        const projs: Project[] = data.projects || [];
+        setProjects(projs);
+        if (projs.length > 0) {
+          setSelectedProjectId(projs[0].id);
+        } else {
+          setSelectedProjectId('');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load projects', err);
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedCompanyId) {
+      loadProjectsForCompany(Number(selectedCompanyId));
+    } else {
+      setProjects([]);
+      setSelectedProjectId('');
+    }
+  }, [selectedCompanyId, loadProjectsForCompany]);
+
+  // Handle create new project inline
+  const handleCreateProject = async () => {
+    if (!selectedCompanyId) {
+      alert('Pilih perusahaan terlebih dahulu.');
+      return;
+    }
+    if (!newProjectName.trim()) {
+      setProjectError('Nama project wajib diisi.');
+      return;
+    }
+    setIsSavingProject(true);
+    setProjectError(null);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_id: Number(selectedCompanyId),
+          name: newProjectName.trim(),
+          description: newProjectDesc.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.project) {
+        const created: Project = data.project;
+        setProjects((prev) => [...prev, created]);
+        setSelectedProjectId(created.id);
+        setNewProjectName('');
+        setNewProjectDesc('');
+        setIsCreatingProject(false);
+        setSuccessMsg(`Project '${created.name}' berhasil dibuat!`);
+        setTimeout(() => setSuccessMsg(null), 3000);
+      } else {
+        setProjectError(data.error || 'Gagal membuat project.');
+      }
+    } catch {
+      setProjectError('Terjadi kesalahan jaringan.');
+    } finally {
+      setIsSavingProject(false);
+    }
+  };
+
   useEffect(() => {
     loadMetadata();
   }, [loadMetadata]);
 
-  // Derived classification
-  const currentCategory = categories.find((c) => c.id === Number(selectedCategoryId));
+  // Derived multi-classification
+  const selectedCategories = useMemo(() => {
+    return categories.filter((c) => selectedCategoryIds.includes(c.id));
+  }, [categories, selectedCategoryIds]);
 
-  const isDevelopment = currentCategory?.code === 'DEV' || currentCategory?.code === 'DEVELOPMENT';
-  const isMaintenance = currentCategory?.code === 'MAINTENANCE';
+  const isDevelopment = useMemo(() => {
+    return selectedCategories.some((c) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
+  }, [selectedCategories]);
 
   // Filtered categories & tags
   const availableCategories = useMemo(() => {
@@ -197,19 +294,35 @@ export default function NewEstimatePage() {
   }, [categories, selectedServiceTypeId]);
 
   const availableTags = useMemo(() => {
-    if (!currentCategory) return [];
-    return tags.filter((t) => t.applies_to_category_code === currentCategory.code);
-  }, [tags, currentCategory]);
+    return tags.filter((t) => t.applies_to_category_code === 'DEVELOPMENT' || t.applies_to_category_code === 'DEV');
+  }, [tags]);
 
-  const handleCategoryChange = (catId: number) => {
-    setSelectedCategoryId(catId);
-    const cat = categories.find((c) => c.id === catId);
-    if (cat?.code === 'DEV' || cat?.code === 'DEVELOPMENT') {
-      const initialTag = tags.find((t) => t.code === 'INITIAL');
-      if (initialTag) setSelectedTagId(initialTag.id);
-    } else {
-      setSelectedTagId('');
-    }
+  const handleToggleCategory = (catId: number) => {
+    setSelectedCategoryIds((prev) => {
+      let next: number[];
+      if (prev.includes(catId)) {
+        if (prev.length === 1) return prev; // Keep at least 1 category selected
+        next = prev.filter((id) => id !== catId);
+      } else {
+        next = [...prev, catId];
+      }
+
+      const hasDev = next.some((id) => {
+        const cat = categories.find((c) => c.id === id);
+        return cat?.code === 'DEV' || cat?.code === 'DEVELOPMENT';
+      });
+
+      if (hasDev) {
+        if (!selectedTagId) {
+          const initialTag = tags.find((t) => t.code === 'INITIAL');
+          if (initialTag) setSelectedTagId(initialTag.id);
+        }
+      } else {
+        setSelectedTagId('');
+      }
+
+      return next;
+    });
   };
 
   // Live real-time calculations
@@ -258,7 +371,7 @@ export default function NewEstimatePage() {
     const it = serviceTypes.find((s) => s.code === 'IT');
     if (it) setSelectedServiceTypeId(it.id);
     const dev = categories.find((c) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
-    if (dev) setSelectedCategoryId(dev.id);
+    if (dev) setSelectedCategoryIds([dev.id]);
     const init = tags.find((t) => t.code === 'INITIAL');
     if (init) setSelectedTagId(init.id);
 
@@ -343,7 +456,7 @@ export default function NewEstimatePage() {
     const it = serviceTypes.find((s) => s.code === 'IT');
     if (it) setSelectedServiceTypeId(it.id);
     const maint = categories.find((c) => c.code === 'MAINTENANCE');
-    if (maint) setSelectedCategoryId(maint.id);
+    if (maint) setSelectedCategoryIds([maint.id]);
     setSelectedTagId('');
 
     setModules([
@@ -634,22 +747,26 @@ export default function NewEstimatePage() {
       setErrorMsg('Perusahaan wajib dipilih.');
       return;
     }
+    if (!selectedProjectId) {
+      setErrorMsg('Project wajib dipilih atau dibuat.');
+      return;
+    }
     if (!selectedServiceTypeId) {
       setErrorMsg('Service Type wajib dipilih.');
       return;
     }
-    if (!selectedCategoryId) {
-      setErrorMsg('Kategori wajib dipilih.');
+    if (selectedCategoryIds.length === 0) {
+      setErrorMsg('Minimal 1 Kategori proyek wajib dipilih.');
       return;
     }
 
     if (isDevelopment && !selectedTagId) {
-      setErrorMsg("Kategori 'Development' wajib memilih Tag: Initial atau CR.");
+      setErrorMsg("Kategori menyertakan 'Development' wajib memilih Tag: Initial atau CR.");
       return;
     }
 
-    if (isMaintenance && selectedTagId) {
-      setErrorMsg("Kategori 'Maintenance' tidak boleh memiliki Tag.");
+    if (!isDevelopment && selectedTagId) {
+      setErrorMsg("Tag HANYA berlaku jika kategori menyertakan Development.");
       return;
     }
 
@@ -658,9 +775,11 @@ export default function NewEstimatePage() {
       const payload = {
         title: title.trim(),
         company_id: Number(selectedCompanyId),
+        project_id: Number(selectedProjectId),
         service_type_id: Number(selectedServiceTypeId),
-        category_id: Number(selectedCategoryId),
-        tag_id: selectedTagId ? Number(selectedTagId) : null,
+        category_ids: selectedCategoryIds,
+        category_id: selectedCategoryIds[0],
+        tag_id: isDevelopment && selectedTagId ? Number(selectedTagId) : null,
         notes: notes.trim() || null,
         custom_rates: rates,
         modules,
@@ -906,7 +1025,120 @@ export default function NewEstimatePage() {
                   ))}
                 </select>
               </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    Project Perusahaan *
+                  </label>
+                  {selectedCompanyId && (
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingProject(!isCreatingProject)}
+                      className="btn-ghost"
+                      style={{ fontSize: '11px', color: 'var(--accent-hover)', padding: '0 4px' }}
+                    >
+                      {isCreatingProject ? 'Tutup Form' : '+ Buat Project Baru'}
+                    </button>
+                  )}
+                </div>
+                <select
+                  className="linear-select"
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value ? Number(e.target.value) : '')}
+                  disabled={!selectedCompanyId || isLoadingProjects}
+                  required
+                >
+                  <option value="">
+                    {!selectedCompanyId
+                      ? '-- Pilih Perusahaan Terlebih Dahulu --'
+                      : isLoadingProjects
+                      ? 'Memuat daftar project...'
+                      : projects.length === 0
+                      ? '-- Belum ada project (Klik + Buat Project Baru) --'
+                      : '-- Pilih Project --'}
+                  </option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+
+            {/* Inline Create Project Form */}
+            {isCreatingProject && (
+              <div
+                className="linear-card-elevated"
+                style={{
+                  marginTop: '16px',
+                  padding: '16px',
+                  border: '1px dashed var(--border-hover)',
+                }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  Buat Project Baru untuk Perusahaan Terpilih
+                </div>
+                {projectError && (
+                  <div style={{ color: '#ef4444', fontSize: '12px', marginBottom: '8px' }}>
+                    {projectError}
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
+                      Nama Project *
+                    </label>
+                    <input
+                      type="text"
+                      className="linear-input"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      placeholder="Misal: Redesign Portal Web 2026"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
+                      Deskripsi Project (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      className="linear-input"
+                      value={newProjectDesc}
+                      onChange={(e) => setNewProjectDesc(e.target.value)}
+                      placeholder="Keterangan singkat scope atau tujuan project"
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreatingProject(false);
+                      setProjectError(null);
+                    }}
+                    className="btn-secondary"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateProject}
+                    className="btn-primary"
+                    disabled={isSavingProject || !newProjectName.trim()}
+                  >
+                    {isSavingProject ? 'Menyimpan...' : 'Simpan Project'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Inline Register Company Form */}
             {isRegisteringCompany && (
@@ -1075,31 +1307,46 @@ export default function NewEstimatePage() {
 
               {/* Category Pills */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
-                  Kategori Proyek
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)' }}>
+                    Kategori Proyek (Multi-Select) *
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--accent-hover)' }}>
+                    {selectedCategoryIds.length} Terpilih
+                  </span>
+                </div>
                 <div className="pill-group">
                   {availableCategories.map((c) => {
-                    const isSelected = selectedCategoryId === c.id;
+                    const isSelected = selectedCategoryIds.includes(c.id);
                     return (
                       <button
                         key={c.id}
                         type="button"
-                        onClick={() => handleCategoryChange(c.id)}
+                        onClick={() => handleToggleCategory(c.id)}
                         className={`pill-item ${isSelected ? 'active' : ''}`}
+                        style={{
+                          borderColor: isSelected ? 'var(--accent-hover)' : undefined,
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
                       >
-                        {c.name}
+                        {isSelected ? '✓ ' : ''}{c.name}
                       </button>
                     );
                   })}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                  Pilih kombinasi: Development, Maintenance, Infrastructure
                 </div>
               </div>
 
               {/* Tag Pills (Conditional) */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
-                  Tag Klasifikasi {isDevelopment && <span style={{ color: 'var(--accent-hover)' }}>(Wajib untuk Dev)</span>}
-                  {isMaintenance && <span style={{ color: 'var(--text-tertiary)' }}>(Disabled untuk Maint)</span>}
+                  Tag Klasifikasi {isDevelopment ? (
+                    <span style={{ color: 'var(--accent-hover)' }}>(Wajib untuk Dev)</span>
+                  ) : (
+                    <span style={{ color: 'var(--text-tertiary)' }}>(Tidak berlaku tanpa Dev)</span>
+                  )}
                 </label>
                 {isDevelopment ? (
                   <div className="pill-group">
@@ -1119,7 +1366,7 @@ export default function NewEstimatePage() {
                   </div>
                 ) : (
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '6px 0' }}>
-                    Kategori Maintenance tidak memiliki tag.
+                    Tag hanya aktif jika kategori menyertakan Development.
                   </div>
                 )}
               </div>

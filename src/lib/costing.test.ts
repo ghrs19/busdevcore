@@ -293,4 +293,61 @@ describe('Costing Calculation & Business Rules', () => {
     assert.equal(estimate.cost_by_role.MOBILE_DEV, 600000);
     assert.equal(estimate.cost_by_role.AI_ENGINEER, 500000);
   });
+
+  it('should validate multi-categories: Dev + Infra requires Tag (Initial / CR)', () => {
+    const resNoTag = validateEstimateRules({
+      serviceTypeCode: 'IT',
+      categoryCodes: ['DEVELOPMENT', 'INFRASTRUCTURE'],
+      tagCode: null,
+    });
+    assert.equal(resNoTag.valid, false);
+    assert.match(resNoTag.errors[0], /wajib memilih Tag/i);
+
+    const resWithTag = validateEstimateRules({
+      serviceTypeCode: 'IT',
+      categoryCodes: ['DEVELOPMENT', 'INFRASTRUCTURE'],
+      tagCode: 'INITIAL',
+    });
+    assert.equal(resWithTag.valid, true);
+
+    const resWithCR = validateEstimateRules({
+      serviceTypeCode: 'IT',
+      categoryCodes: ['DEVELOPMENT', 'MAINTENANCE', 'INFRASTRUCTURE'],
+      tagCode: 'CR',
+    });
+    assert.equal(resWithCR.valid, true);
+  });
+
+  it('should validate multi-categories: Maintenance + Infra forbids Tag', () => {
+    const resWithTag = validateEstimateRules({
+      serviceTypeCode: 'IT',
+      categoryCodes: ['MAINTENANCE', 'INFRASTRUCTURE'],
+      tagCode: 'INITIAL',
+    });
+    assert.equal(resWithTag.valid, false);
+    assert.match(resWithTag.errors[0], /tidak boleh memiliki Tag/i);
+
+    const resWithoutTag = validateEstimateRules({
+      serviceTypeCode: 'IT',
+      categoryCodes: ['MAINTENANCE', 'INFRASTRUCTURE'],
+      tagCode: null,
+    });
+    assert.equal(resWithoutTag.valid, true);
+  });
+
+  it('should validate single Infrastructure category forbids Tag', () => {
+    const resInfraWithTag = validateEstimateRules({
+      serviceTypeCode: 'IT',
+      categoryCodes: ['INFRASTRUCTURE'],
+      tagCode: 'INITIAL',
+    });
+    assert.equal(resInfraWithTag.valid, false);
+
+    const resInfraValid = validateEstimateRules({
+      serviceTypeCode: 'IT',
+      categoryCodes: ['INFRASTRUCTURE'],
+      tagCode: null,
+    });
+    assert.equal(resInfraValid.valid, true);
+  });
 });

@@ -43,6 +43,8 @@ interface SavedEstimate {
   notes?: string | null;
   created_at: string;
   updated_at?: string;
+  project_id?: number | null;
+  project_name?: string | null;
   company_id: number;
   company_name: string;
   service_type_id: number;
@@ -51,6 +53,8 @@ interface SavedEstimate {
   category_id: number;
   category_code: string;
   category_name: string;
+  categories?: { id: number; code: string; name: string }[];
+  category_codes?: string[];
   tag_id: number | null;
   tag_code: string | null;
   tag_name: string | null;
@@ -260,7 +264,11 @@ export default function HistoricalEstimatesDashboard() {
 
         // Category filter
         if (selectedCategory !== 'ALL') {
-          if (est.category_code !== selectedCategory) return false;
+          const hasCategory =
+            est.categories?.some((c) => c.code === selectedCategory) ||
+            est.category_codes?.includes(selectedCategory) ||
+            est.category_code === selectedCategory;
+          if (!hasCategory) return false;
         }
 
         // Tag filter
@@ -666,15 +674,16 @@ export default function HistoricalEstimatesDashboard() {
               <table className="linear-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '5%' }}>ID</th>
-                    <th style={{ width: '20%' }}>Project Title</th>
-                    <th style={{ width: '15%' }}>Company</th>
-                    <th style={{ width: '13%' }}>Klasifikasi</th>
-                    <th style={{ width: '9%' }}>Tag</th>
-                    <th style={{ width: '10%', textAlign: 'right' }}>Total Hours</th>
+                    <th style={{ width: '4%' }}>ID</th>
+                    <th style={{ width: '18%' }}>Title</th>
+                    <th style={{ width: '12%' }}>Company</th>
+                    <th style={{ width: '12%' }}>Project</th>
+                    <th style={{ width: '14%' }}>Kategori</th>
+                    <th style={{ width: '8%' }}>Tag</th>
+                    <th style={{ width: '9%', textAlign: 'right' }}>Total Hours</th>
                     <th style={{ width: '12%', textAlign: 'right' }}>Total Cost</th>
-                    <th style={{ width: '6%', textAlign: 'center' }}>Status</th>
-                    <th style={{ width: '10%', textAlign: 'center' }}>Aksi</th>
+                    <th style={{ width: '5%', textAlign: 'center' }}>Status</th>
+                    <th style={{ width: '6%', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -711,10 +720,25 @@ export default function HistoricalEstimatesDashboard() {
                         <span style={{ color: 'var(--text-secondary)' }}>{est.company_name}</span>
                       </td>
                       <td>
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                          {est.category_name}
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '12px' }}>
+                          {est.project_name || '-'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {est.categories && est.categories.length > 0 ? (
+                            est.categories.map((c) => (
+                              <span key={c.id || c.code} className="badge badge-accent" style={{ fontSize: '10px' }}>
+                                {c.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              {est.category_name || '-'}
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
                           {est.service_type_name}
                         </div>
                       </td>
@@ -878,10 +902,31 @@ export default function HistoricalEstimatesDashboard() {
                       </div>
 
                       <div className="linear-card-elevated" style={{ padding: '12px' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Klasifikasi</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Project</div>
                         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
-                          {inspectDetail.category_name}{' '}
-                          {inspectDetail.tag_name ? `(${inspectDetail.tag_name})` : ''}
+                          {inspectDetail.project_name || '-'}
+                        </div>
+                      </div>
+
+                      <div className="linear-card-elevated" style={{ padding: '12px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Kategori & Tag</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                          {inspectDetail.categories && inspectDetail.categories.length > 0 ? (
+                            inspectDetail.categories.map((c) => (
+                              <span key={c.id || c.code} className="badge badge-accent" style={{ fontSize: '11px' }}>
+                                {c.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {inspectDetail.category_name}
+                            </span>
+                          )}
+                          {inspectDetail.tag_name && (
+                            <span className="badge badge-draft" style={{ fontSize: '11px' }}>
+                              {inspectDetail.tag_name}
+                            </span>
+                          )}
                         </div>
                       </div>
 

@@ -15,18 +15,32 @@ export async function GET(
     const estRes = await pool.query(`
       SELECT 
         e.*,
+        p.name as project_name,
         c.name as company_name,
         c.email as company_email,
         st.code as service_type_code,
         st.name as service_type_name,
-        cat.code as category_code,
-        cat.name as category_name,
+        COALESCE(cat.code, (SELECT c_sub.code FROM estimate_categories ec JOIN categories c_sub ON ec.category_id = c_sub.id WHERE ec.estimate_id = e.id LIMIT 1)) as category_code,
+        COALESCE(cat.name, (SELECT c_sub.name FROM estimate_categories ec JOIN categories c_sub ON ec.category_id = c_sub.id WHERE ec.estimate_id = e.id LIMIT 1)) as category_name,
         t.code as tag_code,
-        t.name as tag_name
+        t.name as tag_name,
+        COALESCE(
+          (
+            SELECT json_agg(json_build_object('id', c_sub.id, 'code', c_sub.code, 'name', c_sub.name) ORDER BY c_sub.id)
+            FROM estimate_categories ec
+            JOIN categories c_sub ON ec.category_id = c_sub.id
+            WHERE ec.estimate_id = e.id
+          ),
+          CASE WHEN cat.id IS NOT NULL 
+            THEN json_build_array(json_build_object('id', cat.id, 'code', cat.code, 'name', cat.name))
+            ELSE '[]'::json
+          END
+        ) as categories
       FROM project_estimates e
       JOIN companies c ON e.company_id = c.id
       JOIN service_types st ON e.service_type_id = st.id
-      JOIN categories cat ON e.category_id = cat.id
+      LEFT JOIN projects p ON e.project_id = p.id
+      LEFT JOIN categories cat ON e.category_id = cat.id
       LEFT JOIN tags t ON e.tag_id = t.id
       WHERE e.id = $1
     `, [estimateId]);
@@ -36,6 +50,8 @@ export async function GET(
     }
 
     const estimate = estRes.rows[0];
+    const categories = Array.isArray(estimate.categories) ? estimate.categories : [];
+    const category_codes = categories.map((c: { code: string }) => c.code);
 
     // Fetch modules and tasks
     const modRes = await pool.query(`
@@ -64,6 +80,8 @@ export async function GET(
       success: true,
       estimate: {
         ...estimate,
+        categories,
+        category_codes,
         modules,
       },
     });
