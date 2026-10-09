@@ -2216,10 +2216,7 @@ export default function NewEstimatePage() {
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span
-                        className="linear-badge"
-                        style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', fontSize: '11px' }}
-                      >
+                      <span className="badge badge-info" style={{ fontSize: '11px' }}>
                         MONTHLY RECURRING
                       </span>
                       <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -2379,10 +2376,7 @@ export default function NewEstimatePage() {
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span
-                        className="linear-badge"
-                        style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', fontSize: '11px' }}
-                      >
+                      <span className="badge badge-warning" style={{ fontSize: '11px' }}>
                         HARDWARE & CLOUD
                       </span>
                       <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>

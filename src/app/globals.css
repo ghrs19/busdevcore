@@ -320,3 +320,15 @@ body {
 .linear-table tr:hover td {
   background: rgba(255, 255, 255, 0.02);
 }
+
+.badge-info {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.28);
+}
