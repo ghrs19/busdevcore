@@ -201,45 +201,53 @@ body {
 
 /* Tactile Pill Selectors */
 .pill-group {
-  display: inline-flex;
-  background: var(--bg-input);
+  display: flex;
+  align-items: stretch;
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  padding: 3px;
-  gap: 3px;
+  padding: 4px;
+  gap: 4px;
+  min-height: 42px;
+  box-sizing: border-box;
 }
 
 .pill-item {
+  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 8px 14px;
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-tertiary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
+  line-height: 1.25;
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  white-space: nowrap;
 }
 
 .pill-item:hover:not(.active):not(:disabled) {
-  color: var(--text-secondary);
+  color: var(--text-primary);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .pill-item.active {
   background: var(--accent-primary);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 12px var(--accent-glow);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 10px var(--accent-glow);
+  font-weight: 600;
 }
 
 .pill-item:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 

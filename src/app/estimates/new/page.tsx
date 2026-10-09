@@ -1560,9 +1560,9 @@ export default function NewEstimatePage() {
                         className={`pill-item ${isSelected ? 'active' : ''}`}
                         title={isReserved ? 'Digital reserved for future phase' : st.name}
                       >
-                        {st.name}
+                        <span>{st.code === 'IT' ? 'IT (Information Technology)' : 'Digital Marketing'}</span>
                         {isReserved && (
-                          <span style={{ fontSize: '10px', opacity: 0.6 }}>(Reserved)</span>
+                          <span style={{ fontSize: '10px', opacity: 0.6, marginLeft: '4px' }}>(Reserved)</span>
                         )}
                       </button>
                     );
@@ -1589,12 +1589,8 @@ export default function NewEstimatePage() {
                         type="button"
                         onClick={() => handleToggleCategory(c.id)}
                         className={`pill-item ${isSelected ? 'active' : ''}`}
-                        style={{
-                          borderColor: isSelected ? 'var(--accent-hover)' : undefined,
-                          fontWeight: isSelected ? 600 : 400,
-                        }}
                       >
-                        {isSelected ? '✓ ' : ''}{c.name}
+                        {c.name}
                       </button>
                     );
                   })}
