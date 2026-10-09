@@ -870,8 +870,11 @@ export default function HistoricalEstimatesDashboard() {
                             href={`/estimates/new?edit_id=${est.id}`}
                             className="btn-secondary"
                             style={{
+                              width: '32px',
+                              height: '32px',
+                              minWidth: '32px',
+                              padding: 0,
                               fontSize: '13px',
-                              padding: '4px 8px',
                               textDecoration: 'none',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -879,6 +882,7 @@ export default function HistoricalEstimatesDashboard() {
                               color: '#38bdf8',
                               borderColor: 'rgba(56, 189, 248, 0.3)',
                               borderRadius: '6px',
+                              boxSizing: 'border-box',
                             }}
                             title="Edit / Buat Revisi Estimasi ini"
                             onClick={(e) => e.stopPropagation()}
@@ -892,7 +896,7 @@ export default function HistoricalEstimatesDashboard() {
                               setInspectId(est.id);
                             }}
                             className="btn-secondary"
-                            style={{ fontSize: '11px', padding: '4px 8px' }}
+                            style={{ height: '32px', fontSize: '11px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             Inspect
                           </button>
@@ -904,8 +908,11 @@ export default function HistoricalEstimatesDashboard() {
                               setDeleteError(null);
                             }}
                             style={{
-                              fontSize: '11px',
-                              padding: '4px 8px',
+                              width: '32px',
+                              height: '32px',
+                              minWidth: '32px',
+                              padding: 0,
+                              fontSize: '13px',
                               background: 'rgba(239, 68, 68, 0.1)',
                               border: '1px solid rgba(239, 68, 68, 0.3)',
                               color: '#ef4444',
@@ -913,7 +920,8 @@ export default function HistoricalEstimatesDashboard() {
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px',
+                              justifyContent: 'center',
+                              boxSizing: 'border-box',
                             }}
                             title="Hapus Estimasi"
                           >
@@ -1712,15 +1720,19 @@ export default function HistoricalEstimatesDashboard() {
                       href={`/estimates/new?edit_id=${inspectDetail.id}`}
                       className="btn-secondary"
                       style={{
-                        fontSize: '14px',
-                        padding: '6px 12px',
+                        width: '32px',
+                        height: '32px',
+                        minWidth: '32px',
+                        padding: 0,
+                        fontSize: '13px',
                         textDecoration: 'none',
                         color: '#38bdf8',
-                        borderColor: 'rgba(56, 189, 248, 0.4)',
+                        borderColor: 'rgba(56, 189, 248, 0.3)',
+                        borderRadius: '6px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderRadius: '6px',
+                        boxSizing: 'border-box',
                       }}
                       title="Edit / Buat Revisi Estimasi ini"
                     >
@@ -1733,8 +1745,11 @@ export default function HistoricalEstimatesDashboard() {
                         setDeleteError(null);
                       }}
                       style={{
-                        fontSize: '14px',
-                        padding: '6px 12px',
+                        width: '32px',
+                        height: '32px',
+                        minWidth: '32px',
+                        padding: 0,
+                        fontSize: '13px',
                         background: 'rgba(239, 68, 68, 0.1)',
                         border: '1px solid rgba(239, 68, 68, 0.3)',
                         color: '#ef4444',
@@ -1743,6 +1758,7 @@ export default function HistoricalEstimatesDashboard() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        boxSizing: 'border-box',
                       }}
                       title="Hapus Estimasi"
                     >
