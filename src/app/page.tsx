@@ -852,7 +852,7 @@ export default function HistoricalEstimatesDashboard() {
                             }}
                             title="Hapus Estimasi"
                           >
-                            🗑️ Hapus
+                            🗑️
                           </button>
                         </div>
                       </td>
