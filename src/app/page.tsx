@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { type RoleRateMap } from '@/lib/costing';
 
@@ -112,6 +112,25 @@ export default function HistoricalEstimatesDashboard() {
   const [inspectDetail, setInspectDetail] = useState<EstimateDetail | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
+  // Delete Confirmation Modal states
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Toast Notification state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  }, []);
+
   // Load initial estimates and metadata
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -174,6 +193,48 @@ export default function HistoricalEstimatesDashboard() {
       isMounted = false;
     };
   }, [inspectId]);
+
+  const handleDeleteEstimate = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    const targetId = deleteTarget.id;
+    const targetTitle = deleteTarget.title;
+
+    try {
+      const res = await fetch(`/api/estimates/${targetId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setDeleteError(data.error || 'Gagal menghapus estimasi');
+        return;
+      }
+
+      // 1. Immediately remove from local estimates state -> triggers instant update in table & summary metrics
+      setEstimates((prev) => prev.filter((e) => e.id !== targetId));
+
+      // 2. Close inspect modal if it was open for this estimate
+      if (inspectId === targetId) {
+        setInspectId(null);
+        setInspectDetail(null);
+      }
+
+      // 3. Close delete confirmation modal
+      setDeleteTarget(null);
+
+      // 4. Show success toast notification
+      showToast(data.message || `Estimasi "${targetTitle}" (#${targetId}) berhasil dihapus.`);
+
+      // 5. Background re-fetch to ensure sync
+      loadData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setDeleteError(msg);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Filter & Sort logic
   const filteredEstimates = useMemo(() => {
@@ -605,15 +666,15 @@ export default function HistoricalEstimatesDashboard() {
               <table className="linear-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '6%' }}>ID</th>
-                    <th style={{ width: '22%' }}>Project Title</th>
+                    <th style={{ width: '5%' }}>ID</th>
+                    <th style={{ width: '20%' }}>Project Title</th>
                     <th style={{ width: '15%' }}>Company</th>
                     <th style={{ width: '13%' }}>Klasifikasi</th>
                     <th style={{ width: '9%' }}>Tag</th>
                     <th style={{ width: '10%', textAlign: 'right' }}>Total Hours</th>
-                    <th style={{ width: '13%', textAlign: 'right' }}>Total Cost</th>
+                    <th style={{ width: '12%', textAlign: 'right' }}>Total Cost</th>
                     <th style={{ width: '6%', textAlign: 'center' }}>Status</th>
-                    <th style={{ width: '6%', textAlign: 'center' }}>Aksi</th>
+                    <th style={{ width: '10%', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -684,17 +745,42 @@ export default function HistoricalEstimatesDashboard() {
                         <span className="badge badge-draft">{est.status}</span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setInspectId(est.id);
-                          }}
-                          className="btn-secondary"
-                          style={{ fontSize: '11px', padding: '4px 8px' }}
-                        >
-                          Inspect
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setInspectId(est.id);
+                            }}
+                            className="btn-secondary"
+                            style={{ fontSize: '11px', padding: '4px 8px' }}
+                          >
+                            Inspect
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget(est);
+                              setDeleteError(null);
+                            }}
+                            style={{
+                              fontSize: '11px',
+                              padding: '4px 8px',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#ef4444',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                            title="Hapus Estimasi"
+                          >
+                            🗑️ Hapus
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -963,10 +1049,36 @@ export default function HistoricalEstimatesDashboard() {
                   borderTop: '1px solid var(--border-subtle)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'flex-end',
+                  justifyContent: 'space-between',
                   background: 'rgba(255, 255, 255, 0.02)',
                 }}
               >
+                {inspectDetail ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteTarget(inspectDetail);
+                      setDeleteError(null);
+                    }}
+                    style={{
+                      fontSize: '12px',
+                      padding: '6px 14px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#ef4444',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontWeight: 500,
+                    }}
+                  >
+                    🗑️ Hapus Estimasi
+                  </button>
+                ) : (
+                  <div />
+                )}
                 <button
                   type="button"
                   onClick={() => setInspectId(null)}
@@ -976,6 +1088,184 @@ export default function HistoricalEstimatesDashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteTarget && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 200,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+            onClick={() => {
+              if (!isDeleting) {
+                setDeleteTarget(null);
+                setDeleteError(null);
+              }
+            }}
+          >
+            <div
+              className="linear-card"
+              style={{
+                width: '100%',
+                maxWidth: '480px',
+                padding: '24px',
+                background: '#121417',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '16px',
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Konfirmasi Hapus Estimasi
+                </h3>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    setDeleteTarget(null);
+                    setDeleteError(null);
+                  }}
+                  disabled={isDeleting}
+                  style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {deleteError ? (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    marginBottom: '16px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  ⚠️ {deleteError}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '20px',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Apakah Anda yakin ingin menghapus estimasi{' '}
+                  <strong style={{ color: 'var(--text-primary)' }}>{deleteTarget.title}</strong>{' '}
+                  (#{deleteTarget.id})?
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      fontSize: '12px',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    Seluruh modul dan task pada estimasi ini akan dihapus secara permanen dari database. Tindakan ini tidak dapat dibatalkan.
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setDeleteTarget(null);
+                    setDeleteError(null);
+                  }}
+                  disabled={isDeleting}
+                >
+                  {deleteError ? 'Tutup' : 'Batal'}
+                </button>
+                {!deleteError && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteEstimate}
+                    disabled={isDeleting}
+                    style={{
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      cursor: isDeleting ? 'not-allowed' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    {isDeleting ? 'Menghapus...' : 'Hapus Estimasi'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div
+            style={{
+              position: 'fixed',
+              top: '24px',
+              right: '24px',
+              zIndex: 300,
+              padding: '12px 20px',
+              borderRadius: '8px',
+              backgroundColor: '#10b981',
+              color: '#ffffff',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              fontSize: '13px',
+              fontWeight: 500,
+            }}
+          >
+            <span>✓ {toastMessage}</span>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: '0 2px',
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
           </div>
         )}
       </main>

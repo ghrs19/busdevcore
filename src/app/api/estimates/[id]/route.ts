@@ -72,3 +72,35 @@ export async function GET(
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const estimateId = parseInt(id, 10);
+    if (isNaN(estimateId)) {
+      return NextResponse.json({ success: false, error: 'ID estimate tidak valid' }, { status: 400 });
+    }
+
+    const checkRes = await pool.query(
+      'SELECT id, title FROM project_estimates WHERE id = $1',
+      [estimateId]
+    );
+
+    if (checkRes.rows.length === 0) {
+      return NextResponse.json({ success: false, error: 'Estimate tidak ditemukan' }, { status: 404 });
+    }
+
+    await pool.query('DELETE FROM project_estimates WHERE id = $1', [estimateId]);
+
+    return NextResponse.json({
+      success: true,
+      message: `Estimate #${estimateId} berhasil dihapus`,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown database error';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
+}
