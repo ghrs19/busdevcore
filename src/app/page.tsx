@@ -965,30 +965,67 @@ export default function HistoricalEstimatesDashboard() {
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '11px', color: 'var(--accent-hover)', fontWeight: 600 }}>
                       ESTIMATE #{inspectId}
                     </span>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        background: (inspectDetail?.version && inspectDetail.version > 1) ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                        color: (inspectDetail?.version && inspectDetail.version > 1) ? '#38bdf8' : 'var(--text-secondary)',
-                        border: (inspectDetail?.version && inspectDetail.version > 1) ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
-                      }}
-                    >
-                      v{inspectDetail?.version || 1}
-                    </span>
+
+                    {/* Interactive Version Selector Dropdown */}
+                    {inspectDetail?.version_history && inspectDetail.version_history.length > 1 ? (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <select
+                          value={inspectDetail.id}
+                          onChange={(e) => {
+                            const selectedId = Number(e.target.value);
+                            if (selectedId) {
+                              setInspectId(selectedId);
+                              setModalTab('ALL');
+                            }
+                          }}
+                          className="input-linear"
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            height: '24px',
+                            color: '#38bdf8',
+                            backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                            border: '1px solid rgba(56, 189, 248, 0.4)',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                          }}
+                          title="Ganti ke versi lain dari dokumen ini"
+                        >
+                          {inspectDetail.version_history.map((vh) => (
+                            <option key={vh.id} value={vh.id} style={{ background: '#13161a', color: '#fff' }}>
+                              Versi v{vh.version} {vh.id === inspectDetail.id ? '(Aktif)' : `(#${vh.id})`} — {formatIDR(vh.total_cost)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          background: (inspectDetail?.version && inspectDetail.version > 1) ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                          color: (inspectDetail?.version && inspectDetail.version > 1) ? '#38bdf8' : 'var(--text-secondary)',
+                          border: (inspectDetail?.version && inspectDetail.version > 1) ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
+                      >
+                        v{inspectDetail?.version || 1}
+                      </span>
+                    )}
+
                     {inspectDetail?.parent_id && (
                       <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                        • Dasar Dokumen: #{inspectDetail.parent_id}
+                        • Dokumen Asal: #{inspectDetail.parent_id}
                       </span>
                     )}
                     {inspectDetail?.revision_notes && (
-                      <span style={{ fontSize: '11px', color: '#38bdf8', fontStyle: 'italic' }}>
+                      <span style={{ fontSize: '11px', color: '#38bdf8', fontStyle: 'italic', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={inspectDetail.revision_notes}>
                         &quot;{inspectDetail.revision_notes}&quot;
                       </span>
                     )}
