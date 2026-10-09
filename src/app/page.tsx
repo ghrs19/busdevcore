@@ -795,25 +795,10 @@ export default function HistoricalEstimatesDashboard() {
                           style={{
                             fontWeight: 600,
                             color: '#10b981',
-                            display: 'block',
                           }}
                         >
                           {formatIDR(est.total_cost)}
                         </span>
-                        {est.billing_summary && (
-                          <div style={{ fontSize: '10px', marginTop: '2px', lineHeight: 1.2 }}>
-                            {Number(est.billing_summary.total_one_time || est.billing_summary.one_time_dev) > 0 && (
-                              <div style={{ color: 'var(--text-tertiary)' }}>
-                                One-Time: {formatIDR(est.billing_summary.total_one_time || est.billing_summary.one_time_dev)}
-                              </div>
-                            )}
-                            {Number(est.billing_summary.total_monthly_recurring || est.billing_summary.monthly_maintenance) > 0 && (
-                              <div style={{ color: '#38bdf8' }}>
-                                Rec: {formatIDR(est.billing_summary.total_monthly_recurring || est.billing_summary.monthly_maintenance)}/bln
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <span className="badge badge-draft">{est.status}</span>
