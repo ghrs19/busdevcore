@@ -208,6 +208,7 @@ export default function NewEstimatePage() {
   const [aiFiles, setAiFiles] = useState<File[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
+  const [aiChatHistory, setAiChatHistory] = useState<Array<{ role: 'user' | 'assistant'; text: string; time: string }>>([]);
 
   const generateAIDraft = async () => {
     if (!aiPrompt.trim() && !aiFiles.length) {
@@ -217,9 +218,27 @@ export default function NewEstimatePage() {
     setAiLoading(true);
     setErrorMsg(null);
     try {
+      const currentSnapshot = {
+        company_id: selectedCompanyId,
+        project_id: selectedProjectId,
+        categories: selectedCategories.map(c => c.code),
+        tag_id: selectedTagId,
+        development_modules: modules,
+        maintenance_config: isMaintenance ? {
+          duration_months: maintenanceDurationMonths,
+          tasks: maintenanceTasks,
+        } : null,
+        infrastructure_items: isInfrastructure ? infraItems : [],
+        notes: notes,
+      };
+
       const body = new FormData();
       body.set('prompt', aiPrompt.trim());
+      body.set('current_state', JSON.stringify(currentSnapshot));
+      body.set('chat_history', JSON.stringify(aiChatHistory.map(m => ({ role: m.role, content: m.text }))));
       aiFiles.forEach((file) => body.append('files', file));
+
+      const submittedPrompt = aiPrompt.trim();
       const res = await fetch('/api/ai/draft-costing', { method: 'POST', body });
       const result = await res.json();
       if (!res.ok || !result.success) throw new Error(result.error || 'Gagal membuat draft costing.');
@@ -274,9 +293,17 @@ export default function NewEstimatePage() {
       }
       const infrastructure = draft.infrastructure_items || draft.infrastructure;
       if (Array.isArray(infrastructure)) setInfraItems(infrastructure.map((item: InfrastructureItemInput) => ({ ...item, billing_type: item.billing_type || 'MONTHLY', quantity: Number(item.quantity) || 1, unit_cost: Number(item.unit_cost) || 0, period_count: Number(item.period_count) || 1, notes: item.notes || '' })));
-      setAiSummary(draft.summary_notes || draft.summary || 'Draft costing berhasil dibuat.');
-      setSuccessMsg('Draft costing AI berhasil diterapkan ke form.');
+      const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      setAiChatHistory(prev => [
+        ...prev,
+        { role: 'user', text: submittedPrompt || (aiFiles.length > 0 ? `Lampirkan ${aiFiles.length} file brief` : 'Generate costing'), time: nowTime },
+        { role: 'assistant', text: draft.summary_notes || draft.summary || 'Draft costing telah diperbarui sesuai instruksi.', time: nowTime }
+      ]);
+      setAiSummary(draft.summary_notes || draft.summary || 'Draft costing berhasil diperbarui.');
+      setSuccessMsg(aiChatHistory.length > 0 ? 'Draft costing berhasil disesuaikan oleh AI!' : 'Draft costing AI berhasil diterapkan ke form.');
       setTimeout(() => setSuccessMsg(null), 4000);
+      setAiPrompt('');
+      setAiFiles([]);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Gagal membuat draft costing.');
     } finally {
@@ -1206,20 +1233,209 @@ export default function NewEstimatePage() {
           </div>
         )}
 
-        <section className="linear-card" style={{ padding: '20px', marginBottom: '24px', border: '1px solid var(--accent-hover)' }}>
-          <h2 style={{ fontSize: '16px', marginBottom: '12px' }}>✨ Buat dengan AI Assistant</h2>
-          <textarea className="linear-textarea" rows={3} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Jelaskan kebutuhan costing proyek, atau lampirkan dokumen/gambar brief..." />
-          <div style={{ marginTop: '12px', padding: '14px', border: '1px dashed var(--border-hover)', borderRadius: '8px' }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); setAiFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files).filter((f) => /\.(xlsx|xls|csv|pdf|docx|txt|png|jpe?g|webp)$/i.test(f.name))]); }}>
-            <label style={{ cursor: 'pointer' }}>Lampirkan file (xlsx, xls, csv, pdf, docx, txt, png, jpg, webp)
-              <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.docx,.txt,.png,.jpg,.jpeg,.webp" style={{ display: 'block', marginTop: '8px' }} onChange={(e) => setAiFiles((prev) => [...prev, ...Array.from(e.target.files || []).filter((f) => /\.(xlsx|xls|csv|pdf|docx|txt|png|jpe?g|webp)$/i.test(f.name))])} />
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>{aiFiles.map((file, i) => <span key={`${file.name}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 8px', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '12px' }}>{file.type.startsWith('image/') && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={URL.createObjectURL(file)} alt="" style={{ width: 28, height: 28, objectFit: 'cover' }} />
-            )}<b>{file.name.split('.').pop()?.toUpperCase()}</b> {file.name} ({(file.size / 1024).toFixed(1)} KB)<button type="button" aria-label={`Hapus ${file.name}`} onClick={() => setAiFiles((prev) => prev.filter((_, idx) => idx !== i))}>×</button></span>)}</div>
+        <section className="linear-card" style={{ padding: '20px', marginBottom: '24px', border: '1px solid var(--accent-hover)', background: 'rgba(94, 106, 210, 0.03)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>✨ AI Costing Assistant (Hermes)</span>
+                {aiChatHistory.length > 0 && (
+                  <span className="badge badge-accent" style={{ fontSize: '10px' }}>
+                    {aiChatHistory.filter(m => m.role === 'user').length} Iterasi Penyesuaian
+                  </span>
+                )}
+              </h2>
+              <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                Input brief awal atau ketik instruksi penyesuaian lanjutan untuk menyempurnakan draft costing secara reaktif.
+              </p>
+            </div>
+            {aiChatHistory.length > 0 && (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => { setAiChatHistory([]); setAiSummary(''); }}
+                style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}
+                title="Bersihkan riwayat percakapan AI"
+              >
+                🔄 Reset Chat AI
+              </button>
+            )}
           </div>
-          <button type="button" className="btn-primary" onClick={generateAIDraft} disabled={aiLoading} style={{ marginTop: '12px' }}>{aiLoading ? '⏳ Generating draft...' : '⚡ Generate Draft Costing'}</button>
-          {aiSummary && <div role="status" style={{ marginTop: '12px', padding: '12px', borderRadius: '6px', background: 'var(--accent-light)' }}><strong>Summary Notes</strong><p>{aiSummary}</p></div>}
+
+          {/* Interactive Chat History Box */}
+          {aiChatHistory.length > 0 && (
+            <div
+              style={{
+                marginBottom: '16px',
+                padding: '12px',
+                background: 'rgba(0, 0, 0, 0.25)',
+                borderRadius: '8px',
+                border: '1px solid var(--border-subtle)',
+                maxHeight: '260px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              {aiChatHistory.map((msg, mIdx) => (
+                <div
+                  key={mIdx}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                    maxWidth: '85%',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-tertiary)',
+                      marginBottom: '2px',
+                      textAlign: msg.role === 'user' ? 'right' : 'left',
+                    }}
+                  >
+                    {msg.role === 'user' ? '👤 Anda' : '🤖 Hermes AI'} • {msg.time}
+                  </div>
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      lineHeight: '1.45',
+                      background: msg.role === 'user' ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.05)',
+                      color: msg.role === 'user' ? '#ffffff' : 'var(--text-primary)',
+                      border: msg.role === 'user' ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Prompt / Adjustment Textarea */}
+          <textarea
+            className="linear-textarea"
+            rows={aiChatHistory.length > 0 ? 2 : 3}
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder={
+              aiChatHistory.length > 0
+                ? "Ketik instruksi penyesuaian (Contoh: 'Tambahkan modul Payment Gateway 20 jam Web Dev', 'Ubah maintenance jadi 6 bulan', atau 'Hapus modul Scrum')..."
+                : "Jelaskan kebutuhan costing proyek, atau lampirkan dokumen/gambar brief..."
+            }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                generateAIDraft();
+              }
+            }}
+          />
+
+          {/* Attachment Dropzone */}
+          <div
+            style={{
+              marginTop: '10px',
+              padding: '12px',
+              border: '1px dashed var(--border-hover)',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.01)',
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              setAiFiles((prev) => [
+                ...prev,
+                ...Array.from(e.dataTransfer.files).filter((f) =>
+                  /\.(xlsx|xls|csv|pdf|docx|txt|png|jpe?g|webp)$/i.test(f.name)
+                ),
+              ]);
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <label style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                📎 <strong>Tambah Lampiran File</strong> (xlsx, csv, pdf, docx, gambar mockup/arsitektur)
+                <input
+                  type="file"
+                  multiple
+                  accept=".xlsx,.xls,.csv,.pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
+                  style={{ display: 'none' }}
+                  onChange={(e) =>
+                    setAiFiles((prev) => [
+                      ...prev,
+                      ...Array.from(e.target.files || []).filter((f) =>
+                        /\.(xlsx|xls|csv|pdf|docx|txt|png|jpe?g|webp)$/i.test(f.name)
+                      ),
+                    ])
+                  }
+                />
+              </label>
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                Tekan <strong>Ctrl+Enter</strong> untuk kirim prompt
+              </span>
+            </div>
+
+            {aiFiles.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
+                {aiFiles.map((file, i) => (
+                  <span
+                    key={`${file.name}-${i}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '4px 8px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                    }}
+                  >
+                    {file.type.startsWith('image/') && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={URL.createObjectURL(file)} alt="" style={{ width: 20, height: 20, objectFit: 'cover', borderRadius: '3px' }} />
+                    )}
+                    <b>{file.name.split('.').pop()?.toUpperCase()}</b> {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                    <button
+                      type="button"
+                      aria-label={`Hapus ${file.name}`}
+                      onClick={() => setAiFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '0 2px' }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Action Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={generateAIDraft}
+              disabled={aiLoading}
+              style={{ fontSize: '13px' }}
+            >
+              {aiLoading ? (
+                '⏳ Menganalisis & Mengatur Ulang Draft...'
+              ) : aiChatHistory.length > 0 ? (
+                '✨ Terapkan Penyesuaian ke Form'
+              ) : (
+                '⚡ Generate Draft Costing'
+              )}
+            </button>
+            {aiLoading && (
+              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                Hermes busdev sedang memperbarui modul dan kalkulasi...
+              </span>
+            )}
+          </div>
         </section>
         <form onSubmit={handleSaveEstimate}>
           {/* Section 1: Project & Client */}

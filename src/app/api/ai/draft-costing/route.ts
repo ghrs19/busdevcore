@@ -487,6 +487,22 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const prompt = (formData.get('prompt') as string) || '';
     const files = formData.getAll('files') as File[];
+    const currentStateRaw = (formData.get('current_state') as string) || '';
+    const chatHistoryRaw = (formData.get('chat_history') as string) || '';
+
+    let currentState = null;
+    if (currentStateRaw) {
+      try {
+        currentState = JSON.parse(currentStateRaw);
+      } catch {}
+    }
+
+    let chatHistory = [];
+    if (chatHistoryRaw) {
+      try {
+        chatHistory = JSON.parse(chatHistoryRaw);
+      } catch {}
+    }
 
     // 1. Ambil konteks master database
     const [companiesRes, projectsRes, rolesRes] = await Promise.all([
@@ -622,7 +638,19 @@ ${imageInstructions}
 ${attachmentContext}
 
 INPUT USER:
-Prompt Kebutuhan:
+DRAFT / KONDISI SAAT INI (STATE SEBELUMNYA):
+${currentState ? JSON.stringify(currentState, null, 2) : '(Belum ada draft sebelumnya - ini adalah inisiasi draft baru)'}
+
+RIWAYAT PERCAKAPAN PENYESUAIAN SEBELUMNYA:
+${chatHistory && chatHistory.length > 0 ? chatHistory.map((m: any) => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n') : '(Percakapan baru)'}
+
+INSTRUKSI PENYESUAIAN (ITERATIVE ADJUSTMENT):
+Jika sudah ada DRAFT / KONDISI SAAT INI di atas:
+- Lakukan penyesuaian (tambah/ubah/hapus modul, task, durasi maintenance, atau item infra) SESUAI INSTRUKSI TERBARU USER.
+- Pertahankan modul/task/item yang tidak diminta diubah, hanya modifikasi bagian yang diinstruksikan.
+- Jika user meminta menambah modul baru, tambahkan ke dalam development_modules.
+
+INPUT TERBARU USER:
 "${prompt.trim() || 'Buat draft costing berdasarkan seluruh lampiran dokumen/gambar yang disediakan.'}"
 
 OUTPUT WAJIB:
