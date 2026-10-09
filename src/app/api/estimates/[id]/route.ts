@@ -124,3 +124,224 @@ export async function DELETE(
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
+
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const client = await pool.connect();
+  try {
+    const { id } = await params;
+    const estimateId = parseInt(id, 10);
+    if (isNaN(estimateId)) {
+      return NextResponse.json({ success: false, error: 'ID estimate tidak valid' }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const {
+      title,
+      notes,
+      revision_notes,
+      status,
+      modules = [],
+      maintenance_tasks = [],
+      maintenance_duration_months = 12,
+      infrastructure_items = [],
+      operational_items = [],
+      categories: rawCategoryIds,
+      category_ids,
+      category_id,
+      tag_id,
+      custom_rates,
+    } = body;
+
+    await client.query('BEGIN');
+
+    // 1. Verify estimate exists
+    const checkRes = await client.query('SELECT * FROM project_estimates WHERE id = $1 FOR UPDATE', [estimateId]);
+    if (checkRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, error: 'Estimate tidak ditemukan' }, { status: 404 });
+    }
+    const currentEst = checkRes.rows[0];
+
+    // Use current rates or normalize custom_rates
+    let effectiveRates = currentEst.rate_snapshots;
+    if (typeof effectiveRates === 'string') {
+      try { effectiveRates = JSON.parse(effectiveRates); } catch { /* ignore */ }
+    }
+    const calcRates: Record<string, number> = {};
+    if (effectiveRates && typeof effectiveRates === 'object') {
+      for (const [k, v] of Object.entries(effectiveRates)) {
+        if (typeof v === 'object' && v !== null && 'rate' in v) {
+          calcRates[k] = Number((v as { rate: number }).rate) || 0;
+        } else {
+          calcRates[k] = Number(v) || 0;
+        }
+      }
+    }
+    if (custom_rates && typeof custom_rates === 'object') {
+      for (const [k, v] of Object.entries(custom_rates)) {
+        calcRates[k] = Number(v) || 0;
+      }
+    }
+
+    // Dynamic import costing logic
+    const {
+      calculateModule,
+      calculateMaintenance,
+      calculateInfrastructure,
+      calculateOperational,
+      calculateBillingSummary,
+    } = await import('@/lib/costing');
+
+    // 2. Recalculate modules
+    let calculatedDevModules: any[] = [];
+    let totalDevHours = 0;
+    let totalDevCost = 0;
+    if (Array.isArray(modules) && modules.length > 0) {
+      calculatedDevModules = modules.map((m: any, idx: number) => calculateModule(m, calcRates));
+      totalDevHours = calculatedDevModules.reduce((acc, m) => acc + m.total_hours, 0);
+      totalDevCost = calculatedDevModules.reduce((acc, m) => acc + m.total_cost, 0);
+    }
+
+    // 3. Recalculate maintenance
+    let maintenanceConfigData = null;
+    let totalMaintenanceCost = 0;
+    let totalMaintenanceHours = 0;
+    if (Array.isArray(maintenance_tasks) && maintenance_tasks.length > 0) {
+      const maintResult = calculateMaintenance({
+        duration_months: Number(maintenance_duration_months) || 12,
+        tasks: maintenance_tasks,
+      }, calcRates);
+      maintenanceConfigData = maintResult;
+      totalMaintenanceCost = maintResult.total_cost;
+      totalMaintenanceHours = maintResult.total_monthly_hours * maintResult.duration_months;
+    }
+
+    // 4. Recalculate infrastructure
+    let infraItemsData = null;
+    if (Array.isArray(infrastructure_items) && infrastructure_items.length > 0) {
+      infraItemsData = calculateInfrastructure(infrastructure_items);
+    }
+
+    // 5. Recalculate operational
+    let opItemsData = null;
+    if (Array.isArray(operational_items) && operational_items.length > 0) {
+      opItemsData = calculateOperational(operational_items);
+    }
+
+    // 6. Billing summary
+    const billingSummary = calculateBillingSummary({
+      hasDevelopment: calculatedDevModules.length > 0,
+      hasMaintenance: maintenanceConfigData !== null,
+      hasInfrastructure: infraItemsData !== null,
+      hasOperational: opItemsData !== null,
+      devCost: totalDevCost,
+      maintenanceConfig: maintenanceConfigData,
+      infrastructure: infraItemsData,
+      operational: opItemsData,
+    });
+
+    const grandTotalHours = totalDevHours + totalMaintenanceHours;
+    const grandTotalCost = billingSummary.grand_total;
+
+    // 7. Update project_estimates table
+    await client.query(`
+      UPDATE project_estimates
+      SET 
+        title = COALESCE($1, title),
+        notes = $2,
+        revision_notes = COALESCE($3, revision_notes),
+        status = COALESCE($4, status),
+        total_hours = $5,
+        total_cost = $6,
+        maintenance_config = $7::jsonb,
+        infrastructure_items = $8::jsonb,
+        operational_items = $9::jsonb,
+        billing_summary = $10::jsonb,
+        tag_id = $11,
+        updated_at = NOW()
+      WHERE id = $12
+    `, [
+      title || null,
+      notes || null,
+      revision_notes || null,
+      status || null,
+      grandTotalHours,
+      grandTotalCost,
+      maintenanceConfigData ? JSON.stringify(maintenanceConfigData) : null,
+      infraItemsData ? JSON.stringify(infraItemsData.items) : null,
+      opItemsData ? JSON.stringify(opItemsData.items) : null,
+      JSON.stringify(billingSummary),
+      tag_id || null,
+      estimateId,
+    ]);
+
+    // 8. Update categories if provided
+    const catList = rawCategoryIds || category_ids || (category_id ? [category_id] : null);
+    if (Array.isArray(catList) && catList.length > 0) {
+      await client.query('DELETE FROM estimate_categories WHERE estimate_id = $1', [estimateId]);
+      for (const cId of catList) {
+        const parsedCId = parseInt(String(cId), 10);
+        if (!isNaN(parsedCId)) {
+          await client.query(
+            'INSERT INTO estimate_categories (estimate_id, category_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [estimateId, parsedCId]
+          );
+        }
+      }
+    }
+
+    // 9. Re-insert modules & tasks if modules provided
+    if (Array.isArray(modules)) {
+      await client.query('DELETE FROM estimate_modules WHERE estimate_id = $1', [estimateId]);
+      for (const mod of calculatedDevModules) {
+        const modRes = await client.query(`
+          INSERT INTO estimate_modules (estimate_id, name, order_index, total_hours, total_cost)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING id
+        `, [estimateId, mod.name, mod.order_index, mod.total_hours, mod.total_cost]);
+
+        const modId = modRes.rows[0].id;
+        for (const task of mod.tasks) {
+          await client.query(`
+            INSERT INTO estimate_tasks (
+              module_id, name, order_index,
+              hours_pm, hours_web_dev, hours_ui_ux, hours_qc_doc, hours_dev_ops,
+              total_hours, total_cost, role_hours
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          `, [
+            modId,
+            task.name,
+            task.order_index,
+            task.hours_pm || 0,
+            task.hours_web_dev || 0,
+            task.hours_ui_ux || 0,
+            task.hours_qc_doc || 0,
+            task.hours_dev_ops || 0,
+            task.total_hours || 0,
+            task.total_cost || 0,
+            JSON.stringify(task.role_hours || {}),
+          ]);
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+
+    return NextResponse.json({
+      success: true,
+      message: `Estimasi #${estimateId} berhasil diperbarui`,
+      estimate_id: estimateId,
+      total_cost: grandTotalCost,
+      total_hours: grandTotalHours,
+    });
+  } catch (err: unknown) {
+    await client.query('ROLLBACK');
+    const msg = err instanceof Error ? err.message : 'Unknown database error';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}

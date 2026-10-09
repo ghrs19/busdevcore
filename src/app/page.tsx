@@ -271,12 +271,13 @@ export default function HistoricalEstimatesDashboard() {
         return;
       }
 
-      showToast(`Revisi v${data.version} berhasil dibuat (#${data.new_estimate_id})!`);
+      showToast(`Revisi v${data.version} berhasil dibuat (#${data.new_estimate_id})! Membuka editor revisi...`);
       setForkTarget(null);
       setForkNotes('');
-      await loadData();
-      // Auto open inspect on the new fork
-      setInspectId(data.new_estimate_id);
+      // Redirect straight to interactive edit mode
+      setTimeout(() => {
+        window.location.href = `/estimates/new?edit_id=${data.new_estimate_id}`;
+      }, 700);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Network error';
       setForkError(msg);
@@ -853,6 +854,15 @@ export default function HistoricalEstimatesDashboard() {
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <a
+                            href={`/estimates/new?edit_id=${est.id}`}
+                            className="btn-secondary"
+                            style={{ fontSize: '11px', padding: '4px 8px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
+                            title="Edit / Sesuaikan Scope Estimasi ini"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            ✏️ Edit
+                          </a>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -865,7 +875,7 @@ export default function HistoricalEstimatesDashboard() {
                             style={{ fontSize: '11px', padding: '4px 8px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
                             title="Buat Revisi / Fork Estimate Baru"
                           >
-                            Fork v{(est.version || 1) + 1}
+                            🔀 Fork v{(est.version || 1) + 1}
                           </button>
                           <button
                             type="button"
@@ -1539,6 +1549,22 @@ export default function HistoricalEstimatesDashboard() {
               >
                 {inspectDetail ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <a
+                      href={`/estimates/new?edit_id=${inspectDetail.id}`}
+                      className="btn-secondary"
+                      style={{
+                        fontSize: '12px',
+                        padding: '6px 14px',
+                        textDecoration: 'none',
+                        color: '#10b981',
+                        borderColor: 'rgba(16, 185, 129, 0.4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>✏️ Buka di Editor Form</span>
+                    </a>
                     <button
                       type="button"
                       onClick={() => {

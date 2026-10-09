@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   DEFAULT_ROLE_RATES,
   calculateModule,
@@ -68,8 +68,13 @@ const formatIDR = (val: number | string) => {
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
 };
 
-export default function NewEstimatePage() {
+function NewEstimateForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editIdParam = searchParams.get('edit_id');
+  const editId = editIdParam ? parseInt(editIdParam, 10) : null;
+  const [editingEstimateMeta, setEditingEstimateMeta] = useState<{ version?: number; parent_id?: number | null; revision_notes?: string | null } | null>(null);
+  const [isEditLoading, setIsEditLoading] = useState(false);
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
@@ -1138,6 +1143,10 @@ export default function NewEstimatePage() {
     setErrorMsg(null);
     setSuccessMsg(null);
 
+    const isEditMode = editId !== null && !isNaN(editId);
+    const endpoint = isEditMode ? `/api/estimates/${editId}` : '/api/estimates';
+    const method = isEditMode ? 'PUT' : 'POST';
+
     if (!selectedCompanyId) {
       setErrorMsg('Perusahaan wajib dipilih.');
       return;
@@ -1186,8 +1195,8 @@ export default function NewEstimatePage() {
         operational_items: isOperational ? operationalItems : null,
       };
 
-      const res = await fetch('/api/estimates', {
-        method: 'POST',
+      const res = await fetch(endpoint, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -1196,10 +1205,11 @@ export default function NewEstimatePage() {
       if (!res.ok || !data.success) {
         setErrorMsg(data.error || 'Gagal menyimpan estimate.');
       } else {
+        const resultId = isEditMode ? editId : data.estimate?.id;
         setSuccessMsg(
-          `Berhasil menyimpan estimate ID #${data.estimate.id} (${data.estimate.total_hours} Jam, ${formatIDR(
-            data.estimate.total_cost
-          )}). Mengalihkan ke halaman utama...`
+          isEditMode
+            ? `Berhasil memperbarui revisi #${resultId} (${formatIDR(data.total_cost || billingSummary.grand_total)}). Mengalihkan ke dashboard...`
+            : `Berhasil menyimpan estimate ID #${resultId} (${data.estimate?.total_hours || calculation.total_hours} Jam, ${formatIDR(data.estimate?.total_cost || billingSummary.grand_total)}). Mengalihkan ke halaman utama...`
         );
         setTimeout(() => {
           router.push('/');
@@ -3341,5 +3351,18 @@ export default function NewEstimatePage() {
         )}
       </main>
     </div>
+  );
+}
+
+
+export default function NewEstimatePage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
+        Memuat editor estimasi...
+      </div>
+    }>
+      <NewEstimateForm />
+    </Suspense>
   );
 }
