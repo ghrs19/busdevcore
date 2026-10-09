@@ -13,11 +13,8 @@ export default function Navbar() {
   return (
     <header
       style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
+        position: 'relative',
         backgroundColor: 'rgba(8, 9, 10, 0.85)',
-        backdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border-subtle)',
       }}
     >

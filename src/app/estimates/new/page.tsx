@@ -657,6 +657,47 @@ export default function NewEstimatePage() {
   );
 
   // Quick Demo Loaders
+
+  // Reset all form inputs to default clean state
+  const handleResetForm = () => {
+    if (typeof window !== 'undefined' && !window.confirm('Reset seluruh isi form ke kondisi bersih/awal?')) {
+      return;
+    }
+    setExcludedRoleCodes([]);
+    setTitle('');
+    if (companies.length > 0) setSelectedCompanyId(companies[0].id);
+    else setSelectedCompanyId('');
+    setSelectedProjectId('');
+    const itType = serviceTypes.find((st) => st.code === 'IT');
+    if (itType) setSelectedServiceTypeId(itType.id);
+    const devCat = categories.find((c) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
+    if (devCat) setSelectedCategoryIds([devCat.id]);
+    const initTag = tags.find((t) => t.code === 'INITIAL');
+    if (initTag) setSelectedTagId(initTag.id);
+    setWbsTab('ALL');
+    setMaintenanceDurationMonths(1);
+    setModules([
+      {
+        name: '1.0 Core Features',
+        tasks: [
+          { name: 'Feature Implementation', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+        ],
+      },
+    ]);
+    setMaintenanceTasks([
+      { name: 'Server Monitoring & Bug Fixes', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+    ]);
+    setInfraItems([]);
+    setAiPrompt('');
+    setAiFiles([]);
+    setAiSummary('');
+    setAiChatHistory([]);
+    setNotes('');
+    setErrorMsg(null);
+    setSuccessMsg('Form berhasil di-reset.');
+    setTimeout(() => setSuccessMsg(null), 3000);
+  };
+
   const loadSpreadsheetExample = () => {
     setExcludedRoleCodes([]);
     setTitle('Djarum Urban - Microsite');
@@ -1157,7 +1198,16 @@ export default function NewEstimatePage() {
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={handleResetForm}
+                className="btn-secondary"
+                style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                title="Kosongkan seluruh isian form dan mulai dari awal"
+              >
+                🗑️ Reset Form
+              </button>
               <button
                 type="button"
                 onClick={loadSpreadsheetExample}
