@@ -1870,13 +1870,13 @@ export default function NewEstimatePage() {
               Klasifikasi Layanan & Aturan Bisnis
             </h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px 24px' }}>
-              {/* Row 1, Col 1: Service Type */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1.2fr) minmax(460px, 2.1fr) minmax(220px, 0.9fr)', gap: '20px', alignItems: 'start' }}>
+              {/* Col 1: Service Type */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
                   Service Type
                 </label>
-                <div className="pill-group">
+                <div className="pill-group" style={{ height: '43px' }}>
                   {serviceTypes.map((st) => {
                     const isSelected = selectedServiceTypeId === st.id;
                     const isReserved = !st.is_active || st.code === 'DIGITAL';
@@ -1899,7 +1899,38 @@ export default function NewEstimatePage() {
                 </div>
               </div>
 
-              {/* Row 1, Col 2: Tag Klasifikasi */}
+              {/* Col 2: Kategori Proyek (Wider Column in 1 Row) */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)' }}>
+                    Kategori Proyek (Multi-Select) *
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--accent-hover)' }}>
+                    {selectedCategoryIds.length} Terpilih
+                  </span>
+                </div>
+                <div className="pill-group" style={{ display: 'flex', gap: '6px', height: '43px', padding: '4px' }}>
+                  {availableCategories.map((c) => {
+                    const isSelected = selectedCategoryIds.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleToggleCategory(c.id)}
+                        className={`pill-item ${isSelected ? 'active' : ''}`}
+                        style={{ flex: 1, minWidth: '0', padding: '0 8px', fontSize: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                  Pilih kombinasi: Development, Maintenance, Infrastructure, Operation
+                </div>
+              </div>
+
+              {/* Col 3: Tag Klasifikasi */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
                   Tag Klasifikasi {isDevelopment ? (
@@ -1909,7 +1940,7 @@ export default function NewEstimatePage() {
                   )}
                 </label>
                 {isDevelopment ? (
-                  <div className="pill-group">
+                  <div className="pill-group" style={{ height: '43px' }}>
                     {availableTags.map((t) => {
                       const isSelected = selectedTagId === t.id;
                       return (
@@ -1925,41 +1956,10 @@ export default function NewEstimatePage() {
                     })}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '8px 0', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '12px 0', fontStyle: 'italic' }}>
                     Tag hanya aktif jika kategori menyertakan Development.
                   </div>
                 )}
-              </div>
-
-              {/* Row 2: Category Pills (Full Width Span 2 Cols) */}
-              <div style={{ gridColumn: 'span 2' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)' }}>
-                    Kategori Proyek (Multi-Select) *
-                  </label>
-                  <span style={{ fontSize: '11px', color: 'var(--accent-hover)' }}>
-                    {selectedCategoryIds.length} Terpilih
-                  </span>
-                </div>
-                <div className="pill-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '6px', height: 'auto', minHeight: '43px' }}>
-                  {availableCategories.map((c) => {
-                    const isSelected = selectedCategoryIds.includes(c.id);
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => handleToggleCategory(c.id)}
-                        className={`pill-item ${isSelected ? 'active' : ''}`}
-                        style={{ flex: '1 1 calc(25% - 8px)', minWidth: '130px', textAlign: 'center' }}
-                      >
-                        {c.name}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '6px' }}>
-                  Pilih kombinasi cakupan proyek: Development, Maintenance, Infrastructure, Operation
-                </div>
               </div>
             </div>
           </section>
