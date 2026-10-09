@@ -77,6 +77,15 @@ export async function GET(
       });
     }
 
+    // Fetch all versions in this chain (root parent or siblings)
+    const rootId = estimate.parent_id ? estimate.parent_id : estimate.id;
+    const historyRes = await pool.query(`
+      SELECT id, version, title, status, total_hours, total_cost, revision_notes, created_at, updated_at
+      FROM project_estimates
+      WHERE id = $1 OR parent_id = $1 OR id = $2 OR parent_id = $2
+      ORDER BY version DESC, id DESC
+    `, [rootId, estimateId]);
+
     return NextResponse.json({
       success: true,
       estimate: {
@@ -85,6 +94,7 @@ export async function GET(
         categories,
         category_codes,
         modules,
+        version_history: historyRes.rows,
       },
     });
   } catch (err: unknown) {

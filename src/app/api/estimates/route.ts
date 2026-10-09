@@ -64,6 +64,16 @@ export async function GET() {
       LEFT JOIN projects p ON e.project_id = p.id
       LEFT JOIN categories cat ON e.category_id = cat.id
       LEFT JOIN tags t ON e.tag_id = t.id
+      WHERE e.id IN (
+        SELECT id FROM (
+          SELECT id,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY COALESCE(parent_id, id)
+                   ORDER BY version DESC, id DESC
+                 ) as rn
+          FROM project_estimates
+        ) sub WHERE sub.rn = 1
+      )
       ORDER BY e.id DESC
     `);
 

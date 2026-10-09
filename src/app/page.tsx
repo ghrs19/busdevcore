@@ -134,9 +134,21 @@ interface EstimateDetailModule {
   tasks: EstimateDetailTask[];
 }
 
+interface VersionHistoryItem {
+  id: number;
+  version: number;
+  title: string;
+  status: string;
+  total_hours: number | string;
+  total_cost: number | string;
+  revision_notes: string | null;
+  created_at: string;
+}
+
 interface EstimateDetail extends SavedEstimate {
   company_email?: string | null;
   modules: EstimateDetailModule[];
+  version_history?: VersionHistoryItem[];
 }
 
 const formatIDR = (val: number | string) => {
@@ -164,7 +176,7 @@ export default function HistoricalEstimatesDashboard() {
   const [inspectId, setInspectId] = useState<number | null>(null);
   const [inspectDetail, setInspectDetail] = useState<EstimateDetail | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
-  const [modalTab, setModalTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE' | 'OPERATION'>('ALL');
+  const [modalTab, setModalTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE' | 'OPERATION' | 'HISTORY'>('ALL');
 
   // Delete Confirmation Modal states
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
@@ -1217,6 +1229,16 @@ export default function HistoricalEstimatesDashboard() {
                           D. Operational Items ({inspectDetail.operational_items.length} Item)
                         </button>
                       )}
+                      {inspectDetail.version_history && inspectDetail.version_history.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setModalTab('HISTORY')}
+                          className={modalTab === 'HISTORY' ? 'btn-primary' : 'btn-secondary'}
+                          style={{ fontSize: '12px', padding: '5px 12px', borderColor: 'rgba(56, 189, 248, 0.4)', color: modalTab === 'HISTORY' ? '#fff' : '#38bdf8' }}
+                        >
+                          📜 Riwayat Versi Revisi ({inspectDetail.version_history.length})
+                        </button>
+                      )}
                     </div>
 
                     {/* Section A: Development WBS Breakdown */}
@@ -1442,6 +1464,110 @@ export default function HistoricalEstimatesDashboard() {
                                   <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{item.notes || '-'}</td>
                                 </tr>
                               ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab: Riwayat Versi / Version History */}
+                    {modalTab === 'HISTORY' && inspectDetail.version_history && (
+                      <div style={{ marginTop: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              📜 Riwayat Seluruh Versi & Revisi Estimasi
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                              Klik &quot;Buka Versi Ini&quot; untuk melihat rincian snapshot historis lengkap pada versi tersebut.
+                            </div>
+                          </div>
+                          <span className="badge badge-accent">
+                            {inspectDetail.version_history.length} Versi Tersimpan
+                          </span>
+                        </div>
+
+                        <div className="linear-card-elevated" style={{ overflow: 'hidden' }}>
+                          <table className="linear-table">
+                            <thead>
+                              <tr>
+                                <th style={{ width: '80px', textAlign: 'center' }}>VERSI</th>
+                                <th>DOKUMEN & CATATAN PERUBAHAN</th>
+                                <th style={{ width: '130px', textAlign: 'center' }}>TANGGAL</th>
+                                <th style={{ width: '110px', textAlign: 'right' }}>JAM KERJA</th>
+                                <th style={{ width: '160px', textAlign: 'right' }}>TOTAL BIAYA</th>
+                                <th style={{ width: '130px', textAlign: 'center' }}>AKSI</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {inspectDetail.version_history.map((verItem) => {
+                                const isCurrent = verItem.id === inspectDetail.id;
+                                return (
+                                  <tr
+                                    key={verItem.id}
+                                    style={{
+                                      background: isCurrent ? 'rgba(56, 189, 248, 0.04)' : undefined,
+                                    }}
+                                  >
+                                    <td style={{ textAlign: 'center' }}>
+                                      <span
+                                        style={{
+                                          fontSize: '11px',
+                                          fontWeight: 700,
+                                          padding: '2px 8px',
+                                          borderRadius: '4px',
+                                          background: isCurrent ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+                                          color: isCurrent ? '#38bdf8' : 'var(--text-secondary)',
+                                          border: isCurrent ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                        }}
+                                      >
+                                        v{verItem.version}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <div style={{ fontWeight: isCurrent ? 600 : 400, color: isCurrent ? '#fff' : 'var(--text-primary)' }}>
+                                        #{verItem.id} • {verItem.title}
+                                        {isCurrent && (
+                                          <span style={{ fontSize: '10px', color: '#38bdf8', marginLeft: '6px', fontWeight: 600 }}>
+                                            (Sedang Dilihat)
+                                          </span>
+                                        )}
+                                      </div>
+                                      {verItem.revision_notes && (
+                                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px', fontStyle: 'italic' }}>
+                                          &quot;{verItem.revision_notes}&quot;
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                      {new Date(verItem.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </td>
+                                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                                      {Number(verItem.total_hours)}h
+                                    </td>
+                                    <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#10b981' }}>
+                                      {formatIDR(verItem.total_cost)}
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                      {isCurrent ? (
+                                        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Aktif</span>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setInspectId(verItem.id);
+                                            setModalTab('ALL');
+                                          }}
+                                          className="btn-secondary"
+                                          style={{ fontSize: '11px', padding: '3px 8px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                                        >
+                                          Buka Versi Ini
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
