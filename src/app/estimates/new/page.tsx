@@ -204,6 +204,85 @@ export default function NewEstimatePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiFiles, setAiFiles] = useState<File[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState('');
+
+  const generateAIDraft = async () => {
+    if (!aiPrompt.trim() && !aiFiles.length) {
+      setErrorMsg('Masukkan prompt atau lampirkan file.');
+      return;
+    }
+    setAiLoading(true);
+    setErrorMsg(null);
+    try {
+      const body = new FormData();
+      body.set('prompt', aiPrompt.trim());
+      aiFiles.forEach((file) => body.append('files', file));
+      const res = await fetch('/api/ai/draft-costing', { method: 'POST', body });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.error || 'Gagal membuat draft costing.');
+      const draft = result.draft || result.data || result;
+      if (draft.title) setTitle(draft.title);
+      if (draft.notes || draft.summary_notes) setNotes(draft.notes || draft.summary_notes);
+
+      const companyName = String(draft.company_name || draft.company || '').trim();
+      let company = companies.find((c) => c.id === Number(draft.company_id) || c.name.toLowerCase() === companyName.toLowerCase());
+      if (!company && draft.is_new_company && companyName) {
+        const companyRes = await fetch('/api/companies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: companyName }) });
+        const companyData = await companyRes.json();
+        if (!companyRes.ok || !companyData.success) throw new Error(companyData.error || 'Gagal membuat perusahaan dari draft.');
+        company = companyData.company;
+        setCompanies((prev) => prev.some((item) => item.id === company!.id) ? prev : [...prev, company!]);
+      }
+      if (company) setSelectedCompanyId(company.id);
+
+      const projectName = String(draft.project_name || draft.project || '').trim();
+      let project = projects.find((p) => p.id === Number(draft.project_id) || (p.company_id === company?.id && p.name.toLowerCase() === projectName.toLowerCase()));
+      if (!project && draft.is_new_project && projectName && company) {
+        const projectRes = await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ company_id: company.id, name: projectName, description: null }) });
+        const projectData = await projectRes.json();
+        if (!projectRes.ok || !projectData.success) throw new Error(projectData.error || 'Gagal membuat project dari draft.');
+        project = projectData.project;
+      }
+      if (project) {
+        setProjects((prev) => prev.some((item) => item.id === project!.id) ? prev : [...prev, project!]);
+        setSelectedProjectId(project.id);
+      }
+
+      const serviceCode = String(draft.service_code || '').toLowerCase();
+      const service = serviceTypes.find((item) => item.code.toLowerCase() === serviceCode);
+      if (service) setSelectedServiceTypeId(service.id);
+      const categoryCodes: string[] = Array.isArray(draft.categories) ? draft.categories : draft.category_codes || [];
+      const matchedCategories = categories.filter((c) => (!service || c.service_type_id === service.id) && categoryCodes.some((code: string) => c.code.toLowerCase() === String(code).toLowerCase() || c.name.toLowerCase() === String(code).toLowerCase()));
+      if (matchedCategories.length) setSelectedCategoryIds(matchedCategories.map((c) => c.id));
+      const tagCode = String(draft.tag_code || draft.tag || '').toLowerCase();
+      const hasDevelopment = matchedCategories.some((c) => ['DEV', 'DEVELOPMENT'].includes(c.code.toUpperCase()));
+      const tag = hasDevelopment && tagCode ? tags.find((t) => t.id === Number(draft.tag_id) || t.code.toLowerCase() === tagCode || t.name.toLowerCase() === tagCode) : undefined;
+      setSelectedTagId(tag?.id || '');
+      const aiModules = draft.modules || draft.development_modules;
+      if (Array.isArray(aiModules)) setModules(aiModules.map((module: { name: string; tasks?: Array<ModuleInput['tasks'][number] & { task_name?: string }> }) => ({
+        name: module.name,
+        tasks: (module.tasks || []).map((task) => ({ ...task, name: task.name || task.task_name || '' })),
+      })));
+      const maintenance = draft.maintenance_config || draft.maintenance;
+      if (maintenance) {
+        if (maintenance.duration_months != null) setMaintenanceDurationMonths(Number(maintenance.duration_months));
+        if (Array.isArray(maintenance.tasks)) setMaintenanceTasks(maintenance.tasks.map((task: MaintenanceTaskInput & { task_name?: string }) => ({ ...task, name: task.name || task.task_name || '', role_hours: task.role_hours || {} })));
+        else if (Array.isArray(maintenance.roles)) setMaintenanceTasks([{ name: 'Maintenance bulanan', role_hours: maintenance.roles.reduce((hours: Record<string, number>, role: { role_code?: string; code?: string; monthly_hours?: number; hours?: number }) => { const code = role.role_code || role.code || ''; const value = Number(role.monthly_hours ?? role.hours ?? 0); if (code && value > 0) hours[code] = value; return hours; }, {}) }]);
+      }
+      const infrastructure = draft.infrastructure_items || draft.infrastructure;
+      if (Array.isArray(infrastructure)) setInfraItems(infrastructure.map((item: InfrastructureItemInput) => ({ ...item, billing_type: item.billing_type || 'MONTHLY', quantity: Number(item.quantity) || 1, unit_cost: Number(item.unit_cost) || 0, period_count: Number(item.period_count) || 1, notes: item.notes || '' })));
+      setAiSummary(draft.summary_notes || draft.summary || 'Draft costing berhasil dibuat.');
+      setSuccessMsg('Draft costing AI berhasil diterapkan ke form.');
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Gagal membuat draft costing.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // Load initial metadata
   const loadMetadata = useCallback(async () => {
@@ -268,11 +347,7 @@ export default function NewEstimatePage() {
       if (data.success) {
         const projs: Project[] = data.projects || [];
         setProjects(projs);
-        if (projs.length > 0) {
-          setSelectedProjectId(projs[0].id);
-        } else {
-          setSelectedProjectId('');
-        }
+        setSelectedProjectId((current) => projs.some((project) => project.id === Number(current)) ? current : (projs[0]?.id || ''));
       }
     } catch (err) {
       console.error('Failed to load projects', err);
@@ -1131,6 +1206,21 @@ export default function NewEstimatePage() {
           </div>
         )}
 
+        <section className="linear-card" style={{ padding: '20px', marginBottom: '24px', border: '1px solid var(--accent-hover)' }}>
+          <h2 style={{ fontSize: '16px', marginBottom: '12px' }}>✨ Buat dengan AI Assistant</h2>
+          <textarea className="linear-textarea" rows={3} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Jelaskan kebutuhan costing proyek, atau lampirkan dokumen/gambar brief..." />
+          <div style={{ marginTop: '12px', padding: '14px', border: '1px dashed var(--border-hover)', borderRadius: '8px' }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); setAiFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files).filter((f) => /\.(xlsx|xls|csv|pdf|docx|txt|png|jpe?g|webp)$/i.test(f.name))]); }}>
+            <label style={{ cursor: 'pointer' }}>Lampirkan file (xlsx, xls, csv, pdf, docx, txt, png, jpg, webp)
+              <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.docx,.txt,.png,.jpg,.jpeg,.webp" style={{ display: 'block', marginTop: '8px' }} onChange={(e) => setAiFiles((prev) => [...prev, ...Array.from(e.target.files || []).filter((f) => /\.(xlsx|xls|csv|pdf|docx|txt|png|jpe?g|webp)$/i.test(f.name))])} />
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>{aiFiles.map((file, i) => <span key={`${file.name}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 8px', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '12px' }}>{file.type.startsWith('image/') && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={URL.createObjectURL(file)} alt="" style={{ width: 28, height: 28, objectFit: 'cover' }} />
+            )}<b>{file.name.split('.').pop()?.toUpperCase()}</b> {file.name} ({(file.size / 1024).toFixed(1)} KB)<button type="button" aria-label={`Hapus ${file.name}`} onClick={() => setAiFiles((prev) => prev.filter((_, idx) => idx !== i))}>×</button></span>)}</div>
+          </div>
+          <button type="button" className="btn-primary" onClick={generateAIDraft} disabled={aiLoading} style={{ marginTop: '12px' }}>{aiLoading ? '⏳ Generating draft...' : '⚡ Generate Draft Costing'}</button>
+          {aiSummary && <div role="status" style={{ marginTop: '12px', padding: '12px', borderRadius: '6px', background: 'var(--accent-light)' }}><strong>Summary Notes</strong><p>{aiSummary}</p></div>}
+        </section>
         <form onSubmit={handleSaveEstimate}>
           {/* Section 1: Project & Client */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
