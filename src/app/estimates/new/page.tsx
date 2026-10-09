@@ -73,7 +73,7 @@ function NewEstimateForm() {
   const searchParams = useSearchParams();
   const editIdParam = searchParams.get('edit_id');
   const editId = editIdParam ? parseInt(editIdParam, 10) : null;
-  const [editingEstimateMeta, setEditingEstimateMeta] = useState<{ version?: number; parent_id?: number | null; revision_notes?: string | null } | null>(null);
+  const [editingEstimateMeta, setEditingEstimateMeta] = useState<{ version?: number; parent_id?: number | null; revision_notes?: string | null; max_version?: number } | null>(null);
   const [isEditLoading, setIsEditLoading] = useState(false);
 
   // Edit Revision Reason Dialog state
@@ -1190,8 +1190,12 @@ function NewEstimateForm() {
             : `Berhasil menyimpan estimate ID #${resultId} (${data.estimate?.total_hours || calculation.total_hours} Jam, ${formatIDR(data.estimate?.total_cost || billingSummary.grand_total)}). Mengalihkan ke halaman utama...`
         );
         setTimeout(() => {
-          router.push('/');
-        }, 1200);
+          if (data.estimate_id) {
+            router.push(`/estimates/${data.estimate_id}`);
+          } else {
+            router.push('/');
+          }
+        }, 1000);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Network error';
@@ -1238,7 +1242,8 @@ function NewEstimateForm() {
 
     // In Edit mode, prompt for revision reason before submitting!
     if (isEditMode) {
-      setRevisionReason(`Revisi penyesuaian scope v${(editingEstimateMeta?.version || 1) + 1}`);
+      const targetV = ((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1;
+      setRevisionReason(`Revisi penyesuaian scope v${targetV} (dari v${editingEstimateMeta?.version || 1})`);
       setIsRevisionModalOpen(true);
       return;
     }
@@ -3412,7 +3417,7 @@ function NewEstimateForm() {
                     Simpan Perubahan Revisi
                   </h3>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                    Versi akan otomatis naik menjadi <strong>v{(editingEstimateMeta?.version || 1) + 1}</strong> (Baseline v{editingEstimateMeta?.version || 1} tetap tersimpan).
+                    Mengedit dari snapshot <strong>v{editingEstimateMeta?.version || 1}</strong>. Disimpan sebagai versi terbaru <strong>v{((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}</strong>.
                   </div>
                 </div>
               </div>
@@ -3466,7 +3471,7 @@ function NewEstimateForm() {
                     gap: '6px',
                   }}
                 >
-                  {isLoading ? 'Menyimpan...' : `Simpan Revisi v${(editingEstimateMeta?.version || 1) + 1}`}
+                  {isLoading ? 'Menyimpan...' : `Simpan Revisi v${((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}`}
                 </button>
               </div>
             </div>

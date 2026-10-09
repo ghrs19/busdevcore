@@ -257,10 +257,14 @@ export async function PUT(
     const grandTotalCost = billingSummary.grand_total;
 
     // 7. Check if this save creates a new revision version or updates current
-    // Determine root parent & increment version
+    // Determine root parent & get the TRUE MAX version in this entire chain
     const rootParentId = currentEst.parent_id ? currentEst.parent_id : currentEst.id;
-    const currentVersion = Number(currentEst.version) || 1;
-    const nextVersion = currentVersion + 1;
+    const maxVerRes = await client.query(
+      `SELECT COALESCE(MAX(version), 1) as max_v FROM project_estimates WHERE id = $1 OR parent_id = $1`,
+      [rootParentId]
+    );
+    const maxVersionInChain = Number(maxVerRes.rows[0].max_v) || 1;
+    const nextVersion = maxVersionInChain + 1;
 
     let targetEstimateId = estimateId;
 
