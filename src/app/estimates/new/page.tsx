@@ -2039,11 +2039,24 @@ export default function NewEstimatePage() {
                       </span>
                       <input
                         type="text"
-                        className="linear-input"
                         value={mod.name}
                         onChange={(e) => updateModuleName(mIdx, e.target.value)}
-                        style={{ maxWidth: '360px', padding: '4px 8px', fontSize: '13px' }}
                         placeholder="Nama Modul"
+                        style={{
+                          maxWidth: '380px',
+                          fontWeight: 600,
+                          fontSize: '13px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderBottom: '1px dashed var(--border-subtle)',
+                          borderRadius: 0,
+                          padding: '3px 4px',
+                          color: 'var(--text-primary)',
+                          outline: 'none',
+                          transition: 'border-color 0.15s ease',
+                        }}
+                        onFocus={(e) => (e.currentTarget.style.borderBottomColor = 'var(--accent-hover)')}
+                        onBlur={(e) => (e.currentTarget.style.borderBottomColor = 'var(--border-subtle)')}
                       />
                     </div>
 
@@ -2072,11 +2085,11 @@ export default function NewEstimatePage() {
                   </div>
 
                   {/* Tasks Table */}
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="linear-table">
+                  <div style={{ overflowX: 'auto', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                    <table className="excel-table">
                       <thead>
                         <tr>
-                          <th style={{ minWidth: '180px' }}>Nama Task</th>
+                          <th style={{ minWidth: '220px', textAlign: 'left' }}>Nama Task</th>
                           {activeCostingRoles.map((r) => (
                             <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }}>
                               {r.name}
@@ -2084,7 +2097,7 @@ export default function NewEstimatePage() {
                           ))}
                           <th style={{ width: '9%', textAlign: 'right', minWidth: '70px' }}>Total Jam</th>
                           <th style={{ width: '12%', textAlign: 'right', minWidth: '95px' }}>Biaya</th>
-                          <th style={{ width: '4%', textAlign: 'center' }}></th>
+                          <th style={{ width: '36px', textAlign: 'center' }}></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2095,11 +2108,10 @@ export default function NewEstimatePage() {
                               <td>
                                 <input
                                   type="text"
-                                  className="linear-input"
+                                  className="excel-cell-input"
                                   value={task.name}
                                   onChange={(e) => updateTaskField(mIdx, tIdx, 'name', e.target.value)}
                                   placeholder="Nama task..."
-                                  style={{ padding: '4px 8px', fontSize: '12px' }}
                                 />
                               </td>
                               {activeCostingRoles.map((r) => {
@@ -2115,30 +2127,31 @@ export default function NewEstimatePage() {
                                     <input
                                       type="number"
                                       min="0"
-                                      className="linear-input font-mono-numbers"
+                                      className="excel-cell-input font-mono-numbers"
                                       value={val || ''}
                                       onChange={(e) => updateTaskRoleHours(mIdx, tIdx, r.code, e.target.value)}
-                                      style={{ padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
+                                      style={{ textAlign: 'center' }}
+                                      placeholder="-"
                                     />
                                   </td>
                                 );
                               })}
                               <td style={{ textAlign: 'right' }}>
-                                <span className="font-mono-numbers" style={{ color: 'var(--text-secondary)' }}>
+                                <div className="excel-cell-static font-mono-numbers" style={{ color: 'var(--text-secondary)' }}>
                                   {calcTask ? calcTask.total_hours : 0}h
-                                </span>
+                                </div>
                               </td>
                               <td style={{ textAlign: 'right' }}>
-                                <span className="font-mono-numbers" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                <div className="excel-cell-static font-mono-numbers" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                                   {calcTask ? formatIDR(calcTask.total_cost) : 'Rp 0'}
-                                </span>
+                                </div>
                               </td>
                               <td style={{ textAlign: 'center' }}>
                                 <button
                                   type="button"
                                   onClick={() => removeTask(mIdx, tIdx)}
                                   className="btn-ghost"
-                                  style={{ color: 'var(--text-tertiary)', fontSize: '12px', padding: '2px 6px' }}
+                                  style={{ color: 'var(--text-tertiary)', fontSize: '12px', padding: '4px', width: '100%', height: '100%' }}
                                   title="Hapus Task"
                                 >
                                   ✕
@@ -2237,11 +2250,11 @@ export default function NewEstimatePage() {
                 </div>
 
                 {/* Maintenance Tasks Table */}
-                <div style={{ overflowX: 'auto', marginBottom: '12px' }}>
-                  <table className="linear-table">
+                <div style={{ overflowX: 'auto', marginBottom: '12px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <table className="excel-table">
                     <thead>
                       <tr>
-                        <th style={{ minWidth: '200px' }}>Task Maintenance Bulanan</th>
+                        <th style={{ minWidth: '220px', textAlign: 'left' }}>Task Maintenance Bulanan</th>
                         {activeCostingRoles.map((r) => (
                           <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }}>
                             {r.name}
@@ -2249,7 +2262,7 @@ export default function NewEstimatePage() {
                         ))}
                         <th style={{ width: '10%', textAlign: 'right', minWidth: '80px' }}>Jam/Bulan</th>
                         <th style={{ width: '15%', textAlign: 'right', minWidth: '105px' }}>Biaya/Bulan</th>
-                        <th style={{ width: '4%', textAlign: 'center' }}></th>
+                        <th style={{ width: '36px', textAlign: 'center' }}></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2260,11 +2273,10 @@ export default function NewEstimatePage() {
                             <td>
                               <input
                                 type="text"
-                                className="linear-input"
+                                className="excel-cell-input"
                                 value={task.name}
                                 onChange={(e) => updateMaintenanceTaskField(tIdx, 'name', e.target.value)}
                                 placeholder="Nama task rutin..."
-                                style={{ padding: '4px 8px', fontSize: '12px' }}
                               />
                             </td>
                             {activeCostingRoles.map((r) => {
@@ -2274,31 +2286,31 @@ export default function NewEstimatePage() {
                                   <input
                                     type="number"
                                     min="0"
-                                    className="linear-input font-mono-numbers"
+                                    className="excel-cell-input font-mono-numbers"
                                     value={hours === 0 ? '' : hours}
                                     onChange={(e) => updateMaintenanceTaskRoleHours(tIdx, r.code, Math.max(0, Number(e.target.value) || 0))}
-                                    placeholder="0"
-                                    style={{ textAlign: 'center', padding: '4px', fontSize: '12px' }}
+                                    placeholder="-"
+                                    style={{ textAlign: 'center' }}
                                   />
                                 </td>
                               );
                             })}
                             <td style={{ textAlign: 'right' }}>
-                              <span className="font-mono-numbers" style={{ fontSize: '12px', fontWeight: 600 }}>
+                              <div className="excel-cell-static font-mono-numbers" style={{ fontSize: '12px', fontWeight: 600 }}>
                                 {calcTask ? calcTask.total_hours : 0}h
-                              </span>
+                              </div>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <span className="font-mono-numbers" style={{ fontSize: '12px', fontWeight: 600, color: '#38bdf8' }}>
+                              <div className="excel-cell-static font-mono-numbers" style={{ fontSize: '12px', fontWeight: 600, color: '#38bdf8' }}>
                                 {calcTask ? formatIDR(calcTask.monthly_cost) : 'Rp 0'}/bln
-                              </span>
+                              </div>
                             </td>
                             <td style={{ textAlign: 'center' }}>
                               <button
                                 type="button"
                                 onClick={() => removeMaintenanceTask(tIdx)}
                                 className="btn-ghost"
-                                style={{ color: 'var(--color-danger)', padding: '2px 6px', fontSize: '12px' }}
+                                style={{ color: 'var(--color-danger)', padding: '4px', fontSize: '12px', width: '100%', height: '100%' }}
                                 title="Hapus Task Maintenance"
                               >
                                 ✕
