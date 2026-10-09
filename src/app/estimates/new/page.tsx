@@ -76,6 +76,10 @@ function NewEstimateForm() {
   const [editingEstimateMeta, setEditingEstimateMeta] = useState<{ version?: number; parent_id?: number | null; revision_notes?: string | null } | null>(null);
   const [isEditLoading, setIsEditLoading] = useState(false);
 
+  // Edit Revision Reason Dialog state
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [revisionReason, setRevisionReason] = useState('');
+
   const [companies, setCompanies] = useState<Company[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -1137,6 +1141,66 @@ function NewEstimateForm() {
     }
   };
 
+  const executeSubmit = async (reasonText?: string) => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setIsLoading(true);
+    setIsRevisionModalOpen(false);
+
+    const isEditMode = editId !== null && !isNaN(editId);
+    const endpoint = isEditMode ? `/api/estimates/${editId}` : '/api/estimates';
+    const method = isEditMode ? 'PUT' : 'POST';
+
+    try {
+      const payload = {
+        title: (projects.find(p => p.id === Number(selectedProjectId))?.name || title || 'Project Estimate').trim(),
+        company_id: Number(selectedCompanyId),
+        project_id: Number(selectedProjectId),
+        service_type_id: Number(selectedServiceTypeId),
+        category_ids: selectedCategoryIds,
+        category_id: selectedCategoryIds[0],
+        tag_id: isDevelopment && selectedTagId ? Number(selectedTagId) : null,
+        notes: notes.trim() || null,
+        custom_rates: rates,
+        modules: isDevelopment ? modules : [],
+        maintenance_config: isMaintenance ? {
+          duration_months: maintenanceDurationMonths,
+          tasks: maintenanceTasks,
+        } : null,
+        infrastructure_items: isInfrastructure ? infraItems : null,
+        operational_items: isOperational ? operationalItems : null,
+        revision_notes: reasonText || revisionReason || null,
+      };
+
+      const res = await fetch(endpoint, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error || 'Gagal menyimpan estimate.');
+      } else {
+        const resultId = data.estimate_id || (isEditMode ? editId : data.estimate?.id);
+        const nextVer = data.version || (editingEstimateMeta?.version || 1) + 1;
+        setSuccessMsg(
+          isEditMode
+            ? `Berhasil menyimpan revisi v${nextVer} #${resultId} (${formatIDR(data.total_cost || billingSummary.grand_total)}). Mengalihkan ke dashboard...`
+            : `Berhasil menyimpan estimate ID #${resultId} (${data.estimate?.total_hours || calculation.total_hours} Jam, ${formatIDR(data.estimate?.total_cost || billingSummary.grand_total)}). Mengalihkan ke halaman utama...`
+        );
+        setTimeout(() => {
+          router.push('/');
+        }, 1200);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setErrorMsg(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Submit and save estimate
   const handleSaveEstimate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1144,8 +1208,6 @@ function NewEstimateForm() {
     setSuccessMsg(null);
 
     const isEditMode = editId !== null && !isNaN(editId);
-    const endpoint = isEditMode ? `/api/estimates/${editId}` : '/api/estimates';
-    const method = isEditMode ? 'PUT' : 'POST';
 
     if (!selectedCompanyId) {
       setErrorMsg('Perusahaan wajib dipilih.');
@@ -1174,53 +1236,14 @@ function NewEstimateForm() {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const payload = {
-        title: (projects.find(p => p.id === Number(selectedProjectId))?.name || title || 'Project Estimate').trim(),
-        company_id: Number(selectedCompanyId),
-        project_id: Number(selectedProjectId),
-        service_type_id: Number(selectedServiceTypeId),
-        category_ids: selectedCategoryIds,
-        category_id: selectedCategoryIds[0],
-        tag_id: isDevelopment && selectedTagId ? Number(selectedTagId) : null,
-        notes: notes.trim() || null,
-        custom_rates: rates,
-        modules: isDevelopment ? modules : [],
-        maintenance_config: isMaintenance ? {
-          duration_months: maintenanceDurationMonths,
-          tasks: maintenanceTasks,
-        } : null,
-        infrastructure_items: isInfrastructure ? infraItems : null,
-        operational_items: isOperational ? operationalItems : null,
-      };
-
-      const res = await fetch(endpoint, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErrorMsg(data.error || 'Gagal menyimpan estimate.');
-      } else {
-        const resultId = isEditMode ? editId : data.estimate?.id;
-        setSuccessMsg(
-          isEditMode
-            ? `Berhasil memperbarui revisi #${resultId} (${formatIDR(data.total_cost || billingSummary.grand_total)}). Mengalihkan ke dashboard...`
-            : `Berhasil menyimpan estimate ID #${resultId} (${data.estimate?.total_hours || calculation.total_hours} Jam, ${formatIDR(data.estimate?.total_cost || billingSummary.grand_total)}). Mengalihkan ke halaman utama...`
-        );
-        setTimeout(() => {
-          router.push('/');
-        }, 1200);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Network error';
-      setErrorMsg(msg);
-    } finally {
-      setIsLoading(false);
+    // In Edit mode, prompt for revision reason before submitting!
+    if (isEditMode) {
+      setRevisionReason(`Revisi penyesuaian scope v${(editingEstimateMeta?.version || 1) + 1}`);
+      setIsRevisionModalOpen(true);
+      return;
     }
+
+    await executeSubmit();
   };
 
   return (
@@ -3349,6 +3372,107 @@ function NewEstimateForm() {
             </div>
           </div>
         )}
+        {/* Revision Reason Modal on Edit Save */}
+        {isRevisionModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 300,
+              padding: '16px',
+            }}
+            onClick={() => {
+              if (!isLoading) setIsRevisionModalOpen(false);
+            }}
+          >
+            <div
+              className="linear-card-elevated"
+              style={{
+                width: '100%',
+                maxWidth: '460px',
+                padding: '24px',
+                background: '#0d0f11',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '20px' }}>📝</span>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Simpan Perubahan Revisi
+                  </h3>
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                    Versi akan otomatis naik menjadi <strong>v{(editingEstimateMeta?.version || 1) + 1}</strong> (Baseline v{editingEstimateMeta?.version || 1} tetap tersimpan).
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Alasan Edit / Catatan Perubahan:
+                </label>
+                <input
+                  type="text"
+                  className="input-linear"
+                  autoFocus
+                  style={{ width: '100%', fontSize: '13px' }}
+                  value={revisionReason}
+                  onChange={(e) => setRevisionReason(e.target.value)}
+                  placeholder="Contoh: Negosiasi diskon klien, pengurangan modul QA..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      executeSubmit(revisionReason);
+                    }
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={isLoading}
+                  onClick={() => setIsRevisionModalOpen(false)}
+                  style={{ fontSize: '13px', padding: '8px 16px' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeSubmit(revisionReason)}
+                  disabled={isLoading}
+                  style={{
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 18px',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {isLoading ? 'Menyimpan...' : `Simpan Revisi v${(editingEstimateMeta?.version || 1) + 1}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );

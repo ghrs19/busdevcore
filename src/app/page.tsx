@@ -857,26 +857,12 @@ export default function HistoricalEstimatesDashboard() {
                           <a
                             href={`/estimates/new?edit_id=${est.id}`}
                             className="btn-secondary"
-                            style={{ fontSize: '11px', padding: '4px 8px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
-                            title="Edit / Sesuaikan Scope Estimasi ini"
+                            style={{ fontSize: '11px', padding: '4px 8px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+                            title="Edit / Buat Revisi Estimasi ini"
                             onClick={(e) => e.stopPropagation()}
                           >
                             ✏️ Edit
                           </a>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setForkTarget(est);
-                              setForkNotes(`Revisi ruang lingkup / diskon dari v${est.version || 1}`);
-                              setForkError(null);
-                            }}
-                            className="btn-secondary"
-                            style={{ fontSize: '11px', padding: '4px 8px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
-                            title="Buat Revisi / Fork Estimate Baru"
-                          >
-                            🔀 Fork v{(est.version || 1) + 1}
-                          </button>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1556,26 +1542,6 @@ export default function HistoricalEstimatesDashboard() {
                         fontSize: '12px',
                         padding: '6px 14px',
                         textDecoration: 'none',
-                        color: '#10b981',
-                        borderColor: 'rgba(16, 185, 129, 0.4)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      <span>✏️ Buka di Editor Form</span>
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForkTarget(inspectDetail);
-                        setForkNotes(`Revisi ruang lingkup / negosiasi harga dari v${inspectDetail.version || 1}`);
-                        setForkError(null);
-                      }}
-                      className="btn-secondary"
-                      style={{
-                        fontSize: '12px',
-                        padding: '6px 14px',
                         color: '#38bdf8',
                         borderColor: 'rgba(56, 189, 248, 0.4)',
                         display: 'inline-flex',
@@ -1583,8 +1549,8 @@ export default function HistoricalEstimatesDashboard() {
                         gap: '6px',
                       }}
                     >
-                      <span>🔀 Buat Revisi (Fork v{(inspectDetail.version || 1) + 1})</span>
-                    </button>
+                      <span>✏️ Edit Estimasi</span>
+                    </a>
                     <button
                       type="button"
                       onClick={() => {

@@ -246,48 +246,96 @@ export async function PUT(
     const grandTotalHours = totalDevHours + totalMaintenanceHours;
     const grandTotalCost = billingSummary.grand_total;
 
-    // 7. Update project_estimates table
-    await client.query(`
-      UPDATE project_estimates
-      SET 
-        title = COALESCE($1, title),
-        notes = $2,
-        revision_notes = COALESCE($3, revision_notes),
-        status = COALESCE($4, status),
-        total_hours = $5,
-        total_cost = $6,
-        maintenance_config = $7::jsonb,
-        infrastructure_items = $8::jsonb,
-        operational_items = $9::jsonb,
-        billing_summary = $10::jsonb,
-        tag_id = $11,
-        updated_at = NOW()
-      WHERE id = $12
-    `, [
-      title || null,
-      notes || null,
-      revision_notes || null,
-      status || null,
-      grandTotalHours,
-      grandTotalCost,
-      maintenanceConfigData ? JSON.stringify(maintenanceConfigData) : null,
-      infraItemsData ? JSON.stringify(infraItemsData.items) : null,
-      opItemsData ? JSON.stringify(opItemsData.items) : null,
-      JSON.stringify(billingSummary),
-      tag_id || null,
-      estimateId,
-    ]);
+    // 7. Check if this save creates a new revision version or updates current
+    // Determine root parent & increment version
+    const rootParentId = currentEst.parent_id ? currentEst.parent_id : currentEst.id;
+    const currentVersion = Number(currentEst.version) || 1;
+    const nextVersion = currentVersion + 1;
+
+    let targetEstimateId = estimateId;
+
+    if (body.create_revision_on_save !== false) {
+      // Create a NEW record for the new version so baseline remains intact in history
+      const baseTitle = (currentEst.title || 'Project Estimate').replace(/\s*\(Rev v\d+\)+/gi, '').trim();
+      const newTitle = `${baseTitle} (Rev v${nextVersion})`;
+
+      const insertRes = await client.query(`
+        INSERT INTO project_estimates (
+          title, company_id, project_id, service_type_id, category_id, tag_id,
+          status, rate_snapshots, total_hours, total_cost, notes,
+          maintenance_config, infrastructure_items, operational_items, billing_summary,
+          parent_id, version, revision_notes, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6,
+          'DRAFT', $7::jsonb, $8, $9, $10,
+          $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb,
+          $15, $16, $17, NOW(), NOW()
+        ) RETURNING id
+      `, [
+        title || newTitle,
+        currentEst.company_id,
+        currentEst.project_id,
+        currentEst.service_type_id,
+        currentEst.category_id,
+        tag_id || currentEst.tag_id,
+        JSON.stringify(currentEst.rate_snapshots),
+        grandTotalHours,
+        grandTotalCost,
+        notes || currentEst.notes,
+        maintenanceConfigData ? JSON.stringify(maintenanceConfigData) : null,
+        infraItemsData ? JSON.stringify(infraItemsData.items) : null,
+        opItemsData ? JSON.stringify(opItemsData.items) : null,
+        JSON.stringify(billingSummary),
+        rootParentId,
+        nextVersion,
+        revision_notes || `Revisi versi v${nextVersion}`
+      ]);
+
+      targetEstimateId = insertRes.rows[0].id;
+    } else {
+      // Overwrite current record
+      await client.query(`
+        UPDATE project_estimates
+        SET 
+          title = COALESCE($1, title),
+          notes = $2,
+          revision_notes = COALESCE($3, revision_notes),
+          status = COALESCE($4, status),
+          total_hours = $5,
+          total_cost = $6,
+          maintenance_config = $7::jsonb,
+          infrastructure_items = $8::jsonb,
+          operational_items = $9::jsonb,
+          billing_summary = $10::jsonb,
+          tag_id = $11,
+          updated_at = NOW()
+        WHERE id = $12
+      `, [
+        title || null,
+        notes || null,
+        revision_notes || null,
+        status || null,
+        grandTotalHours,
+        grandTotalCost,
+        maintenanceConfigData ? JSON.stringify(maintenanceConfigData) : null,
+        infraItemsData ? JSON.stringify(infraItemsData.items) : null,
+        opItemsData ? JSON.stringify(opItemsData.items) : null,
+        JSON.stringify(billingSummary),
+        tag_id || null,
+        estimateId,
+      ]);
+    }
 
     // 8. Update categories if provided
     const catList = rawCategoryIds || category_ids || (category_id ? [category_id] : null);
     if (Array.isArray(catList) && catList.length > 0) {
-      await client.query('DELETE FROM estimate_categories WHERE estimate_id = $1', [estimateId]);
+      await client.query('DELETE FROM estimate_categories WHERE estimate_id = $1', [targetEstimateId]);
       for (const cId of catList) {
         const parsedCId = parseInt(String(cId), 10);
         if (!isNaN(parsedCId)) {
           await client.query(
             'INSERT INTO estimate_categories (estimate_id, category_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [estimateId, parsedCId]
+            [targetEstimateId, parsedCId]
           );
         }
       }
@@ -295,13 +343,13 @@ export async function PUT(
 
     // 9. Re-insert modules & tasks if modules provided
     if (Array.isArray(modules)) {
-      await client.query('DELETE FROM estimate_modules WHERE estimate_id = $1', [estimateId]);
+      await client.query('DELETE FROM estimate_modules WHERE estimate_id = $1', [targetEstimateId]);
       for (const mod of calculatedDevModules) {
         const modRes = await client.query(`
           INSERT INTO estimate_modules (estimate_id, name, order_index, total_hours, total_cost)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING id
-        `, [estimateId, mod.name, mod.order_index, mod.total_hours, mod.total_cost]);
+        `, [targetEstimateId, mod.name, mod.order_index, mod.total_hours, mod.total_cost]);
 
         const modId = modRes.rows[0].id;
         for (const task of mod.tasks) {
@@ -332,8 +380,10 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      message: `Estimasi #${estimateId} berhasil diperbarui`,
-      estimate_id: estimateId,
+      message: `Estimasi revisi v${nextVersion} (#${targetEstimateId}) berhasil disimpan`,
+      estimate_id: targetEstimateId,
+      version: nextVersion,
+      parent_id: rootParentId,
       total_cost: grandTotalCost,
       total_hours: grandTotalHours,
     });
