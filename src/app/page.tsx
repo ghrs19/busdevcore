@@ -869,11 +869,21 @@ export default function HistoricalEstimatesDashboard() {
                           <a
                             href={`/estimates/new?edit_id=${est.id}`}
                             className="btn-secondary"
-                            style={{ fontSize: '11px', padding: '4px 8px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+                            style={{
+                              fontSize: '13px',
+                              padding: '4px 8px',
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#38bdf8',
+                              borderColor: 'rgba(56, 189, 248, 0.3)',
+                              borderRadius: '6px',
+                            }}
                             title="Edit / Buat Revisi Estimasi ini"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            ✏️ Edit
+                            ✏️
                           </a>
                           <button
                             type="button"
@@ -1702,17 +1712,19 @@ export default function HistoricalEstimatesDashboard() {
                       href={`/estimates/new?edit_id=${inspectDetail.id}`}
                       className="btn-secondary"
                       style={{
-                        fontSize: '12px',
-                        padding: '6px 14px',
+                        fontSize: '14px',
+                        padding: '6px 12px',
                         textDecoration: 'none',
                         color: '#38bdf8',
                         borderColor: 'rgba(56, 189, 248, 0.4)',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        justifyContent: 'center',
+                        borderRadius: '6px',
                       }}
+                      title="Edit / Buat Revisi Estimasi ini"
                     >
-                      <span>✏️ Edit Estimasi</span>
+                      ✏️
                     </a>
                     <button
                       type="button"
@@ -1720,22 +1732,22 @@ export default function HistoricalEstimatesDashboard() {
                         setDeleteTarget(inspectDetail);
                         setDeleteError(null);
                       }}
-                    style={{
-                      fontSize: '12px',
-                      padding: '6px 14px',
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      color: '#ef4444',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontWeight: 500,
-                    }}
-                  >
-                    🗑️ Hapus Estimasi
-                  </button>
+                      style={{
+                        fontSize: '14px',
+                        padding: '6px 12px',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#ef4444',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Hapus Estimasi"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 ) : (
                   <div />
