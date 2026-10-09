@@ -7,7 +7,7 @@ export async function GET() {
       pool.query('SELECT id, code, name, is_active FROM service_types ORDER BY id ASC'),
       pool.query('SELECT id, service_type_id, code, name FROM categories ORDER BY id ASC'),
       pool.query('SELECT id, code, name, applies_to_category_code FROM tags ORDER BY id ASC'),
-      pool.query('SELECT id, code, name, default_hourly_rate FROM role_masters ORDER BY id ASC'),
+      pool.query('SELECT id, code, name, default_hourly_rate, is_active FROM role_masters WHERE is_active = TRUE ORDER BY id ASC'),
     ]);
 
     return NextResponse.json({

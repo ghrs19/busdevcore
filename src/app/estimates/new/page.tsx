@@ -8,7 +8,6 @@ import {
   calculateModule,
   type RoleRateMap,
   type ModuleInput,
-  type TaskInput,
 } from '@/lib/costing';
 
 interface Company {
@@ -40,6 +39,14 @@ interface Tag {
   applies_to_category_code: string;
 }
 
+interface RoleMaster {
+  id: number;
+  code: string;
+  name: string;
+  default_hourly_rate: number;
+  is_active?: boolean;
+}
+
 const formatIDR = (val: number | string) => {
   const num = typeof val === 'string' ? parseFloat(val) : val;
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
@@ -52,7 +59,16 @@ export default function NewEstimatePage() {
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [roles, setRoles] = useState<RoleMaster[]>([]);
   const [rates, setRates] = useState<RoleRateMap>(DEFAULT_ROLE_RATES);
+
+  // New Role Modal state
+  const [isNewRoleModalOpen, setIsNewRoleModalOpen] = useState(false);
+  const [newRoleCode, setNewRoleCode] = useState('');
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleRate, setNewRoleRate] = useState<number | ''>('');
+  const [newRoleLoading, setNewRoleLoading] = useState(false);
+  const [newRoleError, setNewRoleError] = useState<string | null>(null);
 
   // Form states
   const [title, setTitle] = useState('Djarum Urban - Microsite');
@@ -98,8 +114,28 @@ export default function NewEstimatePage() {
   // Load initial metadata
   const loadMetadata = useCallback(async () => {
     try {
-      const res = await fetch('/api/metadata');
+      const [res, rolesRes] = await Promise.all([
+        fetch('/api/metadata'),
+        fetch('/api/roles?active_only=true'),
+      ]);
       const data = await res.json();
+      const rolesData = await rolesRes.json();
+
+      let activeRoles: RoleMaster[] = [];
+      if (rolesData.success && Array.isArray(rolesData.roles)) {
+        activeRoles = rolesData.roles;
+      } else if (data.roles && Array.isArray(data.roles)) {
+        activeRoles = data.roles;
+      }
+      setRoles(activeRoles);
+
+      // Populate default rates map from active roles
+      const initialRates: RoleRateMap = { ...DEFAULT_ROLE_RATES };
+      for (const r of activeRoles) {
+        initialRates[r.code] = r.default_hourly_rate;
+      }
+      setRates(initialRates);
+
       if (data.success) {
         setCompanies(data.companies || []);
         setServiceTypes(data.serviceTypes || []);
@@ -110,7 +146,7 @@ export default function NewEstimatePage() {
         const itType = (data.serviceTypes || []).find((st: ServiceType) => st.code === 'IT');
         if (itType) setSelectedServiceTypeId(itType.id);
 
-        const devCat = (data.categories || []).find((c: Category) => c.code === 'DEV');
+        const devCat = (data.categories || []).find((c: Category) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
         if (devCat) setSelectedCategoryId(devCat.id);
 
         const initTag = (data.tags || []).find((t: Tag) => t.code === 'INITIAL');
@@ -132,7 +168,7 @@ export default function NewEstimatePage() {
   // Derived classification
   const currentCategory = categories.find((c) => c.id === Number(selectedCategoryId));
 
-  const isDevelopment = currentCategory?.code === 'DEV';
+  const isDevelopment = currentCategory?.code === 'DEV' || currentCategory?.code === 'DEVELOPMENT';
   const isMaintenance = currentCategory?.code === 'MAINTENANCE';
 
   // Filtered categories & tags
@@ -149,7 +185,7 @@ export default function NewEstimatePage() {
   const handleCategoryChange = (catId: number) => {
     setSelectedCategoryId(catId);
     const cat = categories.find((c) => c.id === catId);
-    if (cat?.code === 'DEV') {
+    if (cat?.code === 'DEV' || cat?.code === 'DEVELOPMENT') {
       const initialTag = tags.find((t) => t.code === 'INITIAL');
       if (initialTag) setSelectedTagId(initialTag.id);
     } else {
@@ -161,22 +197,16 @@ export default function NewEstimatePage() {
   const calculation = useMemo(() => {
     try {
       const calcModules = modules.map((m) => calculateModule(m, rates));
-      const hours_by_role = {
-        pm: calcModules.reduce((acc, m) => acc + m.hours_breakdown.pm, 0),
-        web_dev: calcModules.reduce((acc, m) => acc + m.hours_breakdown.web_dev, 0),
-        ui_ux: calcModules.reduce((acc, m) => acc + m.hours_breakdown.ui_ux, 0),
-        qc_doc: calcModules.reduce((acc, m) => acc + m.hours_breakdown.qc_doc, 0),
-        dev_ops: calcModules.reduce((acc, m) => acc + m.hours_breakdown.dev_ops, 0),
-      };
-      const cost_by_role = {
-        pm: calcModules.reduce((acc, m) => acc + m.cost_breakdown.pm, 0),
-        web_dev: calcModules.reduce((acc, m) => acc + m.cost_breakdown.web_dev, 0),
-        ui_ux: calcModules.reduce((acc, m) => acc + m.cost_breakdown.ui_ux, 0),
-        qc_doc: calcModules.reduce((acc, m) => acc + m.cost_breakdown.qc_doc, 0),
-        dev_ops: calcModules.reduce((acc, m) => acc + m.cost_breakdown.dev_ops, 0),
-      };
-      const total_hours = Object.values(hours_by_role).reduce((a, b) => a + b, 0);
-      const total_cost = Object.values(cost_by_role).reduce((a, b) => a + b, 0);
+      const hours_by_role: Record<string, number> = {};
+      const cost_by_role: Record<string, number> = {};
+
+      for (const r of roles) {
+        hours_by_role[r.code] = calcModules.reduce((acc, m) => acc + (m.hours_breakdown[r.code] || 0), 0);
+        cost_by_role[r.code] = calcModules.reduce((acc, m) => acc + (m.cost_breakdown[r.code] || 0), 0);
+      }
+
+      const total_hours = calcModules.reduce((acc, m) => acc + m.total_hours, 0);
+      const total_cost = calcModules.reduce((acc, m) => acc + m.total_cost, 0);
 
       return {
         calcModules,
@@ -188,13 +218,13 @@ export default function NewEstimatePage() {
     } catch {
       return {
         calcModules: [],
-        hours_by_role: { pm: 0, web_dev: 0, ui_ux: 0, qc_doc: 0, dev_ops: 0 },
-        cost_by_role: { pm: 0, web_dev: 0, ui_ux: 0, qc_doc: 0, dev_ops: 0 },
+        hours_by_role: {},
+        cost_by_role: {},
         total_hours: 0,
         total_cost: 0,
       };
     }
-  }, [modules, rates]);
+  }, [modules, rates, roles]);
 
   const totalModuleCount = modules.length;
   const totalTaskCount = useMemo(
@@ -207,7 +237,7 @@ export default function NewEstimatePage() {
     setTitle('Djarum Urban - Microsite');
     const it = serviceTypes.find((s) => s.code === 'IT');
     if (it) setSelectedServiceTypeId(it.id);
-    const dev = categories.find((c) => c.code === 'DEV');
+    const dev = categories.find((c) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
     if (dev) setSelectedCategoryId(dev.id);
     const init = tags.find((t) => t.code === 'INITIAL');
     if (init) setSelectedTagId(init.id);
@@ -364,8 +394,13 @@ export default function NewEstimatePage() {
 
   const addTask = (mIdx: number) => {
     const next = [...modules];
+    const initialRoleHours: Record<string, number> = {};
+    for (const r of roles) {
+      initialRoleHours[r.code] = 0;
+    }
     next[mIdx].tasks.push({
-      name: 'Task Baru',
+      name: `Task ${next[mIdx].tasks.length + 1}`,
+      role_hours: initialRoleHours,
       hours_pm: 0,
       hours_web_dev: 0,
       hours_ui_ux: 0,
@@ -384,7 +419,7 @@ export default function NewEstimatePage() {
   const updateTaskField = (
     mIdx: number,
     tIdx: number,
-    field: keyof TaskInput,
+    field: 'name' | 'hours_pm' | 'hours_web_dev' | 'hours_ui_ux' | 'hours_qc_doc' | 'hours_dev_ops',
     val: string | number
   ) => {
     const next = [...modules];
@@ -398,11 +433,90 @@ export default function NewEstimatePage() {
     setModules(next);
   };
 
-  const updateRate = (role: keyof RoleRateMap, val: number) => {
+  const updateTaskRoleHours = (
+    mIdx: number,
+    tIdx: number,
+    roleCode: string,
+    val: string
+  ) => {
+    const next = [...modules];
+    const task = { ...next[mIdx].tasks[tIdx] };
+    const num = Number(val) || 0;
+    task.role_hours = {
+      ...(task.role_hours || {}),
+      [roleCode]: num,
+    };
+    if (roleCode === 'PM') task.hours_pm = num;
+    if (roleCode === 'WEB_DEV') task.hours_web_dev = num;
+    if (roleCode === 'UI_UX') task.hours_ui_ux = num;
+    if (roleCode === 'QC_DOC') task.hours_qc_doc = num;
+    if (roleCode === 'DEV_OPS') task.hours_dev_ops = num;
+
+    next[mIdx].tasks[tIdx] = task;
+    setModules(next);
+  };
+
+  const updateRate = (role: string, val: number) => {
     setRates((prev) => ({
       ...prev,
       [role]: val,
     }));
+  };
+
+  const handleCreateNewRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewRoleError(null);
+
+    const cleanCode = newRoleCode.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+    if (!cleanCode) {
+      setNewRoleError('Kode role wajib diisi.');
+      return;
+    }
+    if (!newRoleName.trim()) {
+      setNewRoleError('Nama role wajib diisi.');
+      return;
+    }
+    const parsedRate = Number(newRoleRate);
+    if (isNaN(parsedRate) || parsedRate < 0) {
+      setNewRoleError('Hourly rate harus berupa angka >= 0.');
+      return;
+    }
+
+    setNewRoleLoading(true);
+    try {
+      const res = await fetch('/api/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: cleanCode,
+          name: newRoleName.trim(),
+          default_hourly_rate: parsedRate,
+          is_active: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setNewRoleError(data.error || 'Gagal menambahkan role baru.');
+      } else {
+        const addedRole: RoleMaster = data.role;
+        setRoles((prev) => [...prev, addedRole]);
+        setRates((prev) => ({
+          ...prev,
+          [addedRole.code]: addedRole.default_hourly_rate,
+        }));
+        setNewRoleCode('');
+        setNewRoleName('');
+        setNewRoleRate('');
+        setIsNewRoleModalOpen(false);
+        setSuccessMsg(`Role '${addedRole.name}' (${addedRole.code}) berhasil ditambahkan ke database!`);
+        setTimeout(() => setSuccessMsg(null), 4000);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setNewRoleError(msg);
+    } finally {
+      setNewRoleLoading(false);
+    }
   };
 
   // Submit and save estimate
@@ -943,13 +1057,26 @@ export default function NewEstimatePage() {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                className="btn-ghost"
-                style={{ fontSize: '12px', color: 'var(--accent-hover)' }}
-              >
-                {isRateExpanded ? 'Sembunyikan ▲' : 'Buka & Sesuaikan ▼'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsNewRoleModalOpen(true);
+                  }}
+                  style={{ fontSize: '12px', padding: '6px 12px' }}
+                >
+                  + Tambah Role Baru
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  style={{ fontSize: '12px', color: 'var(--accent-hover)' }}
+                >
+                  {isRateExpanded ? 'Sembunyikan ▲' : 'Buka & Sesuaikan ▼'}
+                </button>
+              </div>
             </div>
 
             {isRateExpanded && (
@@ -963,26 +1090,18 @@ export default function NewEstimatePage() {
                   gap: '16px',
                 }}
               >
-                {(
-                  [
-                    ['PM', 'Project Manager'],
-                    ['WEB_DEV', 'Web Programmer'],
-                    ['UI_UX', 'UI / UX Designer'],
-                    ['QC_DOC', 'QC / Tech Writer'],
-                    ['DEV_OPS', 'DevOps / SysAdmin'],
-                  ] as const
-                ).map(([key, label]) => (
-                  <div key={key}>
+                {roles.map((r) => (
+                  <div key={r.code}>
                     <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
-                      {label}
+                      {r.name} ({r.code})
                     </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Rp</span>
                       <input
                         type="number"
-                        className="linear-input"
-                        value={rates[key]}
-                        onChange={(e) => updateRate(key, Number(e.target.value) || 0)}
+                        className="linear-input font-mono-numbers"
+                        value={rates[r.code] ?? r.default_hourly_rate}
+                        onChange={(e) => updateRate(r.code, Number(e.target.value) || 0)}
                         style={{ textAlign: 'right' }}
                       />
                     </div>
@@ -1106,14 +1225,14 @@ export default function NewEstimatePage() {
                     <table className="linear-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '30%' }}>Nama Task</th>
-                          <th style={{ width: '9%', textAlign: 'center' }}>PM (Jam)</th>
-                          <th style={{ width: '9%', textAlign: 'center' }}>Web Dev</th>
-                          <th style={{ width: '9%', textAlign: 'center' }}>UI / UX</th>
-                          <th style={{ width: '9%', textAlign: 'center' }}>QC / Doc</th>
-                          <th style={{ width: '9%', textAlign: 'center' }}>DevOps</th>
-                          <th style={{ width: '9%', textAlign: 'right' }}>Total Jam</th>
-                          <th style={{ width: '12%', textAlign: 'right' }}>Biaya</th>
+                          <th style={{ minWidth: '180px' }}>Nama Task</th>
+                          {roles.map((r) => (
+                            <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }}>
+                              {r.name}
+                            </th>
+                          ))}
+                          <th style={{ width: '9%', textAlign: 'right', minWidth: '70px' }}>Total Jam</th>
+                          <th style={{ width: '12%', textAlign: 'right', minWidth: '95px' }}>Biaya</th>
                           <th style={{ width: '4%', textAlign: 'center' }}></th>
                         </tr>
                       </thead>
@@ -1132,56 +1251,27 @@ export default function NewEstimatePage() {
                                   style={{ padding: '4px 8px', fontSize: '12px' }}
                                 />
                               </td>
-                              <td>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  className="linear-input font-mono-numbers"
-                                  value={task.hours_pm || ''}
-                                  onChange={(e) => updateTaskField(mIdx, tIdx, 'hours_pm', e.target.value)}
-                                  style={{ padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  className="linear-input font-mono-numbers"
-                                  value={task.hours_web_dev || ''}
-                                  onChange={(e) => updateTaskField(mIdx, tIdx, 'hours_web_dev', e.target.value)}
-                                  style={{ padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  className="linear-input font-mono-numbers"
-                                  value={task.hours_ui_ux || ''}
-                                  onChange={(e) => updateTaskField(mIdx, tIdx, 'hours_ui_ux', e.target.value)}
-                                  style={{ padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  className="linear-input font-mono-numbers"
-                                  value={task.hours_qc_doc || ''}
-                                  onChange={(e) => updateTaskField(mIdx, tIdx, 'hours_qc_doc', e.target.value)}
-                                  style={{ padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  className="linear-input font-mono-numbers"
-                                  value={task.hours_dev_ops || ''}
-                                  onChange={(e) => updateTaskField(mIdx, tIdx, 'hours_dev_ops', e.target.value)}
-                                  style={{ padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
-                                />
-                              </td>
+                              {roles.map((r) => {
+                                const val = task.role_hours?.[r.code] ?? (
+                                  r.code === 'PM' ? task.hours_pm :
+                                  r.code === 'WEB_DEV' ? task.hours_web_dev :
+                                  r.code === 'UI_UX' ? task.hours_ui_ux :
+                                  r.code === 'QC_DOC' ? task.hours_qc_doc :
+                                  r.code === 'DEV_OPS' ? task.hours_dev_ops : 0
+                                );
+                                return (
+                                  <td key={r.code}>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      className="linear-input font-mono-numbers"
+                                      value={val || ''}
+                                      onChange={(e) => updateTaskRoleHours(mIdx, tIdx, r.code, e.target.value)}
+                                      style={{ padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
+                                    />
+                                  </td>
+                                );
+                              })}
                               <td style={{ textAlign: 'right' }}>
                                 <span className="font-mono-numbers" style={{ color: 'var(--text-secondary)' }}>
                                   {calcTask ? calcTask.total_hours : 0}h
@@ -1306,6 +1396,127 @@ export default function NewEstimatePage() {
             </div>
           </div>
         </form>
+
+        {/* Modal Tambah Role Baru */}
+        {isNewRoleModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+            onClick={() => setIsNewRoleModalOpen(false)}
+          >
+            <div
+              className="linear-card"
+              style={{
+                width: '100%',
+                maxWidth: '460px',
+                padding: '24px',
+                background: '#121417',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Tambah Role Baru
+                </h3>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setIsNewRoleModalOpen(false)}
+                  style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {newRoleError && (
+                <div style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: '6px', fontSize: '12px', marginBottom: '16px' }}>
+                  {newRoleError}
+                </div>
+              )}
+
+              <form onSubmit={handleCreateNewRole}>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                    Kode Role (contoh: MOBILE_DEV, QA_ENG) *
+                  </label>
+                  <input
+                    type="text"
+                    className="linear-input"
+                    value={newRoleCode}
+                    onChange={(e) => setNewRoleCode(e.target.value.toUpperCase())}
+                    placeholder="KODE_ROLE"
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                    Nama Role (contoh: Mobile App Developer) *
+                  </label>
+                  <input
+                    type="text"
+                    className="linear-input"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                    placeholder="Nama Lengkap Role"
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                    Standard Hourly Rate (Rp) *
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>Rp</span>
+                    <input
+                      type="number"
+                      min="0"
+                      className="linear-input font-mono-numbers"
+                      value={newRoleRate}
+                      onChange={(e) => setNewRoleRate(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="35000"
+                      required
+                      style={{ textAlign: 'right' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setIsNewRoleModalOpen(false)}
+                    disabled={newRoleLoading}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={newRoleLoading}
+                  >
+                    {newRoleLoading ? 'Menyimpan...' : 'Simpan Role'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

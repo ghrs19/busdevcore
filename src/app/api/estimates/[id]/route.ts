@@ -48,7 +48,7 @@ export async function GET(
     const modules = [];
     for (const mod of modRes.rows) {
       const taskRes = await pool.query(`
-        SELECT id, name, order_index, hours_pm, hours_web_dev, hours_ui_ux, hours_qc_doc, hours_dev_ops, total_hours, total_cost
+        SELECT id, name, order_index, hours_pm, hours_web_dev, hours_ui_ux, hours_qc_doc, hours_dev_ops, total_hours, total_cost, role_hours
         FROM estimate_tasks
         WHERE module_id = $1
         ORDER BY order_index ASC

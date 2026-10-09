@@ -17,11 +17,15 @@ if (!databaseUrl) {
 async function runMigration() {
   const pool = new Pool({ connectionString: databaseUrl });
   try {
-    const sqlPath = path.join(__dirname, '../src/db/migrations/001_init_costing.sql');
-    const sql = fs.readFileSync(sqlPath, 'utf-8');
-    console.log('Running migration from', sqlPath);
-    await pool.query(sql);
-    console.log('Migration executed successfully!');
+    const migrationsDir = path.join(__dirname, '../src/db/migrations');
+    const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+    for (const file of files) {
+      const sqlPath = path.join(migrationsDir, file);
+      const sql = fs.readFileSync(sqlPath, 'utf-8');
+      console.log('Running migration from', file);
+      await pool.query(sql);
+    }
+    console.log('Migrations executed successfully!');
 
     // Verify tables
     const res = await pool.query(`

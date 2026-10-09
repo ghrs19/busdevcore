@@ -1,14 +1,8 @@
-export type RoleCode = 'PM' | 'WEB_DEV' | 'UI_UX' | 'QC_DOC' | 'DEV_OPS';
+export type RoleCode = string;
 
-export interface RoleRateMap {
-  PM: number;
-  WEB_DEV: number;
-  UI_UX: number;
-  QC_DOC: number;
-  DEV_OPS: number;
-}
+export type RoleRateMap = Record<string, number>;
 
-export const DEFAULT_ROLE_RATES: RoleRateMap = {
+export const DEFAULT_ROLE_RATES: Record<string, number> = {
   PM: 39602,
   WEB_DEV: 39602,
   UI_UX: 33113,
@@ -18,22 +12,30 @@ export const DEFAULT_ROLE_RATES: RoleRateMap = {
 
 export interface TaskInput {
   name: string;
+  hours_pm?: number;
+  hours_web_dev?: number;
+  hours_ui_ux?: number;
+  hours_qc_doc?: number;
+  hours_dev_ops?: number;
+  role_hours?: Record<string, number>;
+}
+
+export interface CalculatedTask {
+  name: string;
   hours_pm: number;
   hours_web_dev: number;
   hours_ui_ux: number;
   hours_qc_doc: number;
   hours_dev_ops: number;
-}
-
-export interface CalculatedTask extends TaskInput {
+  role_hours: Record<string, number>;
   total_hours: number;
   total_cost: number;
-  cost_breakdown: {
-    pm: number;
-    web_dev: number;
-    ui_ux: number;
-    qc_doc: number;
-    dev_ops: number;
+  cost_breakdown: Record<string, number> & {
+    pm?: number;
+    web_dev?: number;
+    ui_ux?: number;
+    qc_doc?: number;
+    dev_ops?: number;
   };
 }
 
@@ -47,19 +49,19 @@ export interface CalculatedModule {
   tasks: CalculatedTask[];
   total_hours: number;
   total_cost: number;
-  hours_breakdown: {
-    pm: number;
-    web_dev: number;
-    ui_ux: number;
-    qc_doc: number;
-    dev_ops: number;
+  hours_breakdown: Record<string, number> & {
+    pm?: number;
+    web_dev?: number;
+    ui_ux?: number;
+    qc_doc?: number;
+    dev_ops?: number;
   };
-  cost_breakdown: {
-    pm: number;
-    web_dev: number;
-    ui_ux: number;
-    qc_doc: number;
-    dev_ops: number;
+  cost_breakdown: Record<string, number> & {
+    pm?: number;
+    web_dev?: number;
+    ui_ux?: number;
+    qc_doc?: number;
+    dev_ops?: number;
   };
 }
 
@@ -106,62 +108,83 @@ export function validateEstimateRules(params: {
 }
 
 export function calculateTask(task: TaskInput, rates: RoleRateMap = DEFAULT_ROLE_RATES): CalculatedTask {
-  const h_pm = Number(task.hours_pm) || 0;
-  const h_web = Number(task.hours_web_dev) || 0;
-  const h_ui = Number(task.hours_ui_ux) || 0;
-  const h_qc = Number(task.hours_qc_doc) || 0;
-  const h_devops = Number(task.hours_dev_ops) || 0;
+  const roleHours: Record<string, number> = {};
 
-  const total_hours = h_pm + h_web + h_ui + h_qc + h_devops;
+  const roleKeys = Array.from(new Set<string>([
+    'PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS',
+    ...Object.keys(rates),
+    ...Object.keys(task.role_hours || {}),
+  ]));
 
-  const cost_pm = Math.round(h_pm * rates.PM);
-  const cost_web = Math.round(h_web * rates.WEB_DEV);
-  const cost_ui = Math.round(h_ui * rates.UI_UX);
-  const cost_qc = Math.round(h_qc * rates.QC_DOC);
-  const cost_devops = Math.round(h_devops * rates.DEV_OPS);
+  let total_hours = 0;
+  let total_cost = 0;
+  const cost_breakdown: Record<string, number> = {};
 
-  const total_cost = cost_pm + cost_web + cost_ui + cost_qc + cost_devops;
+  for (const role of roleKeys) {
+    let hours = 0;
+    if (task.role_hours && task.role_hours[role] !== undefined) {
+      hours = Number(task.role_hours[role]) || 0;
+    } else if (role === 'PM' && task.hours_pm !== undefined) {
+      hours = Number(task.hours_pm) || 0;
+    } else if (role === 'WEB_DEV' && task.hours_web_dev !== undefined) {
+      hours = Number(task.hours_web_dev) || 0;
+    } else if (role === 'UI_UX' && task.hours_ui_ux !== undefined) {
+      hours = Number(task.hours_ui_ux) || 0;
+    } else if (role === 'QC_DOC' && task.hours_qc_doc !== undefined) {
+      hours = Number(task.hours_qc_doc) || 0;
+    } else if (role === 'DEV_OPS' && task.hours_dev_ops !== undefined) {
+      hours = Number(task.hours_dev_ops) || 0;
+    }
+
+    roleHours[role] = hours;
+    total_hours += hours;
+
+    const rate = rates[role] !== undefined ? rates[role] : (DEFAULT_ROLE_RATES[role] || 0);
+    const cost = Math.round(hours * rate);
+    total_cost += cost;
+    cost_breakdown[role] = cost;
+    cost_breakdown[role.toLowerCase()] = cost;
+  }
 
   return {
     ...task,
-    hours_pm: h_pm,
-    hours_web_dev: h_web,
-    hours_ui_ux: h_ui,
-    hours_qc_doc: h_qc,
-    hours_dev_ops: h_devops,
+    name: task.name,
+    role_hours: roleHours,
+    hours_pm: roleHours.PM || 0,
+    hours_web_dev: roleHours.WEB_DEV || 0,
+    hours_ui_ux: roleHours.UI_UX || 0,
+    hours_qc_doc: roleHours.QC_DOC || 0,
+    hours_dev_ops: roleHours.DEV_OPS || 0,
     total_hours,
     total_cost,
-    cost_breakdown: {
-      pm: cost_pm,
-      web_dev: cost_web,
-      ui_ux: cost_ui,
-      qc_doc: cost_qc,
-      dev_ops: cost_devops,
-    },
+    cost_breakdown,
   };
 }
 
 export function calculateModule(mod: ModuleInput, rates: RoleRateMap = DEFAULT_ROLE_RATES): CalculatedModule {
   const calculatedTasks = (mod.tasks || []).map(t => calculateTask(t, rates));
 
-  const hours_breakdown = {
-    pm: calculatedTasks.reduce((acc, t) => acc + t.hours_pm, 0),
-    web_dev: calculatedTasks.reduce((acc, t) => acc + t.hours_web_dev, 0),
-    ui_ux: calculatedTasks.reduce((acc, t) => acc + t.hours_ui_ux, 0),
-    qc_doc: calculatedTasks.reduce((acc, t) => acc + t.hours_qc_doc, 0),
-    dev_ops: calculatedTasks.reduce((acc, t) => acc + t.hours_dev_ops, 0),
-  };
+  const roleKeys = Array.from(new Set<string>([
+    'PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS',
+    ...Object.keys(rates),
+    ...calculatedTasks.flatMap(t => Object.keys(t.role_hours || {})),
+  ]));
 
-  const cost_breakdown = {
-    pm: calculatedTasks.reduce((acc, t) => acc + t.cost_breakdown.pm, 0),
-    web_dev: calculatedTasks.reduce((acc, t) => acc + t.cost_breakdown.web_dev, 0),
-    ui_ux: calculatedTasks.reduce((acc, t) => acc + t.cost_breakdown.ui_ux, 0),
-    qc_doc: calculatedTasks.reduce((acc, t) => acc + t.cost_breakdown.qc_doc, 0),
-    dev_ops: calculatedTasks.reduce((acc, t) => acc + t.cost_breakdown.dev_ops, 0),
-  };
+  const hours_breakdown: Record<string, number> = {};
+  const cost_breakdown: Record<string, number> = {};
 
-  const total_hours = Object.values(hours_breakdown).reduce((a, b) => a + b, 0);
-  const total_cost = Object.values(cost_breakdown).reduce((a, b) => a + b, 0);
+  for (const role of roleKeys) {
+    const totalRoleHours = calculatedTasks.reduce((acc, t) => acc + (t.role_hours[role] || 0), 0);
+    hours_breakdown[role] = totalRoleHours;
+    hours_breakdown[role.toLowerCase()] = totalRoleHours;
+
+    const totalRoleCost = calculatedTasks.reduce((acc, t) => acc + (t.cost_breakdown[role] || 0), 0);
+    cost_breakdown[role] = totalRoleCost;
+    cost_breakdown[role.toLowerCase()] = totalRoleCost;
+  }
+
+  const total_hours = calculatedTasks.reduce((acc, t) => acc + t.total_hours, 0);
+  const total_cost = calculatedTasks.reduce((acc, t) => acc + t.total_cost, 0);
 
   return {
     name: mod.name,
@@ -182,19 +205,19 @@ export interface CalculatedEstimate {
   modules: CalculatedModule[];
   total_hours: number;
   total_cost: number;
-  hours_by_role: {
-    pm: number;
-    web_dev: number;
-    ui_ux: number;
-    qc_doc: number;
-    dev_ops: number;
+  hours_by_role: Record<string, number> & {
+    pm?: number;
+    web_dev?: number;
+    ui_ux?: number;
+    qc_doc?: number;
+    dev_ops?: number;
   };
-  cost_by_role: {
-    pm: number;
-    web_dev: number;
-    ui_ux: number;
-    qc_doc: number;
-    dev_ops: number;
+  cost_by_role: Record<string, number> & {
+    pm?: number;
+    web_dev?: number;
+    ui_ux?: number;
+    qc_doc?: number;
+    dev_ops?: number;
   };
 }
 
@@ -203,7 +226,7 @@ export function calculateEstimate(params: {
   serviceTypeCode: string;
   categoryCode: string;
   tagCode?: string | null;
-  rates?: Partial<RoleRateMap>;
+  rates?: RoleRateMap;
   modules: ModuleInput[];
 }): CalculatedEstimate {
   const validation = validateEstimateRules({
@@ -223,24 +246,27 @@ export function calculateEstimate(params: {
 
   const calculatedModules = (params.modules || []).map(m => calculateModule(m, effectiveRates));
 
-  const hours_by_role = {
-    pm: calculatedModules.reduce((acc, m) => acc + m.hours_breakdown.pm, 0),
-    web_dev: calculatedModules.reduce((acc, m) => acc + m.hours_breakdown.web_dev, 0),
-    ui_ux: calculatedModules.reduce((acc, m) => acc + m.hours_breakdown.ui_ux, 0),
-    qc_doc: calculatedModules.reduce((acc, m) => acc + m.hours_breakdown.qc_doc, 0),
-    dev_ops: calculatedModules.reduce((acc, m) => acc + m.hours_breakdown.dev_ops, 0),
-  };
+  const roleKeys = Array.from(new Set<string>([
+    'PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS',
+    ...Object.keys(effectiveRates),
+    ...calculatedModules.flatMap(m => Object.keys(m.hours_breakdown)),
+  ]));
 
-  const cost_by_role = {
-    pm: calculatedModules.reduce((acc, m) => acc + m.cost_breakdown.pm, 0),
-    web_dev: calculatedModules.reduce((acc, m) => acc + m.cost_breakdown.web_dev, 0),
-    ui_ux: calculatedModules.reduce((acc, m) => acc + m.cost_breakdown.ui_ux, 0),
-    qc_doc: calculatedModules.reduce((acc, m) => acc + m.cost_breakdown.qc_doc, 0),
-    dev_ops: calculatedModules.reduce((acc, m) => acc + m.cost_breakdown.dev_ops, 0),
-  };
+  const hours_by_role: Record<string, number> = {};
+  const cost_by_role: Record<string, number> = {};
 
-  const total_hours = Object.values(hours_by_role).reduce((a, b) => a + b, 0);
-  const total_cost = Object.values(cost_by_role).reduce((a, b) => a + b, 0);
+  for (const role of roleKeys) {
+    const totalRoleHours = calculatedModules.reduce((acc, m) => acc + (m.hours_breakdown[role] || 0), 0);
+    hours_by_role[role] = totalRoleHours;
+    hours_by_role[role.toLowerCase()] = totalRoleHours;
+
+    const totalRoleCost = calculatedModules.reduce((acc, m) => acc + (m.cost_breakdown[role] || 0), 0);
+    cost_by_role[role] = totalRoleCost;
+    cost_by_role[role.toLowerCase()] = totalRoleCost;
+  }
+
+  const total_hours = calculatedModules.reduce((acc, m) => acc + m.total_hours, 0);
+  const total_cost = calculatedModules.reduce((acc, m) => acc + m.total_cost, 0);
 
   return {
     title: params.title,

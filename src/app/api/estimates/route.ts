@@ -122,13 +122,9 @@ export async function POST(req: Request) {
 
     // Fetch master role rates for snapshot
     const roleRows = await client.query('SELECT code, default_hourly_rate FROM role_masters');
-    const dbRates: Partial<RoleRateMap> = {};
+    const dbRates: Record<string, number> = {};
     for (const r of roleRows.rows) {
-      if (r.code === 'PM') dbRates.PM = Number(r.default_hourly_rate);
-      if (r.code === 'WEB_DEV') dbRates.WEB_DEV = Number(r.default_hourly_rate);
-      if (r.code === 'UI_UX') dbRates.UI_UX = Number(r.default_hourly_rate);
-      if (r.code === 'QC_DOC') dbRates.QC_DOC = Number(r.default_hourly_rate);
-      if (r.code === 'DEV_OPS') dbRates.DEV_OPS = Number(r.default_hourly_rate);
+      dbRates[r.code] = Number(r.default_hourly_rate);
     }
 
     const effectiveRates: RoleRateMap = {
@@ -186,8 +182,8 @@ export async function POST(req: Request) {
         const task = mod.tasks[tIdx];
         await client.query(
           `INSERT INTO estimate_tasks 
-            (module_id, name, order_index, hours_pm, hours_web_dev, hours_ui_ux, hours_qc_doc, hours_dev_ops, total_hours, total_cost)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            (module_id, name, order_index, hours_pm, hours_web_dev, hours_ui_ux, hours_qc_doc, hours_dev_ops, total_hours, total_cost, role_hours)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
           [
             moduleId,
             task.name,
@@ -199,6 +195,7 @@ export async function POST(req: Request) {
             task.hours_dev_ops,
             task.total_hours,
             task.total_cost,
+            JSON.stringify(task.role_hours || {}),
           ]
         );
       }

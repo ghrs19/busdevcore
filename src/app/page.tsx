@@ -67,6 +67,7 @@ interface EstimateDetailTask {
   hours_ui_ux: number;
   hours_qc_doc: number;
   hours_dev_ops: number;
+  role_hours?: Record<string, number>;
   total_hours: number | string;
   total_cost: number | string;
 }
@@ -829,82 +830,127 @@ export default function HistoricalEstimatesDashboard() {
                       </div>
                     )}
 
+                    {inspectDetail.rate_snapshots && Object.keys(inspectDetail.rate_snapshots).length > 0 && (
+                      <div
+                        className="linear-card-elevated"
+                        style={{ padding: '12px 16px', marginBottom: '16px' }}
+                      >
+                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>
+                          Master Rate Snapshot per Jam
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {Object.entries(inspectDetail.rate_snapshots).map(([rCode, rRate]) => (
+                            <span
+                              key={rCode}
+                              className="linear-badge"
+                              style={{ background: 'rgba(255, 255, 255, 0.04)', fontSize: '11px', padding: '4px 8px' }}
+                            >
+                              <strong style={{ color: 'var(--text-primary)', marginRight: '4px' }}>{rCode}:</strong>
+                              {formatIDR(rRate)}/jam
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Breakdown Modules & Tasks Matrix */}
                     <div style={{ marginTop: '16px' }}>
                       <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
                         Rincian WBS Breakdown Modul & Tasks ({inspectDetail.modules.length} Modul)
                       </div>
 
-                      {inspectDetail.modules.map((mod, mIdx) => (
-                        <div
-                          key={mod.id || mIdx}
-                          className="linear-card-elevated"
-                          style={{ marginBottom: '16px', overflow: 'hidden' }}
-                        >
+                      {(() => {
+                        const modalRoles = inspectDetail.rate_snapshots && Object.keys(inspectDetail.rate_snapshots).length > 0
+                          ? Object.keys(inspectDetail.rate_snapshots)
+                          : ['PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS'];
+
+                        return inspectDetail.modules.map((mod, mIdx) => (
                           <div
-                            style={{
-                              padding: '10px 14px',
-                              background: 'rgba(255, 255, 255, 0.03)',
-                              borderBottom: '1px solid var(--border-subtle)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                            }}
+                            key={mod.id || mIdx}
+                            className="linear-card-elevated"
+                            style={{ marginBottom: '16px', overflow: 'hidden' }}
                           >
-                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {mod.name}
-                            </span>
-                            <div style={{ fontSize: '12px' }}>
-                              <span className="font-mono-numbers" style={{ color: 'var(--text-secondary)' }}>
-                                {Number(mod.total_hours)} Jam
+                            <div
+                              style={{
+                                padding: '10px 14px',
+                                background: 'rgba(255, 255, 255, 0.03)',
+                                borderBottom: '1px solid var(--border-subtle)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                              }}
+                            >
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                {mod.name}
                               </span>
-                              <span style={{ color: 'var(--text-tertiary)', margin: '0 6px' }}>•</span>
-                              <span className="font-mono-numbers" style={{ color: '#10b981', fontWeight: 600 }}>
-                                {formatIDR(mod.total_cost)}
-                              </span>
+                              <div style={{ fontSize: '12px' }}>
+                                <span className="font-mono-numbers" style={{ color: 'var(--text-secondary)' }}>
+                                  {Number(mod.total_hours)} Jam
+                                </span>
+                                <span style={{ color: 'var(--text-tertiary)', margin: '0 6px' }}>•</span>
+                                <span className="font-mono-numbers" style={{ color: '#10b981', fontWeight: 600 }}>
+                                  {formatIDR(mod.total_cost)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ overflowX: 'auto' }}>
+                              <table className="linear-table">
+                                <thead>
+                                  <tr>
+                                    <th style={{ minWidth: '180px' }}>Task</th>
+                                    {modalRoles.map((rk) => (
+                                      <th key={rk} style={{ textAlign: 'center', minWidth: '60px' }}>
+                                        {rk}
+                                      </th>
+                                    ))}
+                                    <th style={{ width: '10%', textAlign: 'right', minWidth: '60px' }}>Jam</th>
+                                    <th style={{ width: '15%', textAlign: 'right', minWidth: '90px' }}>Biaya</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {mod.tasks.map((task, tIdx) => (
+                                    <tr key={task.id || tIdx}>
+                                      <td style={{ color: 'var(--text-primary)' }}>{task.name}</td>
+                                      {modalRoles.map((rk) => {
+                                        let hours: number | string = 0;
+                                        if (task.role_hours && task.role_hours[rk] !== undefined) {
+                                          hours = Number(task.role_hours[rk]) || 0;
+                                        } else if (rk === 'PM') {
+                                          hours = Number(task.hours_pm) || 0;
+                                        } else if (rk === 'WEB_DEV') {
+                                          hours = Number(task.hours_web_dev) || 0;
+                                        } else if (rk === 'UI_UX') {
+                                          hours = Number(task.hours_ui_ux) || 0;
+                                        } else if (rk === 'QC_DOC') {
+                                          hours = Number(task.hours_qc_doc) || 0;
+                                        } else if (rk === 'DEV_OPS') {
+                                          hours = Number(task.hours_dev_ops) || 0;
+                                        }
+                                        return (
+                                          <td key={rk} style={{ textAlign: 'center' }}>
+                                            {Number(hours) > 0 ? hours : '-'}
+                                          </td>
+                                        );
+                                      })}
+                                      <td style={{ textAlign: 'right' }}>
+                                        <span className="font-mono-numbers">
+                                          {Number(task.total_hours)}h
+                                        </span>
+                                      </td>
+                                      <td style={{ textAlign: 'right' }}>
+                                        <span className="font-mono-numbers" style={{ color: 'var(--text-primary)' }}>
+                                          {formatIDR(task.total_cost)}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             </div>
                           </div>
-
-                          <div style={{ overflowX: 'auto' }}>
-                            <table className="linear-table">
-                              <thead>
-                                <tr>
-                                  <th style={{ width: '35%' }}>Task</th>
-                                  <th style={{ width: '8%', textAlign: 'center' }}>PM</th>
-                                  <th style={{ width: '8%', textAlign: 'center' }}>Web Dev</th>
-                                  <th style={{ width: '8%', textAlign: 'center' }}>UI/UX</th>
-                                  <th style={{ width: '8%', textAlign: 'center' }}>QC/Doc</th>
-                                  <th style={{ width: '8%', textAlign: 'center' }}>DevOps</th>
-                                  <th style={{ width: '10%', textAlign: 'right' }}>Jam</th>
-                                  <th style={{ width: '15%', textAlign: 'right' }}>Biaya</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {mod.tasks.map((task, tIdx) => (
-                                  <tr key={task.id || tIdx}>
-                                    <td style={{ color: 'var(--text-primary)' }}>{task.name}</td>
-                                    <td style={{ textAlign: 'center' }}>{task.hours_pm || '-'}</td>
-                                    <td style={{ textAlign: 'center' }}>{task.hours_web_dev || '-'}</td>
-                                    <td style={{ textAlign: 'center' }}>{task.hours_ui_ux || '-'}</td>
-                                    <td style={{ textAlign: 'center' }}>{task.hours_qc_doc || '-'}</td>
-                                    <td style={{ textAlign: 'center' }}>{task.hours_dev_ops || '-'}</td>
-                                    <td style={{ textAlign: 'right' }}>
-                                      <span className="font-mono-numbers">
-                                        {Number(task.total_hours)}h
-                                      </span>
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                      <span className="font-mono-numbers" style={{ color: 'var(--text-primary)' }}>
-                                        {formatIDR(task.total_cost)}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   </>
                 )}

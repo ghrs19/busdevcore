@@ -243,4 +243,54 @@ describe('Costing Calculation & Business Rules', () => {
     assert.equal(estimate.total_cost, 1000000); // 10*50000 + 10*50000
     assert.equal(estimate.rates.PM, 50000);
   });
+
+  it('should support dynamic arbitrary roles in task and estimate calculation', () => {
+    const customRates = {
+      PM: 40000,
+      WEB_DEV: 40000,
+      MOBILE_DEV: 60000,
+      AI_ENGINEER: 100000,
+    };
+
+    const task = calculateTask(
+      {
+        name: 'AI Integration',
+        role_hours: {
+          PM: 2,
+          MOBILE_DEV: 10,
+          AI_ENGINEER: 5,
+        },
+      },
+      customRates
+    );
+
+    assert.equal(task.total_hours, 17);
+    // 2*40000 + 10*60000 + 5*100000 = 80000 + 600000 + 500000 = 1180000
+    assert.equal(task.total_cost, 1180000);
+    assert.equal(task.cost_breakdown.MOBILE_DEV, 600000);
+    assert.equal(task.cost_breakdown.AI_ENGINEER, 500000);
+
+    const estimate = calculateEstimate({
+      title: 'Dynamic Roles Project',
+      serviceTypeCode: 'IT',
+      categoryCode: 'DEVELOPMENT',
+      tagCode: 'INITIAL',
+      rates: customRates,
+      modules: [
+        {
+          name: 'Core & AI',
+          tasks: [
+            task,
+          ],
+        },
+      ],
+    });
+
+    assert.equal(estimate.total_hours, 17);
+    assert.equal(estimate.total_cost, 1180000);
+    assert.equal(estimate.hours_by_role.MOBILE_DEV, 10);
+    assert.equal(estimate.hours_by_role.AI_ENGINEER, 5);
+    assert.equal(estimate.cost_by_role.MOBILE_DEV, 600000);
+    assert.equal(estimate.cost_by_role.AI_ENGINEER, 500000);
+  });
 });
