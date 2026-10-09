@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { type RoleRateMap } from '@/lib/costing';
 
 interface Company {
   id: number;
@@ -33,13 +32,19 @@ interface Tag {
   applies_to_category_code: string;
 }
 
+interface RoleSnapshotEntry {
+  code: string;
+  name: string;
+  rate: number;
+}
+
 interface SavedEstimate {
   id: number;
   title: string;
   status: string;
   total_hours: string | number;
   total_cost: string | number;
-  rate_snapshots: RoleRateMap;
+  rate_snapshots: Record<string, RoleSnapshotEntry | number>;
   notes?: string | null;
   created_at: string;
   updated_at?: string;
@@ -60,6 +65,39 @@ interface SavedEstimate {
   tag_name: string | null;
   module_count: number;
   task_count: number;
+  maintenance_config?: {
+    duration_months: number;
+    monthly_cost: number;
+    total_cost: number;
+    tasks: Array<{
+      name: string;
+      role_hours: Record<string, number>;
+      total_hours: number;
+      monthly_cost: number;
+    }>;
+    hours_by_role?: Record<string, number>;
+    monthly_cost_by_role?: Record<string, number>;
+  } | null;
+  infrastructure_items?: Array<{
+    name: string;
+    billing_type: 'ONE_TIME' | 'MONTHLY' | 'YEARLY';
+    quantity: number;
+    unit_cost: number;
+    period_count: number;
+    total_cost: number;
+    notes?: string;
+  }> | null;
+  billing_summary?: {
+    one_time_dev: number;
+    one_time_infra: number;
+    total_one_time?: number;
+    monthly_maintenance: number;
+    total_maintenance?: number;
+    recurring_infra: number;
+    monthly_infra?: number;
+    total_monthly_recurring?: number;
+    grand_total: number;
+  } | null;
 }
 
 interface EstimateDetailTask {
@@ -115,6 +153,7 @@ export default function HistoricalEstimatesDashboard() {
   const [inspectId, setInspectId] = useState<number | null>(null);
   const [inspectDetail, setInspectDetail] = useState<EstimateDetail | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [modalTab, setModalTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE'>('ALL');
 
   // Delete Confirmation Modal states
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
@@ -760,10 +799,25 @@ export default function HistoricalEstimatesDashboard() {
                           style={{
                             fontWeight: 600,
                             color: '#10b981',
+                            display: 'block',
                           }}
                         >
                           {formatIDR(est.total_cost)}
                         </span>
+                        {est.billing_summary && (
+                          <div style={{ fontSize: '10px', marginTop: '2px', lineHeight: 1.2 }}>
+                            {Number(est.billing_summary.total_one_time || est.billing_summary.one_time_dev) > 0 && (
+                              <div style={{ color: 'var(--text-tertiary)' }}>
+                                One-Time: {formatIDR(est.billing_summary.total_one_time || est.billing_summary.one_time_dev)}
+                              </div>
+                            )}
+                            {Number(est.billing_summary.total_monthly_recurring || est.billing_summary.monthly_maintenance) > 0 && (
+                              <div style={{ color: '#38bdf8' }}>
+                                Rec: {formatIDR(est.billing_summary.total_monthly_recurring || est.billing_summary.monthly_maintenance)}/bln
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <span className="badge badge-draft">{est.status}</span>
@@ -967,122 +1021,378 @@ export default function HistoricalEstimatesDashboard() {
                         style={{ padding: '12px 16px', marginBottom: '16px' }}
                       >
                         <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>
-                          Master Rate Snapshot per Jam
+                          Master Rate Snapshot per Jam (Tersimpan Permanen)
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                          {Object.entries(inspectDetail.rate_snapshots).map(([rCode, rRate]) => (
-                            <span
-                              key={rCode}
-                              className="linear-badge"
-                              style={{ background: 'rgba(255, 255, 255, 0.04)', fontSize: '11px', padding: '4px 8px' }}
-                            >
-                              <strong style={{ color: 'var(--text-primary)', marginRight: '4px' }}>{rCode}:</strong>
-                              {formatIDR(rRate)}/jam
-                            </span>
-                          ))}
+                          {Object.entries(inspectDetail.rate_snapshots).map(([rCode, rItem]) => {
+                            const rName = typeof rItem === 'object' && rItem ? (rItem.name || rItem.code) : rCode;
+                            const rRate = typeof rItem === 'object' && rItem ? rItem.rate : rItem;
+                            return (
+                              <span
+                                key={rCode}
+                                className="linear-badge"
+                                style={{ background: 'rgba(255, 255, 255, 0.04)', fontSize: '11px', padding: '4px 8px' }}
+                              >
+                                <strong style={{ color: 'var(--text-primary)', marginRight: '4px' }}>
+                                  {rName} ({rCode}):
+                                </strong>
+                                {formatIDR(rRate)}/jam
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
 
-                    {/* Breakdown Modules & Tasks Matrix */}
-                    <div style={{ marginTop: '16px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
-                        Rincian WBS Breakdown Modul & Tasks ({inspectDetail.modules.length} Modul)
-                      </div>
-
-                      {(() => {
-                        const modalRoles = inspectDetail.rate_snapshots && Object.keys(inspectDetail.rate_snapshots).length > 0
-                          ? Object.keys(inspectDetail.rate_snapshots)
-                          : ['PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS'];
-
-                        return inspectDetail.modules.map((mod, mIdx) => (
-                          <div
-                            key={mod.id || mIdx}
-                            className="linear-card-elevated"
-                            style={{ marginBottom: '16px', overflow: 'hidden' }}
-                          >
-                            <div
-                              style={{
-                                padding: '10px 14px',
-                                background: 'rgba(255, 255, 255, 0.03)',
-                                borderBottom: '1px solid var(--border-subtle)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                              }}
-                            >
-                              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                {mod.name}
-                              </span>
-                              <div style={{ fontSize: '12px' }}>
-                                <span className="font-mono-numbers" style={{ color: 'var(--text-secondary)' }}>
-                                  {Number(mod.total_hours)} Jam
-                                </span>
-                                <span style={{ color: 'var(--text-tertiary)', margin: '0 6px' }}>•</span>
-                                <span className="font-mono-numbers" style={{ color: '#10b981', fontWeight: 600 }}>
-                                  {formatIDR(mod.total_cost)}
-                                </span>
-                              </div>
+                    {/* Ringkasan Multi-Billing Banner */}
+                    {inspectDetail.billing_summary && (
+                      <div
+                        className="linear-card-elevated"
+                        style={{
+                          padding: '16px',
+                          marginBottom: '20px',
+                          background: 'rgba(56, 189, 248, 0.03)',
+                          border: '1px solid rgba(56, 189, 248, 0.2)',
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#38bdf8', marginBottom: '12px' }}>
+                          Ringkasan Multi-Billing Kontrak
+                        </div>
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                            gap: '12px',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total One-Time Charge</div>
+                            <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                              {formatIDR(inspectDetail.billing_summary.total_one_time ?? (inspectDetail.billing_summary.one_time_dev + inspectDetail.billing_summary.one_time_infra))}
                             </div>
-
-                            <div style={{ overflowX: 'auto' }}>
-                              <table className="linear-table">
-                                <thead>
-                                  <tr>
-                                    <th style={{ minWidth: '180px' }}>Task</th>
-                                    {modalRoles.map((rk) => (
-                                      <th key={rk} style={{ textAlign: 'center', minWidth: '60px' }}>
-                                        {rk}
-                                      </th>
-                                    ))}
-                                    <th style={{ width: '10%', textAlign: 'right', minWidth: '60px' }}>Jam</th>
-                                    <th style={{ width: '15%', textAlign: 'right', minWidth: '90px' }}>Biaya</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {mod.tasks.map((task, tIdx) => (
-                                    <tr key={task.id || tIdx}>
-                                      <td style={{ color: 'var(--text-primary)' }}>{task.name}</td>
-                                      {modalRoles.map((rk) => {
-                                        let hours: number | string = 0;
-                                        if (task.role_hours && task.role_hours[rk] !== undefined) {
-                                          hours = Number(task.role_hours[rk]) || 0;
-                                        } else if (rk === 'PM') {
-                                          hours = Number(task.hours_pm) || 0;
-                                        } else if (rk === 'WEB_DEV') {
-                                          hours = Number(task.hours_web_dev) || 0;
-                                        } else if (rk === 'UI_UX') {
-                                          hours = Number(task.hours_ui_ux) || 0;
-                                        } else if (rk === 'QC_DOC') {
-                                          hours = Number(task.hours_qc_doc) || 0;
-                                        } else if (rk === 'DEV_OPS') {
-                                          hours = Number(task.hours_dev_ops) || 0;
-                                        }
-                                        return (
-                                          <td key={rk} style={{ textAlign: 'center' }}>
-                                            {Number(hours) > 0 ? hours : '-'}
-                                          </td>
-                                        );
-                                      })}
-                                      <td style={{ textAlign: 'right' }}>
-                                        <span className="font-mono-numbers">
-                                          {Number(task.total_hours)}h
-                                        </span>
-                                      </td>
-                                      <td style={{ textAlign: 'right' }}>
-                                        <span className="font-mono-numbers" style={{ color: 'var(--text-primary)' }}>
-                                          {formatIDR(task.total_cost)}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                            <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                              Dev: {formatIDR(inspectDetail.billing_summary.one_time_dev)} • Infra: {formatIDR(inspectDetail.billing_summary.one_time_infra)}
                             </div>
                           </div>
-                        ));
-                      })()}
+
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Recurring / Bulan</div>
+                            <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 700, color: '#38bdf8', marginTop: '2px' }}>
+                              {formatIDR(inspectDetail.billing_summary.total_monthly_recurring ?? (inspectDetail.billing_summary.monthly_maintenance + (inspectDetail.billing_summary.monthly_infra || 0)))}/bln
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                              Maint: {formatIDR(inspectDetail.billing_summary.monthly_maintenance)}/bln • Infra: {formatIDR(inspectDetail.billing_summary.monthly_infra || 0)}/bln
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Grand Total Kontrak</div>
+                            <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>
+                              {formatIDR(inspectDetail.billing_summary.grand_total || inspectDetail.total_cost)}
+                            </div>
+                            {Number(inspectDetail.billing_summary.total_maintenance) > 0 && (
+                              <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                                Total Maint Kontrak: {formatIDR(inspectDetail.billing_summary.total_maintenance || 0)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab Selector Rincian Kategori */}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setModalTab('ALL')}
+                        className={modalTab === 'ALL' ? 'btn-primary' : 'btn-secondary'}
+                        style={{ fontSize: '12px', padding: '5px 12px' }}
+                      >
+                        Semua Rincian
+                      </button>
+                      {inspectDetail.modules && inspectDetail.modules.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setModalTab('DEV')}
+                          className={modalTab === 'DEV' ? 'btn-primary' : 'btn-secondary'}
+                          style={{ fontSize: '12px', padding: '5px 12px' }}
+                        >
+                          A. Development WBS ({inspectDetail.modules.length} Modul)
+                        </button>
+                      )}
+                      {inspectDetail.maintenance_config && (
+                        <button
+                          type="button"
+                          onClick={() => setModalTab('MAINTENANCE')}
+                          className={modalTab === 'MAINTENANCE' ? 'btn-primary' : 'btn-secondary'}
+                          style={{ fontSize: '12px', padding: '5px 12px' }}
+                        >
+                          B. Maintenance WBS ({inspectDetail.maintenance_config.duration_months} Bln)
+                        </button>
+                      )}
+                      {inspectDetail.infrastructure_items && inspectDetail.infrastructure_items.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setModalTab('INFRASTRUCTURE')}
+                          className={modalTab === 'INFRASTRUCTURE' ? 'btn-primary' : 'btn-secondary'}
+                          style={{ fontSize: '12px', padding: '5px 12px' }}
+                        >
+                          C. Infrastructure Items ({inspectDetail.infrastructure_items.length} Item)
+                        </button>
+                      )}
                     </div>
+
+                    {/* Section A: Development WBS Breakdown */}
+                    {(modalTab === 'ALL' || modalTab === 'DEV') && inspectDetail.modules && inspectDetail.modules.length > 0 && (
+                      <div style={{ marginTop: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            A. WBS Development Breakdown ({inspectDetail.modules.length} Modul)
+                          </div>
+                          {inspectDetail.billing_summary && (
+                            <span className="font-mono-numbers" style={{ fontSize: '13px', color: '#10b981', fontWeight: 600 }}>
+                              Total One-Time Dev: {formatIDR(inspectDetail.billing_summary.one_time_dev)}
+                            </span>
+                          )}
+                        </div>
+
+                        {(() => {
+                          const modalRoles = inspectDetail.rate_snapshots && Object.keys(inspectDetail.rate_snapshots).length > 0
+                            ? Object.keys(inspectDetail.rate_snapshots)
+                            : ['PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS'];
+
+                          return inspectDetail.modules.map((mod, mIdx) => (
+                            <div
+                              key={mod.id || mIdx}
+                              className="linear-card-elevated"
+                              style={{ marginBottom: '16px', overflow: 'hidden' }}
+                            >
+                              <div
+                                style={{
+                                  padding: '10px 14px',
+                                  background: 'rgba(255, 255, 255, 0.03)',
+                                  borderBottom: '1px solid var(--border-subtle)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                }}
+                              >
+                                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                  {mod.name}
+                                </span>
+                                <div style={{ fontSize: '12px' }}>
+                                  <span className="font-mono-numbers" style={{ color: 'var(--text-secondary)' }}>
+                                    {Number(mod.total_hours)} Jam
+                                  </span>
+                                  <span style={{ color: 'var(--text-tertiary)', margin: '0 6px' }}>•</span>
+                                  <span className="font-mono-numbers" style={{ color: '#10b981', fontWeight: 600 }}>
+                                    {formatIDR(mod.total_cost)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div style={{ overflowX: 'auto' }}>
+                                <table className="linear-table">
+                                  <thead>
+                                    <tr>
+                                      <th style={{ minWidth: '180px' }}>Task</th>
+                                      {modalRoles.map((rk) => {
+                                        const rItem = inspectDetail.rate_snapshots?.[rk];
+                                        const rName = typeof rItem === 'object' && rItem ? (rItem.name || rItem.code) : rk;
+                                        return (
+                                          <th key={rk} style={{ textAlign: 'center', minWidth: '60px' }} title={rName}>
+                                            {rName}
+                                          </th>
+                                        );
+                                      })}
+                                      <th style={{ width: '10%', textAlign: 'right', minWidth: '60px' }}>Jam</th>
+                                      <th style={{ width: '15%', textAlign: 'right', minWidth: '90px' }}>Biaya</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {mod.tasks.map((task, tIdx) => (
+                                      <tr key={task.id || tIdx}>
+                                        <td style={{ color: 'var(--text-primary)' }}>{task.name}</td>
+                                        {modalRoles.map((rk) => {
+                                          let hours: number | string = 0;
+                                          if (task.role_hours && task.role_hours[rk] !== undefined) {
+                                            hours = Number(task.role_hours[rk]) || 0;
+                                          } else if (rk === 'PM') {
+                                            hours = Number(task.hours_pm) || 0;
+                                          } else if (rk === 'WEB_DEV') {
+                                            hours = Number(task.hours_web_dev) || 0;
+                                          } else if (rk === 'UI_UX') {
+                                            hours = Number(task.hours_ui_ux) || 0;
+                                          } else if (rk === 'QC_DOC') {
+                                            hours = Number(task.hours_qc_doc) || 0;
+                                          } else if (rk === 'DEV_OPS') {
+                                            hours = Number(task.hours_dev_ops) || 0;
+                                          }
+                                          return (
+                                            <td key={rk} style={{ textAlign: 'center' }}>
+                                              {Number(hours) > 0 ? hours : '-'}
+                                            </td>
+                                          );
+                                        })}
+                                        <td style={{ textAlign: 'right' }}>
+                                          <span className="font-mono-numbers">
+                                            {Number(task.total_hours)}h
+                                          </span>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                          <span className="font-mono-numbers" style={{ color: 'var(--text-primary)' }}>
+                                            {formatIDR(task.total_cost)}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Section B: Maintenance WBS Breakdown */}
+                    {(modalTab === 'ALL' || modalTab === 'MAINTENANCE') && inspectDetail.maintenance_config && (
+                      <div style={{ marginTop: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              B. WBS Maintenance (Monthly Recurring Charge)
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                              Durasi Kontrak: {inspectDetail.maintenance_config.duration_months} Bulan • {formatIDR(inspectDetail.maintenance_config.monthly_cost)}/bln
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Biaya Kontrak</div>
+                            <span className="font-mono-numbers" style={{ fontSize: '14px', color: '#10b981', fontWeight: 700 }}>
+                              {formatIDR(inspectDetail.maintenance_config.total_cost)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="linear-card-elevated" style={{ overflow: 'hidden' }}>
+                          <div style={{ overflowX: 'auto' }}>
+                            <table className="linear-table">
+                              <thead>
+                                <tr>
+                                  <th style={{ minWidth: '180px' }}>Task Rutin Bulanan</th>
+                                  {inspectDetail.rate_snapshots && Object.keys(inspectDetail.rate_snapshots).map((rk) => {
+                                    const rItem = inspectDetail.rate_snapshots?.[rk];
+                                    const rName = typeof rItem === 'object' && rItem ? (rItem.name || rItem.code) : rk;
+                                    return (
+                                      <th key={rk} style={{ textAlign: 'center', minWidth: '60px' }}>
+                                        {rName}
+                                      </th>
+                                    );
+                                  })}
+                                  <th style={{ width: '12%', textAlign: 'right', minWidth: '70px' }}>Jam/Bulan</th>
+                                  <th style={{ width: '18%', textAlign: 'right', minWidth: '100px' }}>Biaya/Bulan</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {inspectDetail.maintenance_config.tasks.map((task, tIdx) => (
+                                  <tr key={tIdx}>
+                                    <td style={{ color: 'var(--text-primary)' }}>{task.name}</td>
+                                    {inspectDetail.rate_snapshots && Object.keys(inspectDetail.rate_snapshots).map((rk) => {
+                                      const hours = task.role_hours?.[rk] || 0;
+                                      return (
+                                        <td key={rk} style={{ textAlign: 'center' }}>
+                                          {Number(hours) > 0 ? `${hours}h` : '-'}
+                                        </td>
+                                      );
+                                    })}
+                                    <td style={{ textAlign: 'right' }}>
+                                      <span className="font-mono-numbers">{Number(task.total_hours)}h</span>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                      <span className="font-mono-numbers" style={{ color: '#38bdf8', fontWeight: 600 }}>
+                                        {formatIDR(task.monthly_cost)}/bln
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section C: Infrastructure Items */}
+                    {(modalTab === 'ALL' || modalTab === 'INFRASTRUCTURE') && inspectDetail.infrastructure_items && inspectDetail.infrastructure_items.length > 0 && (
+                      <div style={{ marginTop: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              C. WBS Infrastructure Items ({inspectDetail.infrastructure_items.length} Item)
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                              One-Time Hardware/Setup & Recurring Cloud Hosting/Domain
+                            </div>
+                          </div>
+                          {inspectDetail.billing_summary && (
+                            <div style={{ textAlign: 'right', fontSize: '11px' }}>
+                              <span style={{ color: 'var(--text-tertiary)' }}>One-Time: </span>
+                              <strong style={{ color: 'var(--text-primary)' }}>{formatIDR(inspectDetail.billing_summary.one_time_infra)}</strong>
+                              <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>•</span>
+                              <span style={{ color: 'var(--text-tertiary)' }}>Recurring: </span>
+                              <strong style={{ color: '#38bdf8' }}>{formatIDR(inspectDetail.billing_summary.recurring_infra)}</strong>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="linear-card-elevated" style={{ overflow: 'hidden' }}>
+                          <div style={{ overflowX: 'auto' }}>
+                            <table className="linear-table">
+                              <thead>
+                                <tr>
+                                  <th style={{ minWidth: '180px' }}>Nama Item</th>
+                                  <th style={{ width: '12%', textAlign: 'center' }}>Billing Type</th>
+                                  <th style={{ width: '8%', textAlign: 'center' }}>Qty</th>
+                                  <th style={{ width: '15%', textAlign: 'right' }}>Unit Cost</th>
+                                  <th style={{ width: '10%', textAlign: 'center' }}>Periode</th>
+                                  <th style={{ width: '18%', textAlign: 'right' }}>Subtotal Biaya</th>
+                                  <th style={{ width: '15%' }}>Catatan</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {inspectDetail.infrastructure_items.map((item, iIdx) => (
+                                  <tr key={iIdx}>
+                                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.name}</td>
+                                    <td style={{ textAlign: 'center' }}>
+                                      <span
+                                        className="linear-badge"
+                                        style={{
+                                          fontSize: '10px',
+                                          background: item.billing_type === 'ONE_TIME' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(56, 189, 248, 0.1)',
+                                          color: item.billing_type === 'ONE_TIME' ? 'var(--text-secondary)' : '#38bdf8',
+                                        }}
+                                      >
+                                        {item.billing_type}
+                                      </span>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }} className="font-mono-numbers">{item.quantity}</td>
+                                    <td style={{ textAlign: 'right' }} className="font-mono-numbers">{formatIDR(item.unit_cost)}</td>
+                                    <td style={{ textAlign: 'center' }} className="font-mono-numbers">
+                                      {item.billing_type === 'ONE_TIME' ? '1x' : `${item.period_count} ${item.billing_type === 'MONTHLY' ? 'Bln' : 'Thn'}`}
+                                    </td>
+                                    <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#10b981', fontWeight: 600 }}>
+                                      {formatIDR(item.total_cost)}
+                                    </td>
+                                    <td style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>{item.notes || '-'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

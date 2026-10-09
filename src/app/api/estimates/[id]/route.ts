@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { normalizeRoleSnapshot } from '@/lib/costing';
 
 export async function GET(
   req: Request,
@@ -80,6 +81,7 @@ export async function GET(
       success: true,
       estimate: {
         ...estimate,
+        rate_snapshots: normalizeRoleSnapshot(estimate.rate_snapshots),
         categories,
         category_codes,
         modules,

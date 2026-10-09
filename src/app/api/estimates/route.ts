@@ -3,8 +3,11 @@ import pool from '@/lib/db';
 import {
   calculateEstimate,
   DEFAULT_ROLE_RATES,
-  type RoleRateMap,
+  DEFAULT_ROLE_NAMES,
+  normalizeRoleSnapshot,
   type ModuleInput,
+  type MaintenanceConfigInput,
+  type InfrastructureItemInput,
 } from '@/lib/costing';
 
 export async function GET() {
@@ -18,6 +21,9 @@ export async function GET() {
         e.total_cost,
         e.rate_snapshots,
         e.notes,
+        e.maintenance_config,
+        e.infrastructure_items,
+        e.billing_summary,
         e.created_at,
         e.updated_at,
         e.project_id,
@@ -60,6 +66,7 @@ export async function GET() {
       const cats = Array.isArray(row.categories) ? row.categories : [];
       return {
         ...row,
+        rate_snapshots: normalizeRoleSnapshot(row.rate_snapshots),
         categories: cats,
         category_codes: cats.map((c: { code: string }) => c.code),
       };
@@ -89,6 +96,10 @@ export async function POST(req: Request) {
       notes,
       custom_rates,
       modules,
+      maintenance,
+      maintenance_config,
+      infrastructure,
+      infrastructure_items,
     } = body;
 
     if (!title || typeof title !== 'string' || !title.trim()) {
@@ -161,7 +172,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Resolve category_ids (support multi-category array or legacy single category_id)
+    // Resolve category_ids
     const rawCategoryIds: number[] = Array.isArray(category_ids)
       ? category_ids.map((id: unknown) => parseInt(String(id), 10)).filter((n: number) => !isNaN(n))
       : (category_id ? [parseInt(String(category_id), 10)].filter((n: number) => !isNaN(n)) : []);
@@ -185,6 +196,8 @@ export async function POST(req: Request) {
     const selectedCategories = catCheck.rows;
     const selectedCodes = selectedCategories.map((c) => c.code.toUpperCase());
     const hasDevelopment = selectedCodes.includes('DEVELOPMENT');
+    const hasMaintenance = selectedCodes.includes('MAINTENANCE');
+    const hasInfrastructure = selectedCodes.includes('INFRASTRUCTURE');
 
     // Verify Tag rules
     let tag = null;
@@ -209,28 +222,66 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fetch master role rates for snapshot
-    const roleRows = await client.query('SELECT code, default_hourly_rate FROM role_masters');
-    const dbRates: Record<string, number> = {};
+    // Fetch master role rates for full snapshot (code, name, rate)
+    const roleRows = await client.query('SELECT code, name, default_hourly_rate FROM role_masters');
+    const snapshotRates: Record<string, { code: string; name: string; rate: number }> = {};
     for (const r of roleRows.rows) {
-      dbRates[r.code] = Number(r.default_hourly_rate);
+      const code = r.code;
+      const rateVal = custom_rates && custom_rates[code] !== undefined
+        ? Number(custom_rates[code])
+        : Number(r.default_hourly_rate);
+      snapshotRates[code] = {
+        code,
+        name: r.name,
+        rate: rateVal,
+      };
     }
 
-    const effectiveRates: RoleRateMap = {
-      ...DEFAULT_ROLE_RATES,
-      ...dbRates,
-      ...(custom_rates || {}),
-    };
+    // Also include default role rates if not in role_masters
+    for (const [defCode, defRate] of Object.entries(DEFAULT_ROLE_RATES)) {
+      if (!snapshotRates[defCode]) {
+        const rateVal = custom_rates && custom_rates[defCode] !== undefined
+          ? Number(custom_rates[defCode])
+          : defRate;
+        snapshotRates[defCode] = {
+          code: defCode,
+          name: DEFAULT_ROLE_NAMES[defCode] || defCode,
+          rate: rateVal,
+        };
+      }
+    }
+
+    // Include any custom_rates not yet in snapshotRates
+    if (custom_rates && typeof custom_rates === 'object') {
+      for (const [cCode, cRate] of Object.entries(custom_rates)) {
+        if (!snapshotRates[cCode]) {
+          snapshotRates[cCode] = {
+            code: cCode,
+            name: DEFAULT_ROLE_NAMES[cCode] || cCode,
+            rate: Number(cRate) || 0,
+          };
+        }
+      }
+    }
 
     // Calculate estimate breakdown
     const parsedModules: ModuleInput[] = Array.isArray(modules) ? modules : [];
+    const maintInput: MaintenanceConfigInput | undefined = hasMaintenance
+      ? (maintenance || maintenance_config || { duration_months: 1, tasks: [] })
+      : undefined;
+    const infraInput: InfrastructureItemInput[] | undefined = hasInfrastructure
+      ? (infrastructure || infrastructure_items || [])
+      : undefined;
+
     const calculated = calculateEstimate({
       title: title.trim(),
       serviceTypeCode: serviceType.code,
       categoryCodes: selectedCodes,
       tagCode: tag ? tag.code : null,
-      rates: effectiveRates,
-      modules: parsedModules,
+      rates: snapshotRates,
+      modules: hasDevelopment ? parsedModules : [],
+      maintenance: maintInput,
+      infrastructure: infraInput,
     });
 
     // Save in transaction
@@ -238,21 +289,24 @@ export async function POST(req: Request) {
 
     const estInsert = await client.query(
       `INSERT INTO project_estimates 
-        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id, title, total_hours, total_cost, status, created_at`,
+        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes, maintenance_config, infrastructure_items, billing_summary)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       RETURNING id, title, total_hours, total_cost, status, created_at, maintenance_config, infrastructure_items, billing_summary`,
       [
         calculated.title,
         company_id,
         resolvedProjectId,
         service_type_id,
-        rawCategoryIds[0],
+        rawCategoryIds[0] || null,
         tag ? tag.id : null,
         'DRAFT',
-        JSON.stringify(effectiveRates),
+        JSON.stringify(snapshotRates),
         calculated.total_hours,
         calculated.total_cost,
         notes?.trim() || null,
+        calculated.maintenance ? JSON.stringify(calculated.maintenance) : null,
+        calculated.infrastructure ? JSON.stringify(calculated.infrastructure.items) : null,
+        JSON.stringify(calculated.billing_summary),
       ]
     );
 
@@ -265,36 +319,38 @@ export async function POST(req: Request) {
       );
     }
 
-    for (let mIdx = 0; mIdx < calculated.modules.length; mIdx++) {
-      const mod = calculated.modules[mIdx];
-      const modInsert = await client.query(
-        `INSERT INTO estimate_modules (estimate_id, name, order_index, total_hours, total_cost)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id`,
-        [estimateId, mod.name, mIdx + 1, mod.total_hours, mod.total_cost]
-      );
-      const moduleId = modInsert.rows[0].id;
-
-      for (let tIdx = 0; tIdx < mod.tasks.length; tIdx++) {
-        const task = mod.tasks[tIdx];
-        await client.query(
-          `INSERT INTO estimate_tasks 
-            (module_id, name, order_index, hours_pm, hours_web_dev, hours_ui_ux, hours_qc_doc, hours_dev_ops, total_hours, total_cost, role_hours)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [
-            moduleId,
-            task.name,
-            tIdx + 1,
-            task.hours_pm,
-            task.hours_web_dev,
-            task.hours_ui_ux,
-            task.hours_qc_doc,
-            task.hours_dev_ops,
-            task.total_hours,
-            task.total_cost,
-            JSON.stringify(task.role_hours || {}),
-          ]
+    if (hasDevelopment && calculated.modules.length > 0) {
+      for (let mIdx = 0; mIdx < calculated.modules.length; mIdx++) {
+        const mod = calculated.modules[mIdx];
+        const modInsert = await client.query(
+          `INSERT INTO estimate_modules (estimate_id, name, order_index, total_hours, total_cost)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id`,
+          [estimateId, mod.name, mIdx + 1, mod.total_hours, mod.total_cost]
         );
+        const moduleId = modInsert.rows[0].id;
+
+        for (let tIdx = 0; tIdx < mod.tasks.length; tIdx++) {
+          const task = mod.tasks[tIdx];
+          await client.query(
+            `INSERT INTO estimate_tasks 
+              (module_id, name, order_index, hours_pm, hours_web_dev, hours_ui_ux, hours_qc_doc, hours_dev_ops, total_hours, total_cost, role_hours)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [
+              moduleId,
+              task.name,
+              tIdx + 1,
+              task.hours_pm,
+              task.hours_web_dev,
+              task.hours_ui_ux,
+              task.hours_qc_doc,
+              task.hours_dev_ops,
+              task.total_hours,
+              task.total_cost,
+              JSON.stringify(task.role_hours || {}),
+            ]
+          );
+        }
       }
     }
 
@@ -308,6 +364,10 @@ export async function POST(req: Request) {
         project_name: resolvedProjectName,
         categories: selectedCategories,
         category_codes: selectedCodes,
+        rate_snapshots: snapshotRates,
+        maintenance_config: calculated.maintenance,
+        infrastructure_items: calculated.infrastructure?.items,
+        billing_summary: calculated.billing_summary,
         ...estInsert.rows[0],
         breakdown: calculated,
       },

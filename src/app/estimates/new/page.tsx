@@ -6,8 +6,14 @@ import { useRouter } from 'next/navigation';
 import {
   DEFAULT_ROLE_RATES,
   calculateModule,
+  calculateMaintenance,
+  calculateInfrastructure,
+  calculateBillingSummary,
   type RoleRateMap,
   type ModuleInput,
+  type MaintenanceTaskInput,
+  type InfrastructureItemInput,
+  type InfraBillingType,
 } from '@/lib/costing';
 
 interface Company {
@@ -141,6 +147,58 @@ export default function NewEstimatePage() {
       ],
     },
   ]);
+
+  // Maintenance WBS state
+  const [maintenanceDurationMonths, setMaintenanceDurationMonths] = useState<number>(12);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTaskInput[]>([
+    {
+      name: 'Server & Cloud Security Monitoring',
+      role_hours: { DEV_OPS: 4 },
+    },
+    {
+      name: 'Preventive Bug Fixing & Minor Feature Updates',
+      role_hours: { WEB_DEV: 8 },
+    },
+  ]);
+
+  // Infrastructure WBS state
+  const [infraItems, setInfraItems] = useState<InfrastructureItemInput[]>([
+    {
+      name: 'Beli Router Mikrotik RB750Gr3',
+      billing_type: 'ONE_TIME',
+      quantity: 1,
+      unit_cost: 2500000,
+      period_count: 1,
+      notes: 'Hardware Utama',
+    },
+    {
+      name: 'Jasa Pasang Jaringan & Kabel',
+      billing_type: 'ONE_TIME',
+      quantity: 1,
+      unit_cost: 1500000,
+      period_count: 1,
+      notes: 'Setup & Terminasi Kabel',
+    },
+    {
+      name: 'Cloud VPS Hosting High Memory',
+      billing_type: 'MONTHLY',
+      quantity: 1,
+      unit_cost: 450000,
+      period_count: 12,
+      notes: 'Hosting Server Aplikasi',
+    },
+    {
+      name: 'Domain .com / .id',
+      billing_type: 'YEARLY',
+      quantity: 1,
+      unit_cost: 250000,
+      period_count: 1,
+      notes: 'Registrasi Domain',
+    },
+  ]);
+
+  // Tab state for Section 4
+  const [wbsTab, setWbsTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE'>('ALL');
 
   // Loading & feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -287,6 +345,28 @@ export default function NewEstimatePage() {
     return selectedCategories.some((c) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
   }, [selectedCategories]);
 
+  const isMaintenance = useMemo(() => {
+    return selectedCategories.some((c) => c.code === 'MAINTENANCE');
+  }, [selectedCategories]);
+
+  const isInfrastructure = useMemo(() => {
+    return selectedCategories.some((c) => c.code === 'INFRASTRUCTURE');
+  }, [selectedCategories]);
+
+  // Synchronize WBS Tab with selected categories
+  useEffect(() => {
+    if (wbsTab === 'DEV' && !isDevelopment) {
+      if (isMaintenance) setWbsTab('MAINTENANCE');
+      else if (isInfrastructure) setWbsTab('INFRASTRUCTURE');
+    } else if (wbsTab === 'MAINTENANCE' && !isMaintenance) {
+      if (isDevelopment) setWbsTab('DEV');
+      else if (isInfrastructure) setWbsTab('INFRASTRUCTURE');
+    } else if (wbsTab === 'INFRASTRUCTURE' && !isInfrastructure) {
+      if (isDevelopment) setWbsTab('DEV');
+      else if (isMaintenance) setWbsTab('MAINTENANCE');
+    }
+  }, [isDevelopment, isMaintenance, isInfrastructure, wbsTab]);
+
   // Filtered categories & tags
   const availableCategories = useMemo(() => {
     if (!selectedServiceTypeId) return [];
@@ -327,6 +407,15 @@ export default function NewEstimatePage() {
 
   // Live real-time calculations
   const calculation = useMemo(() => {
+    if (!isDevelopment) {
+      return {
+        calcModules: [],
+        hours_by_role: {},
+        cost_by_role: {},
+        total_hours: 0,
+        total_cost: 0,
+      };
+    }
     try {
       const calcModules = modules.map((m) => calculateModule(m, rates));
       const hours_by_role: Record<string, number> = {};
@@ -356,7 +445,108 @@ export default function NewEstimatePage() {
         total_cost: 0,
       };
     }
-  }, [modules, rates, activeCostingRoles]);
+  }, [modules, rates, activeCostingRoles, isDevelopment]);
+
+  // Maintenance calculation
+  const maintCalculation = useMemo(() => {
+    if (!isMaintenance) return null;
+    try {
+      return calculateMaintenance(
+        { duration_months: maintenanceDurationMonths, tasks: maintenanceTasks },
+        rates
+      );
+    } catch {
+      return null;
+    }
+  }, [maintenanceDurationMonths, maintenanceTasks, rates, isMaintenance]);
+
+  // Infrastructure calculation
+  const infraCalculation = useMemo(() => {
+    if (!isInfrastructure) return null;
+    try {
+      return calculateInfrastructure(infraItems);
+    } catch {
+      return null;
+    }
+  }, [infraItems, isInfrastructure]);
+
+  // Multi-Billing Summary
+  const billingSummary = useMemo(() => {
+    return calculateBillingSummary({
+      hasDevelopment: isDevelopment,
+      hasMaintenance: isMaintenance,
+      hasInfrastructure: isInfrastructure,
+      devCost: calculation.total_cost,
+      maintenanceConfig: maintCalculation,
+      infrastructure: infraCalculation,
+    });
+  }, [isDevelopment, isMaintenance, isInfrastructure, calculation.total_cost, maintCalculation, infraCalculation]);
+
+  // Maintenance Handlers
+  const addMaintenanceTask = () => {
+    setMaintenanceTasks((prev) => [
+      ...prev,
+      { name: 'Task Maintenance Rutin', role_hours: {} },
+    ]);
+  };
+
+  const removeMaintenanceTask = (index: number) => {
+    setMaintenanceTasks((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateMaintenanceTaskField = (index: number, field: string, val: string) => {
+    setMaintenanceTasks((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: val };
+      return copy;
+    });
+  };
+
+  const updateMaintenanceTaskRoleHours = (index: number, roleCode: string, hours: number) => {
+    setMaintenanceTasks((prev) => {
+      const copy = [...prev];
+      const cur = copy[index];
+      const rh = { ...(cur.role_hours || {}) };
+      if (hours > 0) {
+        rh[roleCode] = hours;
+      } else {
+        delete rh[roleCode];
+      }
+      copy[index] = { ...cur, role_hours: rh };
+      return copy;
+    });
+  };
+
+  // Infrastructure Handlers
+  const addInfraItem = () => {
+    setInfraItems((prev) => [
+      ...prev,
+      {
+        name: 'Item Infrastruktur Baru',
+        billing_type: 'ONE_TIME',
+        quantity: 1,
+        unit_cost: 0,
+        period_count: 1,
+        notes: '',
+      },
+    ]);
+  };
+
+  const removeInfraItem = (index: number) => {
+    setInfraItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateInfraItemField = (
+    index: number,
+    field: keyof InfrastructureItemInput,
+    val: string | number
+  ) => {
+    setInfraItems((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: val };
+      return copy;
+    });
+  };
 
   const totalModuleCount = modules.length;
   const totalTaskCount = useMemo(
@@ -782,7 +972,12 @@ export default function NewEstimatePage() {
         tag_id: isDevelopment && selectedTagId ? Number(selectedTagId) : null,
         notes: notes.trim() || null,
         custom_rates: rates,
-        modules,
+        modules: isDevelopment ? modules : [],
+        maintenance_config: isMaintenance ? {
+          duration_months: maintenanceDurationMonths,
+          tasks: maintenanceTasks,
+        } : null,
+        infrastructure_items: isInfrastructure ? infraItems : null,
       };
 
       const res = await fetch('/api/estimates', {
@@ -1609,7 +1804,7 @@ export default function NewEstimatePage() {
             )}
           </section>
 
-          {/* Section 4: Modules & Tasks WBS Matrix */}
+          {/* Section 4: Separated WBS Categories Breakdown */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <div
               style={{
@@ -1639,22 +1834,114 @@ export default function NewEstimatePage() {
                 </span>
                 <div>
                   <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    WBS Matrix: Modul & Task Breakdown
+                    WBS Breakdown Berdasarkan Kategori Proyek
                   </h2>
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                    Alokasikan jam per role secara detail untuk tiap task dan modul
+                    Alokasi WBS terpisah independen: Development (One-Time), Maintenance (Bulanan), dan Infrastructure (Setup & Recurring)
                   </p>
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={addModule}
-                className="btn-secondary"
-              >
-                + Tambah Modul
-              </button>
             </div>
+
+            {/* Tab Selector if multiple categories selected */}
+            {(isDevelopment ? 1 : 0) + (isMaintenance ? 1 : 0) + (isInfrastructure ? 1 : 0) > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  marginBottom: '20px',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  paddingBottom: '10px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setWbsTab('ALL')}
+                  className={wbsTab === 'ALL' ? 'btn-primary' : 'btn-secondary'}
+                  style={{ fontSize: '12px', padding: '6px 14px' }}
+                >
+                  Tampilkan Semua WBS
+                </button>
+                {isDevelopment && (
+                  <button
+                    type="button"
+                    onClick={() => setWbsTab('DEV')}
+                    className={wbsTab === 'DEV' ? 'btn-primary' : 'btn-secondary'}
+                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                  >
+                    Development WBS ({formatIDR(calculation.total_cost)})
+                  </button>
+                )}
+                {isMaintenance && (
+                  <button
+                    type="button"
+                    onClick={() => setWbsTab('MAINTENANCE')}
+                    className={wbsTab === 'MAINTENANCE' ? 'btn-primary' : 'btn-secondary'}
+                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                  >
+                    Maintenance WBS ({formatIDR(maintCalculation ? maintCalculation.monthly_cost : 0)}/bln)
+                  </button>
+                )}
+                {isInfrastructure && (
+                  <button
+                    type="button"
+                    onClick={() => setWbsTab('INFRASTRUCTURE')}
+                    className={wbsTab === 'INFRASTRUCTURE' ? 'btn-primary' : 'btn-secondary'}
+                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                  >
+                    Infrastructure Items ({formatIDR(infraCalculation ? infraCalculation.grand_total : 0)})
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* TAB / BOX A: DEVELOPMENT WBS (Only if Development chosen) */}
+            {isDevelopment && (wbsTab === 'ALL' || wbsTab === 'DEV') && (
+              <div
+                className="linear-card-elevated"
+                style={{
+                  padding: '20px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'rgba(255, 255, 255, 0.01)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '16px',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    paddingBottom: '12px',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge badge-accent" style={{ fontSize: '11px' }}>
+                        ONE-TIME PAYMENT
+                      </span>
+                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        A. WBS Development (Modul & Tasks Manhours)
+                      </h3>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                      Subtotal Development: <strong style={{ color: '#10b981' }}>{formatIDR(calculation.total_cost)}</strong> ({calculation.total_hours} Jam)
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addModule}
+                    className="btn-secondary"
+                    style={{ fontSize: '12px' }}
+                  >
+                    + Tambah Modul Dev
+                  </button>
+                </div>
 
             {modules.map((mod, mIdx) => {
               const calcMod = calculation.calcModules[mIdx];
@@ -1811,9 +2098,352 @@ export default function NewEstimatePage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+            {/* TAB / BOX B: MAINTENANCE WBS (Only if Maintenance chosen) */}
+            {isMaintenance && (wbsTab === 'ALL' || wbsTab === 'MAINTENANCE') && (
+              <div
+                className="linear-card-elevated"
+                style={{
+                  padding: '20px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(56, 189, 248, 0.15)',
+                  background: 'rgba(56, 189, 248, 0.01)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '16px',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    paddingBottom: '12px',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span
+                        className="linear-badge"
+                        style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', fontSize: '11px' }}
+                      >
+                        MONTHLY RECURRING
+                      </span>
+                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        B. WBS Maintenance (Alokasi Jam Kerja Rutin Bulanan)
+                      </h3>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                      Rate/Bulan: <strong style={{ color: '#38bdf8' }}>{formatIDR(maintCalculation ? maintCalculation.monthly_cost : 0)}/bln</strong>
+                      <span style={{ margin: '0 8px' }}>•</span>
+                      Total Kontrak ({maintenanceDurationMonths} Bulan):{' '}
+                      <strong style={{ color: '#10b981' }}>{formatIDR(maintCalculation ? maintCalculation.total_cost : 0)}</strong>
+                    </div>
+                  </div>
+
+                  {/* Multiplier Durasi Kontrak */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Durasi Kontrak:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={maintenanceDurationMonths}
+                      onChange={(e) => setMaintenanceDurationMonths(Math.max(1, Number(e.target.value) || 1))}
+                      className="linear-input font-mono-numbers"
+                      style={{ width: '64px', textAlign: 'center', padding: '4px 8px', fontSize: '12px' }}
+                    />
+                    <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Bulan</span>
+                    <div style={{ display: 'flex', gap: '4px', marginLeft: '6px' }}>
+                      {[1, 3, 6, 12].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setMaintenanceDurationMonths(m)}
+                          className={maintenanceDurationMonths === m ? 'btn-primary' : 'btn-secondary'}
+                          style={{ fontSize: '11px', padding: '2px 6px' }}
+                        >
+                          {m}bln
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Maintenance Tasks Table */}
+                <div style={{ overflowX: 'auto', marginBottom: '12px' }}>
+                  <table className="linear-table">
+                    <thead>
+                      <tr>
+                        <th style={{ minWidth: '200px' }}>Task Maintenance Bulanan</th>
+                        {activeCostingRoles.map((r) => (
+                          <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }}>
+                            {r.name}
+                          </th>
+                        ))}
+                        <th style={{ width: '10%', textAlign: 'right', minWidth: '80px' }}>Jam/Bulan</th>
+                        <th style={{ width: '15%', textAlign: 'right', minWidth: '105px' }}>Biaya/Bulan</th>
+                        <th style={{ width: '4%', textAlign: 'center' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {maintenanceTasks.map((task, tIdx) => {
+                        const calcTask = maintCalculation?.tasks[tIdx];
+                        return (
+                          <tr key={tIdx}>
+                            <td>
+                              <input
+                                type="text"
+                                className="linear-input"
+                                value={task.name}
+                                onChange={(e) => updateMaintenanceTaskField(tIdx, 'name', e.target.value)}
+                                placeholder="Nama task rutin..."
+                                style={{ padding: '4px 8px', fontSize: '12px' }}
+                              />
+                            </td>
+                            {activeCostingRoles.map((r) => {
+                              const hours = task.role_hours?.[r.code] || 0;
+                              return (
+                                <td key={r.code}>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    className="linear-input font-mono-numbers"
+                                    value={hours === 0 ? '' : hours}
+                                    onChange={(e) => updateMaintenanceTaskRoleHours(tIdx, r.code, Math.max(0, Number(e.target.value) || 0))}
+                                    placeholder="0"
+                                    style={{ textAlign: 'center', padding: '4px', fontSize: '12px' }}
+                                  />
+                                </td>
+                              );
+                            })}
+                            <td style={{ textAlign: 'right' }}>
+                              <span className="font-mono-numbers" style={{ fontSize: '12px', fontWeight: 600 }}>
+                                {calcTask ? calcTask.total_hours : 0}h
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <span className="font-mono-numbers" style={{ fontSize: '12px', fontWeight: 600, color: '#38bdf8' }}>
+                                {calcTask ? formatIDR(calcTask.monthly_cost) : 'Rp 0'}/bln
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => removeMaintenanceTask(tIdx)}
+                                className="btn-ghost"
+                                style={{ color: 'var(--color-danger)', padding: '2px 6px', fontSize: '12px' }}
+                                title="Hapus Task Maintenance"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={addMaintenanceTask}
+                    className="btn-secondary"
+                    style={{ fontSize: '12px' }}
+                  >
+                    + Tambah Task Maintenance
+                  </button>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Total Manhours Rutin: <strong className="font-mono-numbers">{maintCalculation ? maintCalculation.total_monthly_hours : 0} Jam/Bulan</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB / BOX C: INFRASTRUCTURE ITEMS (Only if Infrastructure chosen) */}
+            {isInfrastructure && (wbsTab === 'ALL' || wbsTab === 'INFRASTRUCTURE') && (
+              <div
+                className="linear-card-elevated"
+                style={{
+                  padding: '20px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  background: 'rgba(245, 158, 11, 0.01)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '16px',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    paddingBottom: '12px',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span
+                        className="linear-badge"
+                        style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', fontSize: '11px' }}
+                      >
+                        HARDWARE & CLOUD
+                      </span>
+                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        C. WBS Infrastructure Items (One-Time Setup & Recurring Cloud)
+                      </h3>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                      Subtotal One-Time:{' '}
+                      <strong style={{ color: 'var(--text-primary)' }}>
+                        {formatIDR(infraCalculation ? infraCalculation.one_time_subtotal : 0)}
+                      </strong>
+                      <span style={{ margin: '0 8px' }}>•</span>
+                      Subtotal Recurring:{' '}
+                      <strong style={{ color: '#38bdf8' }}>
+                        {formatIDR(infraCalculation ? infraCalculation.recurring_subtotal : 0)}
+                      </strong>
+                      <span style={{ margin: '0 8px' }}>•</span>
+                      Total Infra:{' '}
+                      <strong style={{ color: '#10b981' }}>
+                        {formatIDR(infraCalculation ? infraCalculation.grand_total : 0)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addInfraItem}
+                    className="btn-secondary"
+                    style={{ fontSize: '12px' }}
+                  >
+                    + Tambah Item Infra
+                  </button>
+                </div>
+
+                {/* Infrastructure Items Table */}
+                <div style={{ overflowX: 'auto', marginBottom: '12px' }}>
+                  <table className="linear-table">
+                    <thead>
+                      <tr>
+                        <th style={{ minWidth: '180px' }}>Nama Item Infrastruktur</th>
+                        <th style={{ width: '16%', textAlign: 'center' }}>Billing Type</th>
+                        <th style={{ width: '8%', textAlign: 'center' }}>Qty</th>
+                        <th style={{ width: '15%', textAlign: 'right' }}>Unit Cost (Rp)</th>
+                        <th style={{ width: '12%', textAlign: 'center' }}>Durasi/Periode</th>
+                        <th style={{ width: '16%', textAlign: 'right' }}>Subtotal Biaya</th>
+                        <th style={{ width: '15%' }}>Catatan</th>
+                        <th style={{ width: '4%', textAlign: 'center' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {infraItems.map((item, iIdx) => {
+                        const calcItem = infraCalculation?.items[iIdx];
+                        return (
+                          <tr key={iIdx}>
+                            <td>
+                              <input
+                                type="text"
+                                className="linear-input"
+                                value={item.name}
+                                onChange={(e) => updateInfraItemField(iIdx, 'name', e.target.value)}
+                                placeholder="Contoh: Cloud VPS Hosting, Domain .com..."
+                                style={{ padding: '4px 8px', fontSize: '12px' }}
+                              />
+                            </td>
+                            <td>
+                              <select
+                                className="linear-select"
+                                value={item.billing_type}
+                                onChange={(e) => updateInfraItemField(iIdx, 'billing_type', e.target.value as InfraBillingType)}
+                                style={{ padding: '4px 8px', fontSize: '12px' }}
+                              >
+                                <option value="ONE_TIME">ONE_TIME (Setup/Hardware)</option>
+                                <option value="MONTHLY">MONTHLY (Bulanan)</option>
+                                <option value="YEARLY">YEARLY (Tahunan)</option>
+                              </select>
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                min="1"
+                                className="linear-input font-mono-numbers"
+                                value={item.quantity}
+                                onChange={(e) => updateInfraItemField(iIdx, 'quantity', Math.max(1, Number(e.target.value) || 1))}
+                                style={{ textAlign: 'center', padding: '4px', fontSize: '12px' }}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                min="0"
+                                className="linear-input font-mono-numbers"
+                                value={item.unit_cost === 0 ? '' : item.unit_cost}
+                                onChange={(e) => updateInfraItemField(iIdx, 'unit_cost', Math.max(0, Number(e.target.value) || 0))}
+                                placeholder="0"
+                                style={{ textAlign: 'right', padding: '4px', fontSize: '12px' }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              {item.billing_type === 'ONE_TIME' ? (
+                                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>1x Setup</span>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    className="linear-input font-mono-numbers"
+                                    value={item.period_count || 1}
+                                    onChange={(e) => updateInfraItemField(iIdx, 'period_count', Math.max(1, Number(e.target.value) || 1))}
+                                    style={{ width: '48px', textAlign: 'center', padding: '2px 4px', fontSize: '12px' }}
+                                  />
+                                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                                    {item.billing_type === 'MONTHLY' ? 'Bln' : 'Thn'}
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="font-mono-numbers" style={{ textAlign: 'right', fontSize: '12px', fontWeight: 600, color: '#10b981' }}>
+                              {calcItem ? formatIDR(calcItem.total_cost) : 'Rp 0'}
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                className="linear-input"
+                                value={item.notes || ''}
+                                onChange={(e) => updateInfraItemField(iIdx, 'notes', e.target.value)}
+                                placeholder="Keterangan..."
+                                style={{ padding: '4px 8px', fontSize: '11px' }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => removeInfraItem(iIdx)}
+                                className="btn-ghost"
+                                style={{ color: 'var(--color-danger)', padding: '2px 6px', fontSize: '12px' }}
+                                title="Hapus Item Infra"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </section>
 
-          {/* Sticky Bottom Summary & Action Bar */}
+          {/* Sticky Bottom Summary & Multi-Billing Action Bar */}
           <div
             style={{
               position: 'fixed',
@@ -1840,26 +2470,45 @@ export default function NewEstimatePage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                {/* Total Cakupan */}
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Cakupan</div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {totalModuleCount} Modul • {totalTaskCount} Tasks
+                    {isDevelopment ? `${totalModuleCount} Modul • ${totalTaskCount} Tasks` : `${selectedCategories.length} Kategori`}
                   </div>
                 </div>
 
-                <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
+                <div style={{ height: '30px', width: '1px', background: 'var(--border-subtle)' }} />
 
+                {/* One-Time Charge (Dev + Infra Setup) */}
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Manhours</div>
-                  <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {calculation.total_hours} Jam
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total One-Time Charge</div>
+                  <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {formatIDR(billingSummary.total_one_time)}
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '1px' }}>
+                    Dev: {formatIDR(billingSummary.one_time_dev)} • Infra Setup: {formatIDR(billingSummary.one_time_infra)}
                   </div>
                 </div>
 
-                <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
+                <div style={{ height: '30px', width: '1px', background: 'var(--border-subtle)' }} />
 
+                {/* Monthly / Recurring Charge (Maintenance/bln + Infra/bln) */}
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Estimasi Biaya</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Monthly / Recurring Charge</div>
+                  <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 700, color: '#38bdf8' }}>
+                    {formatIDR(billingSummary.total_monthly_recurring)}/bln
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '1px' }}>
+                    Maint: {formatIDR(billingSummary.monthly_maintenance)}/bln • Infra: {formatIDR(billingSummary.monthly_infra)}/bln
+                  </div>
+                </div>
+
+                <div style={{ height: '30px', width: '1px', background: 'var(--border-subtle)' }} />
+
+                {/* Grand Total Estimasi Kontrak */}
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Grand Total Estimasi Kontrak</div>
                   <div
                     className="font-mono-numbers"
                     style={{
@@ -1869,7 +2518,7 @@ export default function NewEstimatePage() {
                       letterSpacing: '-0.02em',
                     }}
                   >
-                    {formatIDR(calculation.total_cost)}
+                    {formatIDR(billingSummary.grand_total)}
                   </div>
                 </div>
               </div>
