@@ -102,9 +102,7 @@ export async function POST(req: Request) {
       infrastructure_items,
     } = body;
 
-    if (!title || typeof title !== 'string' || !title.trim()) {
-      return NextResponse.json({ success: false, error: 'Judul project estimate wajib diisi.' }, { status: 400 });
-    }
+    let effectiveTitle = typeof title === 'string' ? title.trim() : '';
 
     if (!company_id) {
       return NextResponse.json({ success: false, error: 'Perusahaan wajib dipilih.' }, { status: 400 });
@@ -274,7 +272,7 @@ export async function POST(req: Request) {
       : undefined;
 
     const calculated = calculateEstimate({
-      title: title.trim(),
+      title: effectiveTitle || resolvedProjectName || 'Project Costing Estimate',
       serviceTypeCode: serviceType.code,
       categoryCodes: selectedCodes,
       tagCode: tag ? tag.code : null,

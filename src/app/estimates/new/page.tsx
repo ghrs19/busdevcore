@@ -1038,7 +1038,7 @@ export default function NewEstimatePage() {
     setIsLoading(true);
     try {
       const payload = {
-        title: title.trim(),
+        title: (projects.find(p => p.id === Number(selectedProjectId))?.name || title || 'Project Estimate').trim(),
         company_id: Number(selectedCompanyId),
         project_id: Number(selectedProjectId),
         service_type_id: Number(selectedServiceTypeId),
@@ -1254,27 +1254,7 @@ export default function NewEstimatePage() {
             </h2>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    color: 'var(--text-tertiary)',
-                    marginBottom: '6px',
-                  }}
-                >
-                  Judul Proyek *
-                </label>
-                <input
-                  type="text"
-                  className="linear-input"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Misal: Djarum Urban - Microsite"
-                  required
-                />
-              </div>
+
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
