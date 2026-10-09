@@ -78,8 +78,27 @@ export default function NewEstimatePage() {
   const [selectedTagId, setSelectedTagId] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
 
-  // Rate config collapse state
-  const [isRateExpanded, setIsRateExpanded] = useState(false);
+  // Rate config collapse state (expanded by default to display active/excluded roles)
+  const [isRateExpanded, setIsRateExpanded] = useState(true);
+
+  // Excluded roles from costing state
+  const [excludedRoleCodes, setExcludedRoleCodes] = useState<string[]>([]);
+
+  // Delete Role confirmation modal state
+  const [deleteRoleTarget, setDeleteRoleTarget] = useState<RoleMaster | null>(null);
+  const [deleteRoleLoading, setDeleteRoleLoading] = useState(false);
+  const [deleteRoleError, setDeleteRoleError] = useState<string | null>(null);
+
+  // Derived active vs excluded roles in costing
+  const activeCostingRoles = useMemo(
+    () => roles.filter((r) => !excludedRoleCodes.includes(r.code)),
+    [roles, excludedRoleCodes]
+  );
+
+  const excludedRoles = useMemo(
+    () => roles.filter((r) => excludedRoleCodes.includes(r.code)),
+    [roles, excludedRoleCodes]
+  );
 
   // Register company modal/expander
   const [isRegisteringCompany, setIsRegisteringCompany] = useState(false);
@@ -200,7 +219,7 @@ export default function NewEstimatePage() {
       const hours_by_role: Record<string, number> = {};
       const cost_by_role: Record<string, number> = {};
 
-      for (const r of roles) {
+      for (const r of activeCostingRoles) {
         hours_by_role[r.code] = calcModules.reduce((acc, m) => acc + (m.hours_breakdown[r.code] || 0), 0);
         cost_by_role[r.code] = calcModules.reduce((acc, m) => acc + (m.cost_breakdown[r.code] || 0), 0);
       }
@@ -224,7 +243,7 @@ export default function NewEstimatePage() {
         total_cost: 0,
       };
     }
-  }, [modules, rates, roles]);
+  }, [modules, rates, activeCostingRoles]);
 
   const totalModuleCount = modules.length;
   const totalTaskCount = useMemo(
@@ -234,6 +253,7 @@ export default function NewEstimatePage() {
 
   // Quick Demo Loaders
   const loadSpreadsheetExample = () => {
+    setExcludedRoleCodes([]);
     setTitle('Djarum Urban - Microsite');
     const it = serviceTypes.find((s) => s.code === 'IT');
     if (it) setSelectedServiceTypeId(it.id);
@@ -318,6 +338,7 @@ export default function NewEstimatePage() {
   };
 
   const loadMaintenanceExample = () => {
+    setExcludedRoleCodes([]);
     setTitle('Website Maintenance 2026');
     const it = serviceTypes.find((s) => s.code === 'IT');
     if (it) setSelectedServiceTypeId(it.id);
@@ -463,6 +484,89 @@ export default function NewEstimatePage() {
     }));
   };
 
+  const handleExcludeRole = (code: string) => {
+    if (activeCostingRoles.length <= 1) {
+      setErrorMsg('Setidaknya minimal 1 role harus tetap aktif di costing form.');
+      setTimeout(() => setErrorMsg(null), 4000);
+      return;
+    }
+    setExcludedRoleCodes((prev) => [...prev, code]);
+    // Zero out hours for this role across all tasks so excluded role doesn't inflate project totals
+    setModules((prevMods) =>
+      prevMods.map((m) => ({
+        ...m,
+        tasks: m.tasks.map((t) => {
+          const nextRoleHours = { ...(t.role_hours || {}) };
+          nextRoleHours[code] = 0;
+          return {
+            ...t,
+            role_hours: nextRoleHours,
+            hours_pm: code === 'PM' ? 0 : t.hours_pm,
+            hours_web_dev: code === 'WEB_DEV' ? 0 : t.hours_web_dev,
+            hours_ui_ux: code === 'UI_UX' ? 0 : t.hours_ui_ux,
+            hours_qc_doc: code === 'QC_DOC' ? 0 : t.hours_qc_doc,
+            hours_dev_ops: code === 'DEV_OPS' ? 0 : t.hours_dev_ops,
+          };
+        }),
+      }))
+    );
+  };
+
+  const handleIncludeRole = (code: string) => {
+    setExcludedRoleCodes((prev) => prev.filter((c) => c !== code));
+  };
+
+  const handleDeleteRoleConfirm = async () => {
+    if (!deleteRoleTarget) return;
+    setDeleteRoleLoading(true);
+    setDeleteRoleError(null);
+    try {
+      const res = await fetch(`/api/roles?id=${deleteRoleTarget.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setDeleteRoleError(data.error || 'Gagal menghapus role dari master database.');
+      } else {
+        const deletedId = deleteRoleTarget.id;
+        const deletedCode = deleteRoleTarget.code;
+        const deletedName = deleteRoleTarget.name;
+
+        // Cleanup local state
+        setRoles((prev) => prev.filter((r) => r.id !== deletedId));
+        setExcludedRoleCodes((prev) => prev.filter((c) => c !== deletedCode));
+        setRates((prev) => {
+          const next = { ...prev };
+          delete next[deletedCode];
+          return next;
+        });
+        setModules((prevMods) =>
+          prevMods.map((m) => ({
+            ...m,
+            tasks: m.tasks.map((t) => {
+              const nextRoleHours = { ...(t.role_hours || {}) };
+              delete nextRoleHours[deletedCode];
+              return {
+                ...t,
+                role_hours: nextRoleHours,
+              };
+            }),
+          }))
+        );
+
+        setDeleteRoleTarget(null);
+        setSuccessMsg(data.message || `Role '${deletedName}' berhasil dihapus dari master database.`);
+        setTimeout(() => setSuccessMsg(null), 4000);
+        await loadMetadata();
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setDeleteRoleError(msg);
+    } finally {
+      setDeleteRoleLoading(false);
+    }
+  };
+
   const handleCreateNewRole = async (e: React.FormEvent) => {
     e.preventDefault();
     setNewRoleError(null);
@@ -504,6 +608,7 @@ export default function NewEstimatePage() {
           ...prev,
           [addedRole.code]: addedRole.default_hourly_rate,
         }));
+        setExcludedRoleCodes((prev) => prev.filter((c) => c !== addedRole.code));
         setNewRoleCode('');
         setNewRoleName('');
         setNewRoleRate('');
@@ -1049,9 +1154,19 @@ export default function NewEstimatePage() {
                   3
                 </span>
                 <div>
-                  <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    Master Rate Per Jam (Rate Snapshot)
-                  </h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Master Rate Per Jam (Rate Snapshot)
+                    </h2>
+                    <span className="linear-badge" style={{ fontSize: '11px' }}>
+                      {activeCostingRoles.length} Aktif
+                    </span>
+                    {excludedRoles.length > 0 && (
+                      <span className="linear-badge" style={{ fontSize: '11px', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)' }}>
+                        {excludedRoles.length} Dikeluarkan
+                      </span>
+                    )}
+                  </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
                     Standard hourly rate per role. Snapshot ini disimpan independen pada tiap estimate.
                   </p>
@@ -1080,34 +1195,170 @@ export default function NewEstimatePage() {
             </div>
 
             {isRateExpanded && (
-              <div
-                style={{
-                  marginTop: '20px',
-                  paddingTop: '16px',
-                  borderTop: '1px solid var(--border-subtle)',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  gap: '16px',
-                }}
-              >
-                {roles.map((r) => (
-                  <div key={r.code}>
-                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
-                      {r.name} ({r.code})
-                    </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Rp</span>
-                      <input
-                        type="number"
-                        className="linear-input font-mono-numbers"
-                        value={rates[r.code] ?? r.default_hourly_rate}
-                        onChange={(e) => updateRate(r.code, Number(e.target.value) || 0)}
-                        style={{ textAlign: 'right' }}
-                      />
+              <>
+                <div
+                  style={{
+                    marginTop: '20px',
+                    paddingTop: '16px',
+                    borderTop: '1px solid var(--border-subtle)',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '14px',
+                  }}
+                >
+                  {activeCostingRoles.map((r) => (
+                    <div
+                      key={r.code}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {r.name}
+                          </div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                            {r.code}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteRoleTarget(r);
+                              setDeleteRoleError(null);
+                            }}
+                            title="Hapus dari Master Database"
+                            style={{
+                              padding: '2px 6px',
+                              fontSize: '12px',
+                              color: 'var(--text-tertiary)',
+                              borderRadius: '4px',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                          >
+                            🗑
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExcludeRole(r.code);
+                            }}
+                            disabled={activeCostingRoles.length <= 1}
+                            title={activeCostingRoles.length <= 1 ? 'Minimal 1 role harus tetap aktif di costing' : 'Keluarkan dari Costing (✕)'}
+                            style={{
+                              padding: '2px 6px',
+                              fontSize: '12px',
+                              color: activeCostingRoles.length <= 1 ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+                              cursor: activeCostingRoles.length <= 1 ? 'not-allowed' : 'pointer',
+                              opacity: activeCostingRoles.length <= 1 ? 0.35 : 1,
+                              borderRadius: '4px',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (activeCostingRoles.length > 1) e.currentTarget.style.color = '#ef4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (activeCostingRoles.length > 1) e.currentTarget.style.color = 'var(--text-secondary)';
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Rp</span>
+                        <input
+                          type="number"
+                          className="linear-input font-mono-numbers"
+                          value={rates[r.code] ?? r.default_hourly_rate}
+                          onChange={(e) => updateRate(r.code, Number(e.target.value) || 0)}
+                          style={{ textAlign: 'right', fontSize: '12px', padding: '4px 6px' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {excludedRoles.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: '20px',
+                      paddingTop: '16px',
+                      borderTop: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)' }}>
+                        Role Dikeluarkan dari Costing ({excludedRoles.length}):
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                        (Tidak muncul di kolom tabel WBS Modul & Task)
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {excludedRoles.map((r) => (
+                        <div
+                          key={r.code}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '6px 12px',
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px dashed var(--border-subtle)',
+                            borderRadius: '6px',
+                          }}
+                        >
+                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            {r.name} <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>({r.code})</span>
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => handleIncludeRole(r.code)}
+                            style={{ fontSize: '11px', padding: '3px 8px', color: 'var(--accent-hover)' }}
+                            title="Gunakan kembali role ini di costing"
+                          >
+                            + Gunakan di Costing
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() => {
+                              setDeleteRoleTarget(r);
+                              setDeleteRoleError(null);
+                            }}
+                            title="Hapus dari Master Database"
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 5px',
+                              color: 'var(--text-tertiary)',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                          >
+                            🗑
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </section>
 
@@ -1226,7 +1477,7 @@ export default function NewEstimatePage() {
                       <thead>
                         <tr>
                           <th style={{ minWidth: '180px' }}>Nama Task</th>
-                          {roles.map((r) => (
+                          {activeCostingRoles.map((r) => (
                             <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }}>
                               {r.name}
                             </th>
@@ -1251,7 +1502,7 @@ export default function NewEstimatePage() {
                                   style={{ padding: '4px 8px', fontSize: '12px' }}
                                 />
                               </td>
-                              {roles.map((r) => {
+                              {activeCostingRoles.map((r) => {
                                 const val = task.role_hours?.[r.code] ?? (
                                   r.code === 'PM' ? task.hours_pm :
                                   r.code === 'WEB_DEV' ? task.hours_web_dev :
@@ -1514,6 +1765,116 @@ export default function NewEstimatePage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* Modal Konfirmasi Hapus Role Master */}
+        {deleteRoleTarget && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+            onClick={() => {
+              if (!deleteRoleLoading) {
+                setDeleteRoleTarget(null);
+                setDeleteRoleError(null);
+              }
+            }}
+          >
+            <div
+              className="linear-card"
+              style={{
+                width: '100%',
+                maxWidth: '460px',
+                padding: '24px',
+                background: '#121417',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Hapus Role dari Master Database
+                </h3>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    setDeleteRoleTarget(null);
+                    setDeleteRoleError(null);
+                  }}
+                  disabled={deleteRoleLoading}
+                  style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {deleteRoleError ? (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    marginBottom: '16px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  ⚠️ {deleteRoleError}
+                </div>
+              ) : (
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
+                  Apakah Anda yakin ingin menghapus role <strong style={{ color: 'var(--text-primary)' }}>{deleteRoleTarget.name}</strong> ({deleteRoleTarget.code}) dari database master? Tindakan ini tidak dapat dibatalkan jika role belum pernah digunakan.
+                </p>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setDeleteRoleTarget(null);
+                    setDeleteRoleError(null);
+                  }}
+                  disabled={deleteRoleLoading}
+                >
+                  {deleteRoleError ? 'Tutup' : 'Batal'}
+                </button>
+                {!deleteRoleError && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteRoleConfirm}
+                    disabled={deleteRoleLoading}
+                    style={{
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      cursor: deleteRoleLoading ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {deleteRoleLoading ? 'Menghapus...' : 'Hapus dari Master'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
