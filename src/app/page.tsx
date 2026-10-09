@@ -782,7 +782,9 @@ export default function HistoricalEstimatesDashboard() {
                         </div>
                       </td>
                       <td>
-                        {est.tag_name ? (
+                        {est.tag_code === 'CR' ? (
+                          <span className="badge badge-accent">CR</span>
+                        ) : est.tag_name ? (
                           <span className="badge badge-accent">{est.tag_name}</span>
                         ) : (
                           <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>-</span>

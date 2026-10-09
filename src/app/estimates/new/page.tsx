@@ -2735,7 +2735,7 @@ export default function NewEstimatePage() {
                 </div>
               ) : (
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
-                  Apakah Anda yakin ingin menghapus role <strong style={{ color: 'var(--text-primary)' }}>{deleteRoleTarget.name}</strong> ({deleteRoleTarget.code}) dari database master? Tindakan ini tidak dapat dibatalkan jika role belum pernah digunakan.
+                  Role ini akan dihapus dari daftar pilihan master, namun seluruh project estimate lama yang pernah menggunakan role ini tetap aman dan utuh.
                 </p>
               )}
 

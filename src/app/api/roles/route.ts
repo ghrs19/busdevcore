@@ -163,38 +163,12 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: 'Parameter id atau code wajib diisi.' }, { status: 400 });
     }
 
-    // Check if role is used in any project_estimates rate_snapshots
-    const estCheck = await pool.query(
-      `SELECT id FROM project_estimates WHERE rate_snapshots ? $1 LIMIT 1`,
-      [targetCode]
-    );
-
-    if (estCheck.rows.length > 0) {
-      return NextResponse.json({
-        success: false,
-        error: `Role '${targetCode}' tidak dapat dihapus karena sudah digunakan dalam project estimate #${estCheck.rows[0].id}.`,
-      }, { status: 400 });
-    }
-
-    // Check if role is used in any estimate_tasks role_hours with hours > 0
-    const taskCheck = await pool.query(
-      `SELECT id FROM estimate_tasks WHERE (role_hours->>$1)::numeric > 0 LIMIT 1`,
-      [targetCode]
-    );
-
-    if (taskCheck.rows.length > 0) {
-      return NextResponse.json({
-        success: false,
-        error: `Role '${targetCode}' tidak dapat dihapus karena sudah dialokasikan jam kerjanya pada task #${taskCheck.rows[0].id}.`,
-      }, { status: 400 });
-    }
-
     // Delete role
     await pool.query('DELETE FROM role_masters WHERE id = $1', [targetId]);
 
     return NextResponse.json({
       success: true,
-      message: `Role '${targetCode}' berhasil dihapus.`,
+      message: 'Role berhasil dihapus dari master.',
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown database error';
