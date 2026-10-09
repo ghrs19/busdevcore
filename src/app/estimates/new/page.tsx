@@ -2679,6 +2679,159 @@ export default function NewEstimatePage() {
               </div>
             )}
 
+            {/* TAB / BOX D: OPERATIONAL ITEMS (Only if Operation chosen) */}
+            {isOperational && (wbsTab === 'ALL' || wbsTab === 'OPERATION') && (
+              <div
+                className="linear-card-elevated"
+                style={{
+                  padding: '20px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  background: 'rgba(245, 158, 11, 0.015)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '16px',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    paddingBottom: '12px',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge badge-warning" style={{ fontSize: '11px' }}>
+                        EXPENSES & TRAVEL
+                      </span>
+                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        D. WBS Operation & Travel Expenses (Transport, Hotel, dll.)
+                      </h3>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                      Biaya operasional lapangan per orang per hari • Subtotal Operasional:{' '}
+                      <strong style={{ color: '#f59e0b' }}>
+                        {formatIDR(opCalculation ? opCalculation.grand_total : 0)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addOperationalItem}
+                    className="btn-secondary"
+                    style={{ fontSize: '12px' }}
+                  >
+                    + Tambah Item Operasional
+                  </button>
+                </div>
+
+                {/* Operational Items Excel Table */}
+                <div style={{ overflowX: 'auto', marginBottom: '12px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <table className="excel-table">
+                    <thead>
+                      <tr>
+                        <th style={{ minWidth: '220px', textAlign: 'left' }}>Nama Item Operasional</th>
+                        <th style={{ width: '13%', textAlign: 'center' }}>Jumlah Orang</th>
+                        <th style={{ width: '13%', textAlign: 'center' }}>Jumlah Hari</th>
+                        <th style={{ width: '18%', textAlign: 'right' }}>Rate / Hari / Pax (Rp)</th>
+                        <th style={{ width: '18%', textAlign: 'right' }}>Subtotal Biaya</th>
+                        <th style={{ width: '20%' }}>Catatan / Keterangan</th>
+                        <th style={{ width: '36px', textAlign: 'center' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {operationalItems.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-tertiary)' }}>
+                            Belum ada item operasional. Klik tombol &quot;+ Tambah Item Operasional&quot; di atas.
+                          </td>
+                        </tr>
+                      ) : (
+                        operationalItems.map((item, oIdx) => {
+                          const people = Math.max(1, Number(item.people_count) || 1);
+                          const days = Math.max(1, Number(item.days_count) || 1);
+                          const rate = Math.max(0, Number(item.unit_cost_per_day ?? item.unit_cost) || 0);
+                          const lineTotal = people * days * rate;
+
+                          return (
+                            <tr key={oIdx}>
+                              <td>
+                                <input
+                                  type="text"
+                                  className="excel-cell-input"
+                                  value={item.name}
+                                  onChange={(e) => updateOperationalItem(oIdx, { name: e.target.value })}
+                                  placeholder="Contoh: Tiket Pesawat PP, Hotel 2 Malam, Uang Harian..."
+                                />
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  className="excel-cell-input font-mono-numbers"
+                                  style={{ textAlign: 'center' }}
+                                  value={item.people_count}
+                                  onChange={(e) => updateOperationalItem(oIdx, { people_count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                                />
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  className="excel-cell-input font-mono-numbers"
+                                  style={{ textAlign: 'center' }}
+                                  value={item.days_count}
+                                  onChange={(e) => updateOperationalItem(oIdx, { days_count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                                />
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step={1000}
+                                  className="excel-cell-input font-mono-numbers"
+                                  style={{ textAlign: 'right' }}
+                                  value={item.unit_cost_per_day ?? item.unit_cost ?? 0}
+                                  onChange={(e) => updateOperationalItem(oIdx, { unit_cost_per_day: Math.max(0, parseFloat(e.target.value) || 0) })}
+                                />
+                              </td>
+                              <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#10b981', fontWeight: 600 }}>
+                                {formatIDR(lineTotal)}
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  className="excel-cell-input"
+                                  value={item.notes || ''}
+                                  onChange={(e) => updateOperationalItem(oIdx, { notes: e.target.value })}
+                                  placeholder="Catatan / lokasi tujuan..."
+                                />
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => removeOperationalItem(oIdx)}
+                                  className="btn-ghost"
+                                  style={{ color: 'var(--color-danger)', padding: '4px', fontSize: '12px', width: '100%', height: '100%' }}
+                                  title="Hapus Item Operasional"
+                                >
+                                  ✕
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* TAB / BOX C: INFRASTRUCTURE ITEMS (Only if Infrastructure chosen) */}
             {isInfrastructure && (wbsTab === 'ALL' || wbsTab === 'INFRASTRUCTURE') && (
               <div
