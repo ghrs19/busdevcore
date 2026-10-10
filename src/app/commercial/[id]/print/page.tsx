@@ -8,6 +8,9 @@ import Link from 'next/link';
 interface ProposalDetail {
   id: number;
   proposal_number: string;
+  version: number;
+  parent_id: number | null;
+  revision_notes?: string;
   company_id: number;
   company_name: string;
   company_email?: string;
@@ -49,6 +52,17 @@ interface ProposalDetail {
   }>;
 }
 
+interface VersionHistoryItem {
+  id: number;
+  proposal_number: string;
+  version: number;
+  parent_id: number | null;
+  grand_total: string | number;
+  margin_percent: string | number;
+  revision_notes: string | null;
+  created_at: string;
+}
+
 interface ModuleItem {
   id: number;
   name: string;
@@ -66,6 +80,7 @@ function CommercialProposalPrintViewContent() {
 
   const [proposal, setProposal] = useState<ProposalDetail | null>(null);
   const [modules, setModules] = useState<ModuleItem[]>([]);
+  const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -78,6 +93,9 @@ function CommercialProposalPrintViewContent() {
         if (data.success && data.proposal) {
           setProposal(data.proposal);
           setModules(data.modules || []);
+          if (Array.isArray(data.version_history)) {
+            setVersionHistory(data.version_history);
+          }
         } else {
           setErrorMsg(data.error || 'Gagal memuat proposal');
         }
@@ -94,7 +112,7 @@ function CommercialProposalPrintViewContent() {
     return (
       <div style={{ minHeight: '100vh', background: '#090a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px', fontFamily: 'sans-serif' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1', animation: 'pulse 1.5s infinite' }} />
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1' }} />
           <span>Memuat dokumen proposal penawaran resmi...</span>
         </div>
       </div>
@@ -139,10 +157,50 @@ function CommercialProposalPrintViewContent() {
           </svg>
           <span>Daftar Penawaran</span>
         </Link>
+
+        {/* Center: Version switcher if multiple versions */}
+        {versionHistory.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.05)', padding: '3px 8px', borderRadius: '6px' }}>
+            <span style={{ fontSize: '11px', color: '#94a3b8', marginRight: '2px' }}>Riwayat Versi:</span>
+            {versionHistory.map((vh) => {
+              const isActive = vh.id === proposal.id;
+              return (
+                <Link
+                  key={vh.id}
+                  href={`/commercial/${vh.id}/print`}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    textDecoration: 'none',
+                    background: isActive ? '#6366f1' : 'transparent',
+                    color: isActive ? '#ffffff' : '#94a3b8',
+                    border: isActive ? '1px solid #818cf8' : '1px solid transparent',
+                  }}
+                  title={vh.revision_notes ? `${vh.revision_notes} (${formatIDR(vh.grand_total)})` : undefined}
+                >
+                  v{vh.version}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-            Mode Pratinjau Proposal Klien (A4)
-          </span>
+          <Link
+            href={`/commercial/new?edit_id=${proposal.id}`}
+            className="bar-btn bar-btn-back"
+            style={{ borderColor: 'rgba(94, 106, 210, 0.4)', color: '#a5b4fc' }}
+            title="Edit proposal ini dan simpan sebagai versi baru"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <span>Edit & Buat Revisi (v{(proposal.version || 1) + 1})</span>
+          </Link>
+
           <button onClick={() => window.print()} className="bar-btn bar-btn-print">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="6 9 6 2 18 2 18 9"></polyline>
@@ -169,11 +227,34 @@ function CommercialProposalPrintViewContent() {
           </div>
 
           <div className="doc-meta-table">
-            <div className="meta-badge">COMMERCIAL PROPOSAL</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '8px' }}>
+              <div className="meta-badge">COMMERCIAL PROPOSAL</div>
+              <span
+                className="font-mono"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  background: (proposal.version || 1) > 1 ? '#4338ca' : '#0f172a',
+                  color: '#ffffff',
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                }}
+              >
+                v{proposal.version || 1}
+              </span>
+            </div>
             <div className="meta-row">
               <span className="meta-label">No. Dokumen</span>
               <span className="meta-value font-mono">{proposal.proposal_number}</span>
             </div>
+            {proposal.revision_notes && (
+              <div className="meta-row">
+                <span className="meta-label">Catatan Revisi</span>
+                <span className="meta-value" style={{ fontSize: '10.5px', color: '#4338ca' }}>
+                  {proposal.revision_notes}
+                </span>
+              </div>
+            )}
             <div className="meta-row">
               <span className="meta-label">Tanggal Terbit</span>
               <span className="meta-value">{dateFormatted}</span>
@@ -500,6 +581,8 @@ function CommercialProposalPrintViewContent() {
           padding: 10px 16px;
           border-radius: 10px;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+          flex-wrap: wrap;
+          gap: 12px;
         }
 
         .bar-btn {
@@ -605,9 +688,8 @@ function CommercialProposalPrintViewContent() {
           letter-spacing: 0.08em;
           color: #475569;
           background: #f1f5f9;
-          padding: 3px 8px;
+          padding: 2px 7px;
           border-radius: 4px;
-          margin-bottom: 8px;
         }
 
         .meta-row {

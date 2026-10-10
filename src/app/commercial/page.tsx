@@ -6,6 +6,9 @@ import Link from 'next/link';
 interface Proposal {
   id: number;
   proposal_number: string;
+  version: number;
+  parent_id: number | null;
+  revision_notes: string | null;
   company_id: number;
   company_name: string;
   project_id: number;
@@ -55,8 +58,8 @@ export default function CommercialProposalsListPage() {
     fetchProposals();
   }, []);
 
-  const handleDelete = async (id: number, number: string) => {
-    if (!confirm(`Hapus proposal penawaran ${number}?`)) return;
+  const handleDelete = async (id: number, number: string, version: number) => {
+    if (!confirm(`Hapus proposal penawaran ${number} (v${version})?`)) return;
     try {
       const res = await fetch(`/api/commercial/${id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -76,7 +79,8 @@ export default function CommercialProposalsListPage() {
       p.proposal_number.toLowerCase().includes(q) ||
       p.company_name.toLowerCase().includes(q) ||
       p.project_name.toLowerCase().includes(q) ||
-      p.estimate_title.toLowerCase().includes(q)
+      p.estimate_title.toLowerCase().includes(q) ||
+      (p.revision_notes && p.revision_notes.toLowerCase().includes(q))
     );
   });
 
@@ -107,7 +111,7 @@ export default function CommercialProposalsListPage() {
               Proposal & Penawaran Klien
             </h1>
             <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Manajemen kalkulasi komersial resmi (Quotation), margin keuntungan, diskon, dan proposal siap cetak
+              Daftar penawaran resmi, versioning revisi proposal, dan dokumen siap cetak
             </p>
           </div>
 
@@ -136,7 +140,7 @@ export default function CommercialProposalsListPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari berdasarkan nomor penawaran, nama klien, proyek, atau estimasi..."
+            placeholder="Cari berdasarkan nomor penawaran, klien, proyek, estimasi, atau catatan revisi..."
             style={{
               flex: 1,
               background: 'transparent',
@@ -178,14 +182,14 @@ export default function CommercialProposalsListPage() {
           <table className="excel-table">
             <thead>
               <tr>
-                <th style={{ width: '150px', textAlign: 'left' }}>No. Penawaran</th>
+                <th style={{ width: '160px', textAlign: 'left' }}>No. Penawaran</th>
                 <th style={{ minWidth: '180px', textAlign: 'left' }}>Klien & Proyek</th>
                 <th style={{ minWidth: '180px', textAlign: 'left' }}>Baseline Estimate</th>
                 <th style={{ width: '130px', textAlign: 'right' }}>COGS Internal</th>
                 <th style={{ width: '90px', textAlign: 'center' }}>Margin</th>
                 <th style={{ width: '150px', textAlign: 'right' }}>Total Penawaran</th>
                 <th style={{ width: '110px', textAlign: 'center' }}>Dibuat Oleh</th>
-                <th style={{ width: '120px', textAlign: 'center' }}>Aksi</th>
+                <th style={{ width: '170px', textAlign: 'center' }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -211,8 +215,26 @@ export default function CommercialProposalsListPage() {
                   const grossProfit = Number(p.grand_total) - Number(p.cogs_amount);
                   return (
                     <tr key={p.id}>
-                      <td style={{ fontWeight: 600, color: 'var(--accent-hover)' }}>
-                        {p.proposal_number}
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--accent-hover)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>{p.proposal_number}</span>
+                          <span
+                            className="linear-badge font-mono-numbers"
+                            style={{
+                              fontSize: '10px',
+                              padding: '1px 5px',
+                              background: (p.version || 1) > 1 ? 'rgba(94, 106, 210, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                              color: (p.version || 1) > 1 ? '#a5b4fc' : 'var(--text-secondary)',
+                            }}
+                          >
+                            v{p.version || 1}
+                          </span>
+                        </div>
+                        {p.revision_notes && (
+                          <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.revision_notes}>
+                            📝 {p.revision_notes}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{p.project_name}</div>
@@ -254,7 +276,7 @@ export default function CommercialProposalsListPage() {
                             target="_blank"
                             className="btn-secondary"
                             style={{
-                              padding: '3px 8px',
+                              padding: '4px 8px',
                               fontSize: '11px',
                               textDecoration: 'none',
                               color: '#38bdf8',
@@ -264,16 +286,30 @@ export default function CommercialProposalsListPage() {
                           >
                             📄 Proposal
                           </Link>
+                          <Link
+                            href={`/commercial/new?edit_id=${p.id}`}
+                            className="btn-secondary"
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '11px',
+                              textDecoration: 'none',
+                              color: 'var(--accent-hover)',
+                              borderColor: 'rgba(94, 106, 210, 0.35)',
+                            }}
+                            title="Edit & Buat Revisi Versi Baru"
+                          >
+                            ✏️ Revisi
+                          </Link>
                           <button
                             type="button"
-                            onClick={() => handleDelete(p.id, p.proposal_number)}
+                            onClick={() => handleDelete(p.id, p.proposal_number, p.version || 1)}
                             className="btn-ghost"
                             style={{
-                              padding: '3px 6px',
+                              padding: '4px 6px',
                               fontSize: '12px',
                               color: 'var(--color-danger)',
                             }}
-                            title="Hapus Proposal"
+                            title="Hapus Versi Proposal Ini"
                           >
                             🗑️
                           </button>

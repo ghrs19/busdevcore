@@ -1,8 +1,9 @@
 'use client';
 
+import { Suspense } from 'react';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface Company {
   id: number;
@@ -60,8 +61,10 @@ const formatIDR = (val: number | string) => {
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
 };
 
-export default function NewCommercialProposalPage() {
+function NewCommercialProposalForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit_id');
 
   // Cascade states
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -74,6 +77,12 @@ export default function NewCommercialProposalPage() {
 
   const [activeEstimate, setActiveEstimate] = useState<Estimate | null>(null);
   const [isLoadingEstimate, setIsLoadingEstimate] = useState(false);
+
+  // Edit / Revision Mode metadata
+  const [isRevisionMode, setIsRevisionMode] = useState(false);
+  const [existingProposalNumber, setExistingProposalNumber] = useState<string>('');
+  const [existingVersion, setExistingVersion] = useState<number>(1);
+  const [revisionNotes, setRevisionNotes] = useState<string>('');
 
   // Commercial Pricing States
   const [cogsAmount, setCogsAmount] = useState<number>(0);
@@ -123,7 +132,68 @@ export default function NewCommercialProposalPage() {
     loadMasterData();
   }, []);
 
-  // 2. Cascade Company Change -> Reset Project & Estimate
+  // 2. Load existing proposal if edit_id is present
+  useEffect(() => {
+    if (!editId) return;
+    async function loadExistingProposal() {
+      try {
+        const res = await fetch(`/api/commercial/${editId}`);
+        const data = await res.json();
+        if (data.success && data.proposal) {
+          const p = data.proposal;
+          setIsRevisionMode(true);
+          setExistingProposalNumber(p.proposal_number);
+          setExistingVersion(p.version || 1);
+          setRevisionNotes(`Penyesuaian revisi v${(p.version || 1) + 1}`);
+
+          setSelectedCompanyId(p.company_id);
+          setSelectedProjectId(p.project_id);
+          setSelectedEstimateId(p.estimate_id);
+
+          setCogsAmount(Number(p.cogs_amount) || 0);
+          setMarginPercent(Number(p.margin_percent) || 30);
+          setDiscountType(p.discount_type || 'PERCENTAGE');
+          setDiscountValue(Number(p.discount_value) || 0);
+          setIsTaxEnabled(Boolean(p.is_tax_enabled));
+          setValidityDays(Number(p.validity_days) || 30);
+          if (p.notes) setNotes(p.notes);
+
+          if (p.timeline_config && Array.isArray(p.timeline_config.milestones)) {
+            setTotalWeeks(p.timeline_config.total_weeks || 4);
+            if (p.timeline_config.start_date) setStartDate(p.timeline_config.start_date);
+            setMilestones(p.timeline_config.milestones);
+          }
+
+          if (Array.isArray(p.payment_terms) && p.payment_terms.length > 0) {
+            setPaymentTerms(p.payment_terms);
+          }
+
+          // Fetch estimates for this project
+          if (p.project_id) {
+            const estRes = await fetch(`/api/estimates?project_id=${p.project_id}`);
+            const estData = await estRes.json();
+            if (estData.success && Array.isArray(estData.estimates)) {
+              setEstimates(estData.estimates);
+            }
+          }
+
+          // Load active estimate details
+          if (p.estimate_id) {
+            const estDetailRes = await fetch(`/api/estimates/${p.estimate_id}`);
+            const estDetailData = await estDetailRes.json();
+            if (estDetailData.success && estDetailData.estimate) {
+              setActiveEstimate(estDetailData.estimate);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Gagal memuat proposal untuk revisi', err);
+      }
+    }
+    loadExistingProposal();
+  }, [editId]);
+
+  // 3. Cascade Company Change
   const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const cid = e.target.value ? Number(e.target.value) : '';
     setSelectedCompanyId(cid);
@@ -132,7 +202,7 @@ export default function NewCommercialProposalPage() {
     setActiveEstimate(null);
   };
 
-  // 3. Cascade Project Change -> Fetch Estimates for Project
+  // 4. Cascade Project Change
   const handleProjectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const pid = e.target.value ? Number(e.target.value) : '';
     setSelectedProjectId(pid);
@@ -156,7 +226,7 @@ export default function NewCommercialProposalPage() {
     }
   };
 
-  // 4. Cascade Estimate Change -> Load Estimate Detail & Prefill
+  // 5. Cascade Estimate Change
   const handleEstimateChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const eid = e.target.value ? Number(e.target.value) : '';
     setSelectedEstimateId(eid);
@@ -175,11 +245,9 @@ export default function NewCommercialProposalPage() {
         const est: Estimate = data.estimate;
         setActiveEstimate(est);
 
-        // Set baseline COGS from grand total or total_cost
         const baseCogs = est.billing_summary?.grand_total || est.total_cost || 0;
         setCogsAmount(baseCogs);
 
-        // Prefill Timeline if exists in estimate
         if (est.timeline_config && est.timeline_config.milestones) {
           setTotalWeeks(est.timeline_config.total_weeks || 4);
           if (est.timeline_config.start_date) setStartDate(est.timeline_config.start_date);
@@ -195,12 +263,10 @@ export default function NewCommercialProposalPage() {
     }
   };
 
-  // 5. Calculations
-  // Base Price with Margin: COGS / (1 - Margin/100)
+  // Calculations
   const marginFrac = Math.min(Math.max(marginPercent, 0), 99) / 100;
   const basePrice = marginFrac < 1 ? Math.round(cogsAmount / (1 - marginFrac)) : cogsAmount;
 
-  // Discount calculation
   let discountAmount = 0;
   if (discountType === 'PERCENTAGE') {
     discountAmount = Math.round(basePrice * (Math.min(Math.max(discountValue, 0), 100) / 100));
@@ -214,7 +280,6 @@ export default function NewCommercialProposalPage() {
   const grossProfit = subtotalAfterDiscount - cogsAmount;
   const grossProfitPercent = subtotalAfterDiscount > 0 ? ((grossProfit / subtotalAfterDiscount) * 100).toFixed(1) : '0';
 
-  // Total percent of payment terms
   const totalTermPercent = paymentTerms.reduce((sum, t) => sum + Number(t.percent || 0), 0);
 
   // Update payment terms nominal amounts based on current Grand Total
@@ -326,11 +391,15 @@ export default function NewCommercialProposalPage() {
       payment_terms: paymentTerms,
       validity_days: validityDays,
       notes,
+      revision_notes: isRevisionMode ? revisionNotes : undefined,
     };
 
     try {
-      const res = await fetch('/api/commercial', {
-        method: 'POST',
+      const url = isRevisionMode ? `/api/commercial/${editId}` : '/api/commercial';
+      const method = isRevisionMode ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -348,7 +417,6 @@ export default function NewCommercialProposalPage() {
     }
   };
 
-  // Filter projects by selected company
   const availableProjects = projects.filter((p) =>
     selectedCompanyId ? p.company_id === selectedCompanyId : true
   );
@@ -383,17 +451,68 @@ export default function NewCommercialProposalPage() {
                   margin: 0,
                 }}
               >
-                Buat Kalkulasi Komersial & Proposal Klien
+                {isRevisionMode
+                  ? `Revisi Proposal: ${existingProposalNumber} (v${existingVersion} → v${existingVersion + 1})`
+                  : 'Buat Kalkulasi Komersial & Proposal Klien'}
               </h1>
               <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                Kalkulasi margin keuntungan, diskon penawaran, delivery timeline, dan termin pembayaran klien
+                {isRevisionMode
+                  ? `Menyimpan perubahan akan menghasilkan versi baru v${existingVersion + 1} tanpa menimpa riwayat versi sebelumnya.`
+                  : 'Kalkulasi margin keuntungan, diskon penawaran, delivery timeline, dan termin pembayaran klien'}
               </p>
             </div>
-            <div className="linear-badge" style={{ fontSize: '12px', padding: '6px 12px' }}>
-              Modul Kalkulasi Mandiri
+            <div
+              className="linear-badge"
+              style={{
+                fontSize: '12px',
+                padding: '6px 12px',
+                background: isRevisionMode ? 'rgba(94, 106, 210, 0.2)' : undefined,
+                color: isRevisionMode ? '#a5b4fc' : undefined,
+              }}
+            >
+              {isRevisionMode ? `Mode Revisi v${existingVersion + 1}` : 'Modul Kalkulasi Mandiri'}
             </div>
           </div>
         </div>
+
+        {/* Revision Banner if in Edit Mode */}
+        {isRevisionMode && (
+          <div
+            className="linear-card"
+            style={{
+              padding: '16px 20px',
+              marginBottom: '24px',
+              background: 'rgba(94, 106, 210, 0.08)',
+              border: '1px solid rgba(94, 106, 210, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '16px',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--accent-hover)', fontWeight: 600 }}>
+                Catatan Revisi Versi Baru
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>
+                Dokumen Induk: <strong>{existingProposalNumber}</strong> (Versi aktif saat ini: v{existingVersion})
+              </div>
+            </div>
+
+            <div style={{ flex: 1, minWidth: '280px' }}>
+              <input
+                type="text"
+                value={revisionNotes}
+                onChange={(e) => setRevisionNotes(e.target.value)}
+                placeholder="Tuliskan alasan revisi (misal: Negosiasi diskon 5%, revisi termin)..."
+                className="linear-input"
+                style={{ width: '100%' }}
+                required
+              />
+            </div>
+          </div>
+        )}
 
         {errorMessage && (
           <div
@@ -1171,9 +1290,13 @@ export default function NewCommercialProposalPage() {
                   type="submit"
                   disabled={isSubmitting || !selectedEstimateId}
                   className="btn-primary"
-                  style={{ minWidth: '220px', padding: '10px 24px', fontSize: '13px' }}
+                  style={{ minWidth: '240px', padding: '10px 24px', fontSize: '13px' }}
                 >
-                  {isSubmitting ? 'Menyimpan...' : '💾 Simpan & Buka Proposal Cetak'}
+                  {isSubmitting
+                    ? 'Menyimpan Revisi...'
+                    : isRevisionMode
+                    ? `💾 Simpan Revisi Versi (v${existingVersion + 1})`
+                    : '💾 Simpan & Buka Proposal Cetak'}
                 </button>
               </div>
             </div>
@@ -1181,5 +1304,13 @@ export default function NewCommercialProposalPage() {
         </form>
       </main>
     </div>
+  );
+}
+
+export default function NewCommercialProposalPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>Memuat formulir proposal...</div>}>
+      <NewCommercialProposalForm />
+    </Suspense>
   );
 }
