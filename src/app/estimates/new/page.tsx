@@ -410,22 +410,24 @@ function NewEstimateForm() {
         setCategories(data.categories || []);
         setTags(data.tags || []);
 
-        // Default to IT & Development
-        const itType = (data.serviceTypes || []).find((st: ServiceType) => st.code === 'IT');
-        if (itType) setSelectedServiceTypeId(itType.id);
+        // Default to IT & Development only if NOT in edit mode
+        if (!editId) {
+          const itType = (data.serviceTypes || []).find((st: ServiceType) => st.code === 'IT');
+          if (itType) setSelectedServiceTypeId(itType.id);
 
-        const devCat = (data.categories || []).find((c: Category) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
-        if (devCat) {
-          setSelectedCategoryIds([devCat.id]);
-        } else if ((data.categories || []).length > 0) {
-          setSelectedCategoryIds([data.categories[0].id]);
-        }
+          const devCat = (data.categories || []).find((c: Category) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
+          if (devCat) {
+            setSelectedCategoryIds([devCat.id]);
+          } else if ((data.categories || []).length > 0) {
+            setSelectedCategoryIds([data.categories[0].id]);
+          }
 
-        const initTag = (data.tags || []).find((t: Tag) => t.code === 'INITIAL');
-        if (initTag) setSelectedTagId(initTag.id);
+          const initTag = (data.tags || []).find((t: Tag) => t.code === 'INITIAL');
+          if (initTag) setSelectedTagId(initTag.id);
 
-        if ((data.companies || []).length > 0) {
-          setSelectedCompanyId(data.companies[0].id);
+          if ((data.companies || []).length > 0) {
+            setSelectedCompanyId(data.companies[0].id);
+          }
         }
       }
     } catch {
@@ -505,6 +507,133 @@ function NewEstimateForm() {
   useEffect(() => {
     loadMetadata();
   }, [loadMetadata]);
+
+  // Prefill Form when edit_id is provided
+  useEffect(() => {
+    if (!editId) return;
+
+    let isMounted = true;
+    setIsEditLoading(true);
+
+    fetch(`/api/estimates/${editId}`)
+      .then((res) => res.json())
+      .then(async (data) => {
+        if (!isMounted || !data.success || !data.estimate) {
+          setIsEditLoading(false);
+          return;
+        }
+
+        const est = data.estimate;
+
+        // 1. Versioning meta
+        const hist = Array.isArray(est.version_history) ? est.version_history : [];
+        const maxV = hist.reduce((max: number, item: any) => Math.max(max, Number(item.version) || 1), Number(est.version) || 1);
+
+        setEditingEstimateMeta({
+          version: est.version,
+          parent_id: est.parent_id,
+          revision_notes: est.revision_notes,
+          max_version: maxV,
+        });
+
+        // 2. Basic fields
+        if (est.title) setTitle(est.title);
+        if (est.notes) setNotes(est.notes);
+        if (est.service_type_id) setSelectedServiceTypeId(est.service_type_id);
+        if (est.tag_id) setSelectedTagId(est.tag_id);
+
+        // 3. Company & Project
+        if (est.company_id) {
+          setSelectedCompanyId(est.company_id);
+          try {
+            const pRes = await fetch(`/api/projects?company_id=${est.company_id}`);
+            const pData = await pRes.json();
+            if (pData.success && Array.isArray(pData.projects)) {
+              setProjects(pData.projects);
+              if (est.project_id) {
+                setSelectedProjectId(est.project_id);
+              }
+            }
+          } catch (pErr) {
+            console.error('Failed loading projects for edit prefill', pErr);
+          }
+        }
+
+        // 4. Categories (supports multi-select)
+        if (Array.isArray(est.categories) && est.categories.length > 0) {
+          setSelectedCategoryIds(est.categories.map((c: any) => c.id));
+        } else if (est.category_id) {
+          setSelectedCategoryIds([est.category_id]);
+        }
+
+        // 5. Rates snapshot
+        if (est.rate_snapshots && typeof est.rate_snapshots === 'object') {
+          const snapshotRates: RoleRateMap = {};
+          Object.entries(est.rate_snapshots).forEach(([code, item]: [string, any]) => {
+            snapshotRates[code] = typeof item === 'object' && item !== null ? Number(item.rate || 0) : Number(item || 0);
+          });
+          setRates((prev) => ({ ...prev, ...snapshotRates }));
+        }
+
+        // 6. Development Modules & Tasks
+        if (Array.isArray(est.modules) && est.modules.length > 0) {
+          setModules(
+            est.modules.map((m: any) => ({
+              name: m.name,
+              tasks: Array.isArray(m.tasks)
+                ? m.tasks.map((t: any) => ({
+                    name: t.name,
+                    hours_pm: Number(t.hours_pm) || 0,
+                    hours_web_dev: Number(t.hours_web_dev) || 0,
+                    hours_ui_ux: Number(t.hours_ui_ux) || 0,
+                    hours_qc_doc: Number(t.hours_qc_doc) || 0,
+                    hours_dev_ops: Number(t.hours_dev_ops) || 0,
+                  }))
+                : [],
+            }))
+          );
+        }
+
+        // 7. Maintenance Config & Tasks
+        if (est.maintenance_config) {
+          const mConf = est.maintenance_config;
+          if (mConf.duration_months) {
+            setMaintenanceDurationMonths(Number(mConf.duration_months));
+          }
+          if (Array.isArray(mConf.tasks) && mConf.tasks.length > 0) {
+            setMaintenanceTasks(
+              mConf.tasks.map((t: any) => ({
+                name: t.name || 'Maintenance Task',
+                role_hours: t.role_hours || {},
+              }))
+            );
+          }
+        }
+
+        // 8. Infrastructure Items
+        if (Array.isArray(est.infrastructure_items)) {
+          setInfraItems(est.infrastructure_items);
+        }
+
+        // 9. Operational Items
+        if (Array.isArray(est.operational_items)) {
+          setOperationalItems(est.operational_items);
+        }
+
+        setIsEditLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to prefill estimate edit', err);
+        if (isMounted) {
+          setErrorMsg('Gagal memuat data estimasi untuk diedit.');
+          setIsEditLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [editId]);
 
   // Derived multi-classification
   const selectedCategories = useMemo(() => {
@@ -1309,12 +1438,31 @@ function NewEstimateForm() {
                   fontWeight: 600,
                   color: 'var(--text-primary)',
                   letterSpacing: '-0.02em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
                 }}
               >
-                Buat Costing Baru
+                {editId ? `Edit / Revisi Estimasi #${editId}` : 'Buat Costing Baru'}
+                {editId && editingEstimateMeta?.version && (
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      color: 'var(--accent-hover)',
+                    }}
+                  >
+                    Snapshot v{editingEstimateMeta.version}
+                  </span>
+                )}
               </h1>
               <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                Formulir pembuatan kalkulasi WBS, modul, dan manhours costing proyek IT Development & Maintenance
+                {editId 
+                  ? `Mengedit dari snapshot v${editingEstimateMeta?.version || 1}. Saat disimpan akan tercatat sebagai versi terbaru v${((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}.`
+                  : 'Formulir pembuatan kalkulasi WBS, modul, dan manhours costing proyek IT Development & Maintenance'}
               </p>
             </div>
 
