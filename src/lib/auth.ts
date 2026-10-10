@@ -17,8 +17,8 @@ export function verifyPassword(password: string, hash: string) {
   const expected = Buffer.from(key, 'hex');
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
-export function signSession(id: number) {
-  const payload = Buffer.from(JSON.stringify({ id, exp: Date.now() + 7 * 86400000 })).toString('base64url');
+export function signSession(id: number, role: string = 'staff') {
+  const payload = Buffer.from(JSON.stringify({ id, role, exp: Date.now() + 7 * 86400000 })).toString('base64url');
   return `${payload}.${createHmac('sha256', secret).update(payload).digest('base64url')}`;
 }
 export function readSession(token?: string) {
