@@ -874,6 +874,22 @@ function NewEstimateForm() {
         name: t.name || 'Maintenance Task',
         role_hours: t.role_hours || {},
       })));
+
+      // If template contains specific custom rates (e.g., E-Commerce WEB_DEV rate 35.835)
+      const mergedRates: Record<string, number> = {};
+      tplPayload.forEach((t: any) => {
+        if (t.custom_rates && typeof t.custom_rates === 'object') {
+          Object.entries(t.custom_rates).forEach(([code, rateVal]) => {
+            if (typeof rateVal === 'number' && rateVal > 0) {
+              mergedRates[code] = rateVal;
+            }
+          });
+        }
+      });
+
+      if (Object.keys(mergedRates).length > 0) {
+        setRates(prev => ({ ...prev, ...mergedRates }));
+      }
     }
   };
 
@@ -2619,24 +2635,33 @@ function NewEstimateForm() {
                       <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Template WBS:</span>
                       {dbTemplates
                         .filter((t) => t.category === 'MAINTENANCE')
-                        .map((t, idx) => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => applyMaintenanceTemplate(t.payload)}
-                            className="btn-secondary"
-                            style={{
-                              padding: '3px 8px',
-                              fontSize: '11px',
-                              minHeight: 'auto',
-                              borderColor: idx === 0 ? 'rgba(56, 189, 248, 0.4)' : 'rgba(168, 85, 247, 0.4)',
-                              color: idx === 0 ? '#38bdf8' : '#c084fc',
-                            }}
-                            title={t.description || t.name}
-                          >
-                            {t.name.includes('Basic') ? '📋 Basic' : t.name.includes('Expert') ? '⭐ Expert' : `📑 ${t.name}`}
-                          </button>
-                        ))}
+                        .map((t) => {
+                          const isEcom = t.name.toLowerCase().includes('e-commerce') || t.name.toLowerCase().includes('ecommerce');
+                          const isBasic = t.name.toLowerCase().includes('basic');
+                          const label = isEcom 
+                            ? (isBasic ? '🛒 E-Com Basic' : '🛒 E-Com Expert')
+                            : (isBasic ? '📋 Web Basic' : '⭐ Web Expert');
+                          const color = isEcom ? (isBasic ? '#f59e0b' : '#ec4899') : (isBasic ? '#38bdf8' : '#c084fc');
+
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => applyMaintenanceTemplate(t.payload)}
+                              className="btn-secondary"
+                              style={{
+                                padding: '3px 8px',
+                                fontSize: '11px',
+                                minHeight: 'auto',
+                                borderColor: `${color}66`,
+                                color: color,
+                              }}
+                              title={t.description || t.name}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
                       <Link
                         href="/master"
                         target="_blank"
