@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
   const session = await parseValidSession(token);
 
   // Unauthenticated user
-  const protectedRoutes = pathname === '/' || pathname.startsWith('/estimates') || pathname.startsWith('/master') || pathname.startsWith('/profile') || pathname.startsWith('/commercial') || pathname.startsWith('/audit');
+  const protectedRoutes = pathname === '/' || pathname.startsWith('/estimates') || pathname.startsWith('/master') || pathname.startsWith('/profile') || pathname.startsWith('/commercial') || pathname.startsWith('/audit') || pathname.startsWith('/invoices');
   if (protectedRoutes && !session) {
     return NextResponse.redirect(new URL('/login', request.url));
   }

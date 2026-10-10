@@ -720,9 +720,19 @@ function CommercialProposalDetailContent() {
                       Termin Pembayaran (Term of Payment)
                     </h3>
                   </div>
-                  <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600, color: '#10b981' }}>
-                    Total: {formatIDR(proposal.grand_total)}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Link
+                      href="/invoices"
+                      className="btn-secondary"
+                      style={{ padding: '3px 8px', fontSize: '11px', textDecoration: 'none', color: '#38bdf8' }}
+                      title="Buka Invoice & Payment Tracker"
+                    >
+                      Buka Tracker Invoice →
+                    </Link>
+                    <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600, color: '#10b981' }}>
+                      Total: {formatIDR(proposal.grand_total)}
+                    </span>
+                  </div>
                 </div>
 
                 {Array.isArray(proposal.payment_terms) && proposal.payment_terms.length > 0 ? (

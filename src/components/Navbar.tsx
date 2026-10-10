@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
+  BanknotesIcon,
   DocumentTextIcon,
   PlusCircleIcon,
   BriefcaseIcon,
@@ -63,6 +64,28 @@ function NavLinks({ role }: { role: string }) {
       >
         <PlusCircleIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
         <span>Buat Costing</span>
+      </Link>
+
+      <Link
+        href="/invoices"
+        className="pill-item"
+        style={{
+          textDecoration: 'none',
+          padding: '6px 14px',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: 500,
+          backgroundColor: pathname.startsWith('/invoices') ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+          color: pathname.startsWith('/invoices') ? '#a5b4fc' : 'var(--text-secondary)',
+          border: pathname.startsWith('/invoices') ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <BanknotesIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
+        <span>Invoices</span>
       </Link>
 
       <Link
