@@ -2,29 +2,58 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await currentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const query = `
-      SELECT 
-        cp.*,
-        c.name as company_name,
-        p.name as project_name,
-        pe.title as estimate_title,
-        pe.version as estimate_version,
-        u.name as creator_name,
-        u.email as creator_email
-      FROM commercial_proposals cp
-      JOIN companies c ON cp.company_id = c.id
-      JOIN projects p ON cp.project_id = p.id
-      JOIN project_estimates pe ON cp.estimate_id = pe.id
-      LEFT JOIN users u ON cp.created_by_user_id = u.id
-      ORDER BY cp.id DESC
-    `;
+    const { searchParams } = new URL(req.url);
+    const showAll = searchParams.get('all') === 'true';
+
+    let query = '';
+    if (showAll) {
+      query = `
+        SELECT 
+          cp.*,
+          c.name as company_name,
+          p.name as project_name,
+          pe.title as estimate_title,
+          pe.version as estimate_version,
+          u.name as creator_name,
+          u.email as creator_email
+        FROM commercial_proposals cp
+        JOIN companies c ON cp.company_id = c.id
+        JOIN projects p ON cp.project_id = p.id
+        JOIN project_estimates pe ON cp.estimate_id = pe.id
+        LEFT JOIN users u ON cp.created_by_user_id = u.id
+        ORDER BY cp.id DESC
+      `;
+    } else {
+      // Hanya menampilkan versi terakhir dari masing-masing proposal_number
+      query = `
+        SELECT 
+          cp.*,
+          c.name as company_name,
+          p.name as project_name,
+          pe.title as estimate_title,
+          pe.version as estimate_version,
+          u.name as creator_name,
+          u.email as creator_email
+        FROM commercial_proposals cp
+        JOIN companies c ON cp.company_id = c.id
+        JOIN projects p ON cp.project_id = p.id
+        JOIN project_estimates pe ON cp.estimate_id = pe.id
+        LEFT JOIN users u ON cp.created_by_user_id = u.id
+        WHERE cp.version = (
+          SELECT MAX(cp2.version)
+          FROM commercial_proposals cp2
+          WHERE cp2.proposal_number = cp.proposal_number
+        )
+        ORDER BY cp.id DESC
+      `;
+    }
 
     const res = await pool.query(query);
     return NextResponse.json({ success: true, proposals: res.rows });
@@ -74,7 +103,7 @@ export async function POST(req: Request) {
     const month = String(now.getMonth() + 1).padStart(2, '0');
 
     const countRes = await pool.query(
-      `SELECT COUNT(*)::int as count FROM commercial_proposals 
+      `SELECT COUNT(DISTINCT proposal_number)::int as count FROM commercial_proposals 
        WHERE proposal_number LIKE $1`,
       [`QUO/${year}/${month}/%`]
     );
@@ -83,20 +112,20 @@ export async function POST(req: Request) {
 
     const insertRes = await pool.query(
       `INSERT INTO commercial_proposals (
-        proposal_number, company_id, project_id, estimate_id,
+        proposal_number, version, company_id, project_id, estimate_id,
         cogs_amount, margin_percent, base_price,
         discount_type, discount_value, subtotal_after_discount,
         is_tax_enabled, tax_amount, grand_total,
         timeline_config, payment_terms, validity_days, notes,
         created_by_user_id, created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4,
+        $1, 1, $2, $3, $4,
         $5, $6, $7,
         $8, $9, $10,
         $11, $12, $13,
         $14::jsonb, $15::jsonb, $16, $17,
         $18, NOW(), NOW()
-      ) RETURNING id, proposal_number, grand_total, created_at`,
+      ) RETURNING id, proposal_number, version, grand_total, created_at`,
       [
         proposal_number,
         company_id,

@@ -111,7 +111,7 @@ export default function CommercialProposalsListPage() {
               Proposal & Penawaran Klien
             </h1>
             <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Daftar penawaran resmi, versioning revisi proposal, dan dokumen siap cetak
+              Menampilkan versi terakhir aktif dari masing-masing proposal penawaran resmi
             </p>
           </div>
 
@@ -140,7 +140,7 @@ export default function CommercialProposalsListPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari berdasarkan nomor penawaran, klien, proyek, estimasi, atau catatan revisi..."
+            placeholder="Cari berdasarkan nomor penawaran, klien, proyek, atau catatan..."
             style={{
               flex: 1,
               background: 'transparent',
@@ -189,7 +189,7 @@ export default function CommercialProposalsListPage() {
                 <th style={{ width: '90px', textAlign: 'center' }}>Margin</th>
                 <th style={{ width: '150px', textAlign: 'right' }}>Total Penawaran</th>
                 <th style={{ width: '110px', textAlign: 'center' }}>Dibuat Oleh</th>
-                <th style={{ width: '170px', textAlign: 'center' }}>Aksi</th>
+                <th style={{ width: '220px', textAlign: 'center' }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -216,7 +216,10 @@ export default function CommercialProposalsListPage() {
                   return (
                     <tr key={p.id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: 'var(--accent-hover)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Link
+                          href={`/commercial/${p.id}`}
+                          style={{ fontWeight: 600, color: 'var(--accent-hover)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
                           <span>{p.proposal_number}</span>
                           <span
                             className="linear-badge font-mono-numbers"
@@ -229,9 +232,9 @@ export default function CommercialProposalsListPage() {
                           >
                             v{p.version || 1}
                           </span>
-                        </div>
+                        </Link>
                         {p.revision_notes && (
-                          <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.revision_notes}>
+                          <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)', marginTop: '2px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.revision_notes}>
                             📝 {p.revision_notes}
                           </div>
                         )}
@@ -272,6 +275,34 @@ export default function CommercialProposalsListPage() {
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           <Link
+                            href={`/commercial/${p.id}`}
+                            className="btn-secondary"
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '11px',
+                              textDecoration: 'none',
+                              color: 'var(--text-primary)',
+                            }}
+                            title="Buka Halaman Detail Proposal & Riwayat Versi"
+                          >
+                            🔍 Detail
+                          </Link>
+                          <a
+                            href={`/api/commercial/${p.id}/export/docx`}
+                            download
+                            className="btn-secondary"
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '11px',
+                              textDecoration: 'none',
+                              color: '#38bdf8',
+                              borderColor: 'rgba(56, 189, 248, 0.35)',
+                            }}
+                            title="Download Dokumen Word (.docx)"
+                          >
+                            📥 Word
+                          </a>
+                          <Link
                             href={`/commercial/${p.id}/print`}
                             target="_blank"
                             className="btn-secondary"
@@ -279,26 +310,11 @@ export default function CommercialProposalsListPage() {
                               padding: '4px 8px',
                               fontSize: '11px',
                               textDecoration: 'none',
-                              color: '#38bdf8',
-                              borderColor: 'rgba(56, 189, 248, 0.3)',
+                              color: 'var(--text-secondary)',
                             }}
                             title="Buka Lembar Cetak Proposal Klien"
                           >
-                            📄 Proposal
-                          </Link>
-                          <Link
-                            href={`/commercial/new?edit_id=${p.id}`}
-                            className="btn-secondary"
-                            style={{
-                              padding: '4px 8px',
-                              fontSize: '11px',
-                              textDecoration: 'none',
-                              color: 'var(--accent-hover)',
-                              borderColor: 'rgba(94, 106, 210, 0.35)',
-                            }}
-                            title="Edit & Buat Revisi Versi Baru"
-                          >
-                            ✏️ Revisi
+                            📄 PDF
                           </Link>
                           <button
                             type="button"
@@ -309,7 +325,7 @@ export default function CommercialProposalsListPage() {
                               fontSize: '12px',
                               color: 'var(--color-danger)',
                             }}
-                            title="Hapus Versi Proposal Ini"
+                            title="Hapus Proposal"
                           >
                             🗑️
                           </button>
