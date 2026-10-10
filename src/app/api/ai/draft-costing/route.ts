@@ -1,5 +1,5 @@
 // Polyfill DOMMatrix for Node.js environments when parsing complex PDFs
-if (typeof (globalThis as any).DOMMatrix === 'undefined') {
+if (typeof globalThis.DOMMatrix === 'undefined') {
   class SimpleDOMMatrix {
     a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
     m11 = 1; m12 = 0; m13 = 0; m14 = 0;
@@ -8,7 +8,7 @@ if (typeof (globalThis as any).DOMMatrix === 'undefined') {
     m41 = 0; m42 = 0; m43 = 0; m44 = 1;
     is2D = true;
     isIdentity = true;
-    constructor(init?: any) {
+    constructor(init?: number[]) {
       if (Array.isArray(init)) {
         if (init.length === 6) {
           this.a = this.m11 = init[0];
@@ -42,9 +42,9 @@ if (typeof (globalThis as any).DOMMatrix === 'undefined') {
       this.m42 = this.f;
       return this;
     }
-    multiply(other: any) { return new SimpleDOMMatrix(); }
-    multiplySelf(other: any) { return this; }
-    preMultiplySelf(other: any) { return this; }
+    multiply() { return new SimpleDOMMatrix(); }
+    multiplySelf() { return this; }
+    preMultiplySelf() { return this; }
     invertSelf() { return this; }
     translate(tx = 0, ty = 0) {
       const copy = new SimpleDOMMatrix([this.a, this.b, this.c, this.d, this.e, this.f]);
@@ -54,12 +54,12 @@ if (typeof (globalThis as any).DOMMatrix === 'undefined') {
       const copy = new SimpleDOMMatrix([this.a, this.b, this.c, this.d, this.e, this.f]);
       return copy.scaleSelf(sx, sy);
     }
-    rotate(angle = 0) { return new SimpleDOMMatrix(); }
-    rotateSelf(angle = 0) { return this; }
+    rotate() { return new SimpleDOMMatrix(); }
+    rotateSelf() { return this; }
     inverse() { return new SimpleDOMMatrix(); }
-    transformPoint(point: any) { return point || { x: 0, y: 0 }; }
+    transformPoint(point?: DOMPointInit) { return point || { x: 0, y: 0 }; }
   }
-  (globalThis as any).DOMMatrix = SimpleDOMMatrix;
+  (globalThis as unknown as { DOMMatrix: typeof DOMMatrix }).DOMMatrix = SimpleDOMMatrix as unknown as typeof DOMMatrix;
 }
 
 import { NextResponse } from 'next/server';
@@ -181,10 +181,10 @@ async function parsePdf(buffer: Buffer, filename: string): Promise<string> {
   try {
     // Inject WorkerMessageHandler if not already registered
     try {
-      // @ts-ignore
+      // @ts-expect-error pdfjs-dist does not ship types for its worker entry point.
       const workerModule = await import('pdfjs-dist/build/pdf.worker.mjs');
       if (workerModule && workerModule.WorkerMessageHandler) {
-        (globalThis as any).pdfjsWorker = {
+        (globalThis as typeof globalThis & { pdfjsWorker?: { WorkerMessageHandler: typeof workerModule.WorkerMessageHandler } }).pdfjsWorker = {
           WorkerMessageHandler: workerModule.WorkerMessageHandler,
         };
       }
@@ -583,7 +583,7 @@ export async function POST(req: Request) {
       } catch {}
     }
 
-    let chatHistory = [];
+    let chatHistory: { role: string; content: string }[] = [];
     if (chatHistoryRaw) {
       try {
         chatHistory = JSON.parse(chatHistoryRaw);
@@ -734,7 +734,7 @@ DRAFT / KONDISI SAAT INI (STATE SEBELUMNYA):
 ${currentState ? JSON.stringify(currentState, null, 2) : '(Belum ada draft sebelumnya - ini adalah inisiasi draft baru)'}
 
 RIWAYAT PERCAKAPAN PENYESUAIAN SEBELUMNYA:
-${chatHistory && chatHistory.length > 0 ? chatHistory.map((m: any) => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n') : '(Percakapan baru)'}
+${chatHistory && chatHistory.length > 0 ? chatHistory.map((m) => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n') : '(Percakapan baru)'}
 
 INSTRUKSI PENYESUAIAN (ITERATIVE ADJUSTMENT):
 Jika sudah ada DRAFT / KONDISI SAAT INI di atas:
