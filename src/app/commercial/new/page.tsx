@@ -127,7 +127,7 @@ function NewCommercialProposalForm() {
   // 1. When Margin % changes (Forward Calculation)
   const handleMarginChange = (newMargin: number) => {
     setMarginPercent(newMargin);
-    const mFrac = Math.min(Math.max(newMargin, 0), 99) / 100;
+    const mFrac = Math.min(Math.max(newMargin, 0), 99.99) / 100;
     const newBase = mFrac < 1 ? Math.round(cogsAmount / (1 - mFrac)) : cogsAmount;
     setBasePrice(newBase);
 
@@ -399,7 +399,7 @@ function NewCommercialProposalForm() {
         setCogsAmount(baseCogs);
 
         // Calculate initial base and grand total using marginPercent
-        const mFrac = Math.min(Math.max(marginPercent, 0), 99) / 100;
+        const mFrac = Math.min(Math.max(marginPercent, 0), 99.99) / 100;
         const newBase = mFrac < 1 ? Math.round(baseCogs / (1 - mFrac)) : baseCogs;
         setBasePrice(newBase);
 
@@ -858,8 +858,8 @@ function NewCommercialProposalForm() {
                   <input
                     type="number"
                     min="0"
-                    max="90"
-                    step="0.1"
+                    max="99.99"
+                    step="any"
                     value={marginPercent}
                     onChange={(e) => handleMarginChange(parseFloat(e.target.value) || 0)}
                     className="linear-input font-mono-numbers"
