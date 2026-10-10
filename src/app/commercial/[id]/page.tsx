@@ -1,5 +1,20 @@
 'use client';
 
+import {
+  ArrowDownTrayIcon,
+  PrinterIcon,
+  PencilSquareIcon,
+  BuildingOfficeIcon,
+  DocumentTextIcon,
+  CalendarDaysIcon,
+  CreditCardIcon,
+  CubeIcon,
+  ClockIcon,
+  ClipboardDocumentCheckIcon,
+  BoltIcon,
+} from '@heroicons/react/24/outline';
+
+
 import { Suspense } from 'react';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -375,7 +390,7 @@ function CommercialProposalDetailContent() {
                 }}
                 title="Download Dokumen Format Word (.docx)"
               >
-                <span>📥</span>
+                <ArrowDownTrayIcon style={{ width: "15px", height: "15px" }} />
                 <span>Download Word (.docx)</span>
               </a>
 
@@ -394,7 +409,7 @@ function CommercialProposalDetailContent() {
                 }}
                 title="Buka Lembar Cetak / Export PDF A4 Klien"
               >
-                <span>📄</span>
+                <PrinterIcon style={{ width: "15px", height: "15px" }} />
                 <span>Cetak / PDF</span>
               </Link>
 
@@ -412,7 +427,7 @@ function CommercialProposalDetailContent() {
                 }}
                 title="Edit proposal ini dan simpan sebagai versi terbaru"
               >
-                <span>✏️</span>
+                <PencilSquareIcon style={{ width: "15px", height: "15px" }} />
                 <span>Edit & Buat Revisi (v{(proposal.version || 1) + 1})</span>
               </Link>
             </div>
@@ -598,7 +613,7 @@ function CommercialProposalDetailContent() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', marginBottom: '24px' }}>
               <section className="linear-card" style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
-                  <span style={{ fontSize: '15px' }}>🏢</span>
+                  <BuildingOfficeIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                   <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                     Informasi Klien & Entitas
                   </h3>
@@ -623,7 +638,7 @@ function CommercialProposalDetailContent() {
 
               <section className="linear-card" style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
-                  <span style={{ fontSize: '15px' }}>📋</span>
+                  <DocumentTextIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                   <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                     Administrasi Dokumen Penawaran
                   </h3>
@@ -655,7 +670,7 @@ function CommercialProposalDetailContent() {
               <section className="linear-card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '15px' }}>📅</span>
+                    <CalendarDaysIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                     <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                       Delivery Timeline Setup
                     </h3>
@@ -700,7 +715,7 @@ function CommercialProposalDetailContent() {
               <section className="linear-card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '15px' }}>💳</span>
+                    <CreditCardIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                     <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                       Termin Pembayaran (Term of Payment)
                     </h3>
@@ -749,7 +764,7 @@ function CommercialProposalDetailContent() {
             <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '16px' }}>📦</span>
+                  <CubeIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                   <div>
                     <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                       Ruang Lingkup Fitur & Modul (Scope of Work Baseline)
@@ -945,7 +960,7 @@ function CommercialProposalDetailContent() {
                                 gap: '4px',
                               }}
                             >
-                              <span>📥</span>
+                              <ArrowDownTrayIcon style={{ width: "15px", height: "15px" }} />
                               <span>Word (.docx)</span>
                             </a>
                           </td>

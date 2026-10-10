@@ -11,6 +11,7 @@
     "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "docx": "^9.9.0",
     "mammoth": "^1.13.0",
     "next": "16.4.0",

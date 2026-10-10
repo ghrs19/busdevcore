@@ -4,6 +4,14 @@ import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import {
+  DocumentTextIcon,
+  PlusCircleIcon,
+  BriefcaseIcon,
+  ClipboardDocumentListIcon,
+  Cog6ToothIcon,
+  UserCircleIcon,
+} from '@heroicons/react/24/outline';
 
 function NavLinks({ role }: { role: string }) {
   const pathname = usePathname();
@@ -25,9 +33,13 @@ function NavLinks({ role }: { role: string }) {
           backgroundColor: isHistorical ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
           color: isHistorical ? '#a5b4fc' : 'var(--text-secondary)',
           border: isHistorical ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
           transition: 'all 0.15s ease',
         }}
       >
+        <DocumentTextIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
         <span>Historical Estimates</span>
       </Link>
 
@@ -43,10 +55,14 @@ function NavLinks({ role }: { role: string }) {
           backgroundColor: isNewEstimate ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
           color: isNewEstimate ? '#a5b4fc' : 'var(--text-secondary)',
           border: isNewEstimate ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
           transition: 'all 0.15s ease',
         }}
       >
-        <span>+ Buat Costing</span>
+        <PlusCircleIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
+        <span>Buat Costing</span>
       </Link>
 
       <Link
@@ -61,9 +77,13 @@ function NavLinks({ role }: { role: string }) {
           backgroundColor: pathname.startsWith('/commercial') ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
           color: pathname.startsWith('/commercial') ? '#a5b4fc' : 'var(--text-secondary)',
           border: pathname.startsWith('/commercial') ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
           transition: 'all 0.15s ease',
         }}
       >
+        <BriefcaseIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
         <span>Proposal & Komersial</span>
       </Link>
 
@@ -79,38 +99,61 @@ function NavLinks({ role }: { role: string }) {
           backgroundColor: pathname.startsWith('/audit') ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
           color: pathname.startsWith('/audit') ? '#a5b4fc' : 'var(--text-secondary)',
           border: pathname.startsWith('/audit') ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
           transition: 'all 0.15s ease',
         }}
       >
-        <span>📜 Audit Log</span>
+        <ClipboardDocumentListIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
+        <span>Audit Log</span>
       </Link>
 
-      {role === 'admin' && <Link
-        href="/master"
-        className="pill-item"
-        style={{
-          textDecoration: 'none',
-          padding: '6px 14px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 500,
-          backgroundColor: isMaster ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-          color: isMaster ? '#a5b4fc' : 'var(--text-secondary)',
-          border: isMaster ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-          transition: 'all 0.15s ease',
-        }}
-      >
-        <span>⚙️ Master Data</span>
-      </Link>}
+      {role === 'admin' && (
+        <Link
+          href="/master"
+          className="pill-item"
+          style={{
+            textDecoration: 'none',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 500,
+            backgroundColor: isMaster ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+            color: isMaster ? '#a5b4fc' : 'var(--text-secondary)',
+            border: isMaster ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Cog6ToothIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
+          <span>Master Data</span>
+        </Link>
+      )}
     </nav>
   );
 }
+
 function NavbarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
-  useEffect(() => { fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => { if (d?.user) { setEmail(d.user.email); setRole(d.user.role); } }).catch(() => {}); }, []);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.user) {
+          setEmail(d.user.email);
+          setRole(d.user.role);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   if (pathname === '/login' || pathname?.includes('/print')) {
     return null;
   }
@@ -202,7 +245,7 @@ function NavbarContent() {
           <NavLinks role={role} />
         </Suspense>
 
-        {/* Status Badges */}
+        {/* User Profile & Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {email && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -212,19 +255,19 @@ function NavbarContent() {
                 style={{
                   textDecoration: 'none',
                   fontSize: '12px',
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
                 }}
                 title="Buka Pengaturan Akun & Profil"
               >
-                <span>👤</span>
+                <UserCircleIcon className="w-4 h-4" style={{ width: '16px', height: '16px', color: 'var(--accent-hover)' }} />
                 <span>{email}</span>
               </Link>
               <button
                 className="btn-ghost"
-                style={{ fontSize: '12px', padding: '4px 8px' }}
+                style={{ fontSize: '12px', padding: '5px 10px' }}
                 onClick={async () => {
                   await fetch('/api/auth/logout', { method: 'POST' });
                   router.replace('/login');
@@ -235,7 +278,6 @@ function NavbarContent() {
               </button>
             </div>
           )}
-
         </div>
       </div>
     </header>
@@ -243,5 +285,9 @@ function NavbarContent() {
 }
 
 export default function Navbar() {
-  return <Suspense fallback={null}><NavbarContent /></Suspense>;
+  return (
+    <Suspense fallback={null}>
+      <NavbarContent />
+    </Suspense>
+  );
 }

@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  ClipboardDocumentListIcon,
+  PlusIcon,
+} from '@heroicons/react/24/outline';
+
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -119,7 +125,7 @@ export default function CommercialProposalsListPage() {
                 fontWeight: 600,
               }}
             >
-              <span>📜</span>
+              <ClipboardDocumentListIcon style={{ width: "15px", height: "15px" }} />
               <span>Activity Log Global</span>
             </Link>
 

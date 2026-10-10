@@ -2,6 +2,12 @@
 
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
+import {
+  SparklesIcon,
+  XMarkIcon,
+  PaperAirplaneIcon,
+  BoltIcon,
+} from '@heroicons/react/24/solid';
 
 interface ChatMessage {
   id: string;
@@ -239,11 +245,10 @@ function AIChatWidgetContent() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
-                    fontSize: '14px',
                     boxShadow: '0 0 10px rgba(94, 106, 210, 0.4)',
                   }}
                 >
-                  ⚡
+                  <BoltIcon style={{ width: '16px', height: '16px' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -263,7 +268,6 @@ function AIChatWidgetContent() {
                   background: 'transparent',
                   border: 'none',
                   color: 'var(--text-tertiary)',
-                  fontSize: '16px',
                   cursor: 'pointer',
                   padding: '4px',
                   display: 'flex',
@@ -274,7 +278,7 @@ function AIChatWidgetContent() {
                 }}
                 title="Tutup Chat"
               >
-                ✕
+                <XMarkIcon style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
 
@@ -419,9 +423,13 @@ function AIChatWidgetContent() {
                   borderRadius: '8px',
                   cursor: !inputMessage.trim() || loading ? 'not-allowed' : 'pointer',
                   opacity: !inputMessage.trim() || loading ? 0.6 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                Kirim
+                <span>Kirim</span>
+                <PaperAirplaneIcon style={{ width: '13px', height: '13px' }} />
               </button>
             </form>
           </div>
@@ -454,11 +462,9 @@ function AIChatWidgetContent() {
           title={isOpen ? 'Tutup AI Assistant' : 'Tarik (Drag) atau Klik untuk Chat dengan AI'}
         >
           {isOpen ? (
-            <span style={{ fontSize: '18px', fontWeight: 700 }}>✕</span>
+            <XMarkIcon style={{ width: '24px', height: '24px', color: '#fff' }} />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: '22px' }}>✨</span>
-            </div>
+            <SparklesIcon style={{ width: '26px', height: '26px', color: '#fff' }} />
           )}
         </div>
       </div>
