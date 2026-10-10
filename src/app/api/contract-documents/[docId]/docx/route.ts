@@ -237,7 +237,7 @@ export async function GET(
                       },
                       children: [
                         new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Pihak Kedua (Pelaksana Pekerjaan)', size: 20 })] }),
-                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'BUSDEV SERVICES', bold: true, size: 20 })] }),
+                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'PT PENTA CODE DIGITAL', bold: true, size: 20 })] }),
                         new Paragraph({ spacing: { before: 800 }, children: [] }),
                         new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `( ${docData.creator_name || 'Admin'} )`, size: 20 })] }),
                       ],

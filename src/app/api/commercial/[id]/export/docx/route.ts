@@ -123,7 +123,7 @@ export async function GET(
       }),
       new Paragraph({
         children: [
-          new TextRun({ text: 'BUSDEVCORE', bold: true, size: 36, color: '0F172A' }),
+          new TextRun({ text: 'PT PENTA CODE DIGITAL', bold: true, size: 36, color: '0F172A' }),
         ],
       }),
       new Paragraph({
@@ -392,7 +392,7 @@ export async function GET(
                 borders: borderNone,
                 children: [
                   new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Diajukan Oleh,', size: 18, color: '64748B' })] }),
-                  new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'BUSDEVCORE', bold: true, size: 20 })] }),
+                  new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'PT PENTA CODE DIGITAL', bold: true, size: 20 })] }),
                   new Paragraph({ text: '' }),
                   new Paragraph({ text: '' }),
                   new Paragraph({ text: '' }),

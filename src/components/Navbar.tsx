@@ -189,30 +189,23 @@ function NavbarContent() {
             color: 'inherit',
           }}
         >
-          <div
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-pentacode.png"
+            alt="PT Penta Code Digital"
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #5e6ad2 0%, #7170ff 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 16px var(--accent-glow)',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: '15px',
-              fontFamily: 'var(--font-sans)',
+              height: '28px',
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block',
             }}
-          >
-            B
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          />
+          <div style={{ borderLeft: '1px solid var(--border-subtle)', paddingLeft: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span
                 style={{
-                  fontSize: '15px',
-                  fontWeight: 600,
+                  fontSize: '14px',
+                  fontWeight: 700,
                   letterSpacing: '-0.02em',
                   color: 'var(--text-primary)',
                 }}
@@ -221,21 +214,21 @@ function NavbarContent() {
               </span>
               <span
                 style={{
-                  fontSize: '10px',
-                  color: 'var(--text-tertiary)',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  padding: '1px 6px',
+                  fontSize: '9.5px',
+                  color: '#a5b4fc',
+                  background: 'rgba(94, 106, 210, 0.15)',
+                  padding: '1px 5px',
                   borderRadius: '4px',
-                  border: '1px solid var(--border-subtle)',
+                  border: '1px solid rgba(94, 106, 210, 0.3)',
                   fontWeight: 600,
-                  letterSpacing: '0.05em',
+                  letterSpacing: '0.04em',
                 }}
               >
                 ERP
               </span>
             </div>
-            <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: 1.2 }}>
-              Project Costing ERP
+            <p style={{ fontSize: '10.5px', color: 'var(--text-tertiary)', lineHeight: 1.1, margin: 0 }}>
+              PT Penta Code Digital
             </p>
           </div>
         </Link>

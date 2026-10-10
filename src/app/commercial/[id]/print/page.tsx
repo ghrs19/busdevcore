@@ -217,12 +217,20 @@ function CommercialProposalPrintViewContent() {
         {/* Brand & Document Meta */}
         <header className="sheet-header">
           <div className="brand-group">
-            <div className="brand-symbol">
-              <div className="symbol-inner" />
-            </div>
-            <div>
-              <div className="brand-title">BUSDEVCORE</div>
-              <div className="brand-tagline">Engineering & Digital Technology Partner</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-pentacode.png"
+              alt="PT Penta Code Digital"
+              style={{
+                height: '38px',
+                width: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+            <div style={{ borderLeft: '2px solid #e2e8f0', paddingLeft: '12px' }}>
+              <div className="brand-title" style={{ fontSize: '13px', letterSpacing: '0.04em', color: '#0f172a' }}>PT PENTA CODE DIGITAL</div>
+              <div className="brand-tagline" style={{ fontSize: '10px', color: '#64748b' }}>Software Development & Digital Solutions • pentacode.id</div>
             </div>
           </div>
 
@@ -511,7 +519,7 @@ function CommercialProposalPrintViewContent() {
         <footer className="signature-section">
           <div className="sig-column">
             <div className="sig-role-caption">Diajukan Oleh:</div>
-            <div className="sig-entity">BUSDEVCORE</div>
+            <div className="sig-entity">PT PENTA CODE DIGITAL</div>
             <div className="sig-space" />
             <div className="sig-person">{proposal.creator_name || 'Business Development'}</div>
             <div className="sig-title">Authorized Representative</div>
