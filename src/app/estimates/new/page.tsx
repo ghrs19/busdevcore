@@ -854,54 +854,30 @@ function NewEstimateForm() {
     ]);
   };
 
-  const loadMaintenanceBasic = (months: number = 12) => {
-    setExcludedRoleCodes(['PM', 'UI_UX', 'QC_DOC']);
-    setTitle(`Maintenance Website Company Profile (Basic - ${months} Bulan)`);
-    const it = serviceTypes.find((s) => s.code === 'IT');
-    if (it) setSelectedServiceTypeId(it.id);
-    const maint = categories.find((c) => c.code === 'MAINTENANCE');
-    if (maint) setSelectedCategoryIds([maint.id]);
-    setSelectedTagId('');
-    setWbsTab('MAINTENANCE');
-    setMaintenanceDurationMonths(months);
-    setMaintenanceTasks([
-      {
-        name: 'Dev Ops (Manhour)',
-        role_hours: { DEV_OPS: 1 },
-      },
-      {
-        name: 'Web Programmer (Manhour)',
-        role_hours: { WEB_DEV: 2 },
-      },
-    ]);
-    setModules([]);
-    setInfraItems([]);
-    setOperationalItems([]);
-  };
-
-  const loadMaintenanceExpert = (months: number = 12) => {
-    setExcludedRoleCodes(['PM', 'UI_UX', 'QC_DOC']);
-    setTitle(`Maintenance Website Company Profile (Expert - ${months} Bulan)`);
-    const it = serviceTypes.find((s) => s.code === 'IT');
-    if (it) setSelectedServiceTypeId(it.id);
-    const maint = categories.find((c) => c.code === 'MAINTENANCE');
-    if (maint) setSelectedCategoryIds([maint.id]);
-    setSelectedTagId('');
-    setWbsTab('MAINTENANCE');
-    setMaintenanceDurationMonths(months);
-    setMaintenanceTasks([
-      {
-        name: 'Dev Ops (Manhour)',
-        role_hours: { DEV_OPS: 4 },
-      },
-      {
-        name: 'Web Programmer (Manhour)',
-        role_hours: { WEB_DEV: 8 },
-      },
-    ]);
-    setModules([]);
-    setInfraItems([]);
-    setOperationalItems([]);
+  const applyMaintenanceTemplate = (tier: 'BASIC' | 'EXPERT') => {
+    if (tier === 'BASIC') {
+      setMaintenanceTasks([
+        {
+          name: 'Dev Ops (Manhour)',
+          role_hours: { DEV_OPS: 1 },
+        },
+        {
+          name: 'Web Programmer (Manhour)',
+          role_hours: { WEB_DEV: 2 },
+        },
+      ]);
+    } else {
+      setMaintenanceTasks([
+        {
+          name: 'Dev Ops (Manhour)',
+          role_hours: { DEV_OPS: 4 },
+        },
+        {
+          name: 'Web Programmer (Manhour)',
+          role_hours: { WEB_DEV: 8 },
+        },
+      ]);
+    }
   };
 
   // Handle register company
@@ -1339,24 +1315,7 @@ function NewEstimateForm() {
               >
                 🗑️ Reset Form
               </button>
-              <button
-                type="button"
-                onClick={() => loadMaintenanceBasic(12)}
-                className="btn-secondary"
-                style={{ borderColor: 'rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
-                title="Template Maintenance Basic 2026: Dev Ops (1h) + Web Dev (2h) = Rp 126.465/bln"
-              >
-                📋 Template Basic (12 Bln)
-              </button>
-              <button
-                type="button"
-                onClick={() => loadMaintenanceExpert(12)}
-                className="btn-secondary"
-                style={{ borderColor: 'rgba(168, 85, 247, 0.3)', color: '#c084fc' }}
-                title="Template Maintenance Expert 2026: Dev Ops (4h) + Web Dev (8h) = Rp 505.860/bln"
-              >
-                ⭐ Template Expert (12 Bln)
-              </button>
+
             </div>
           </div>
         </div>
@@ -2630,31 +2589,55 @@ function NewEstimateForm() {
                     </div>
                   </div>
 
-                  {/* Multiplier Durasi Kontrak */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Durasi Kontrak:</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      value={maintenanceDurationMonths}
-                      onChange={(e) => setMaintenanceDurationMonths(Math.max(1, Number(e.target.value) || 1))}
-                      className="linear-input font-mono-numbers"
-                      style={{ width: '64px', textAlign: 'center', padding: '4px 8px', fontSize: '12px' }}
-                    />
-                    <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Bulan</span>
-                    <div style={{ display: 'flex', gap: '4px', marginLeft: '6px' }}>
-                      {[1, 3, 6, 12].map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => setMaintenanceDurationMonths(m)}
-                          className={maintenanceDurationMonths === m ? 'btn-primary' : 'btn-secondary'}
-                          style={{ fontSize: '11px', padding: '2px 6px' }}
-                        >
-                          {m}bln
-                        </button>
-                      ))}
+                  {/* Multiplier Durasi Kontrak & Template Selector WBS */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Durasi:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={maintenanceDurationMonths}
+                        onChange={(e) => setMaintenanceDurationMonths(Math.max(1, Number(e.target.value) || 1))}
+                        className="linear-input font-mono-numbers"
+                        style={{ width: '56px', textAlign: 'center', padding: '4px 6px', fontSize: '12px' }}
+                      />
+                      <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Bln</span>
+                      <div style={{ display: 'flex', gap: '4px', marginLeft: '2px' }}>
+                        {[1, 3, 6, 12].map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setMaintenanceDurationMonths(m)}
+                            className={maintenanceDurationMonths === m ? 'btn-primary' : 'btn-secondary'}
+                            style={{ fontSize: '11px', padding: '2px 6px' }}
+                          >
+                            {m}bln
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderLeft: '1px solid var(--border-color)', paddingLeft: '12px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Template WBS:</span>
+                      <button
+                        type="button"
+                        onClick={() => applyMaintenanceTemplate('BASIC')}
+                        className="btn-secondary"
+                        style={{ padding: '3px 8px', fontSize: '11px', minHeight: 'auto', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+                        title="Terapkan Template Basic 2026: Dev Ops (1h) + Web Dev (2h)"
+                      >
+                        📋 Basic (1h/2h)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMaintenanceTemplate('EXPERT')}
+                        className="btn-secondary"
+                        style={{ padding: '3px 8px', fontSize: '11px', minHeight: 'auto', borderColor: 'rgba(168, 85, 247, 0.4)', color: '#c084fc' }}
+                        title="Terapkan Template Expert 2026: Dev Ops (4h) + Web Dev (8h)"
+                      >
+                        ⭐ Expert (4h/8h)
+                      </button>
                     </div>
                   </div>
                 </div>
