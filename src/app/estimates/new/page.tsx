@@ -1436,23 +1436,7 @@ function NewEstimateForm() {
       <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px' }}>
         {/* Navigation & Header */}
         <div style={{ marginBottom: '24px' }}>
-          <Link
-            href="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--text-tertiary)',
-              textDecoration: 'none',
-              fontSize: '13px',
-              marginBottom: '16px',
-              transition: 'color 0.15s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
-          >
-            ← Kembali ke Daftar Estimasi
-          </Link>
+
 
           <div
             style={{
