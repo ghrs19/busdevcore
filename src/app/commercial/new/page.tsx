@@ -86,20 +86,20 @@ export default function NewCommercialProposalPage() {
   const [totalWeeks, setTotalWeeks] = useState<number>(4);
   const [startDate, setStartDate] = useState<string>('');
   const [milestones, setMilestones] = useState<Milestone[]>([
-    { phase: 'Requirement & UI/UX Design', duration_weeks: 1, deliverable: 'Design Prototype & SRS' },
-    { phase: 'Core Development & API Integration', duration_weeks: 2, deliverable: 'Staging Application Live' },
-    { phase: 'UAT, Deployment & Go-Live', duration_weeks: 1, deliverable: 'Production Deployment & Sign-off' },
+    { phase: 'Requirement & UI/UX Design', duration_weeks: 1, deliverable: 'Design Prototype & SRS Sign-off' },
+    { phase: 'Core Development & Integration', duration_weeks: 2, deliverable: 'Staging Application & API Ready' },
+    { phase: 'UAT, Deployment & Go-Live', duration_weeks: 1, deliverable: 'Production Deployment & BAST' },
   ]);
 
   // Payment Terms (Milestones)
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([
     { milestone_name: 'Termin 1 (Down Payment / Kickoff)', percent: 30, amount: 0, trigger_condition: 'Penandatanganan Kontrak / SPK' },
-    { milestone_name: 'Termin 2 (User Acceptance Test)', percent: 50, amount: 0, trigger_condition: 'Penyelesaian Fitur & Persetujuan Berita Acara UAT' },
-    { milestone_name: 'Termin 3 (Serah Terima / Go-Live)', percent: 20, amount: 0, trigger_condition: 'Aplikasi Live di Production & BAST' },
+    { milestone_name: 'Termin 2 (User Acceptance Test)', percent: 50, amount: 0, trigger_condition: 'Penyelesaian Fitur & Persetujuan BAST UAT' },
+    { milestone_name: 'Termin 3 (Serah Terima & Go-Live)', percent: 20, amount: 0, trigger_condition: 'Aplikasi Live di Production & BAST Final' },
   ]);
 
   const [validityDays, setValidityDays] = useState<number>(30);
-  const [notes, setNotes] = useState<string>('');
+  const [notes, setNotes] = useState<string>('• Penawaran harga sudah mencakup garansi bug fixing 3 bulan setelah UAT.\n• Pembayaran ditransfer ke rekening resmi perusahaan dalam waktu 14 hari kalender setelah invoice diterbitkan.');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -214,6 +214,9 @@ export default function NewCommercialProposalPage() {
   const grossProfit = subtotalAfterDiscount - cogsAmount;
   const grossProfitPercent = subtotalAfterDiscount > 0 ? ((grossProfit / subtotalAfterDiscount) * 100).toFixed(1) : '0';
 
+  // Total percent of payment terms
+  const totalTermPercent = paymentTerms.reduce((sum, t) => sum + Number(t.percent || 0), 0);
+
   // Update payment terms nominal amounts based on current Grand Total
   useEffect(() => {
     setPaymentTerms((prev) =>
@@ -236,7 +239,7 @@ export default function NewCommercialProposalPage() {
   const addMilestone = () => {
     setMilestones((prev) => [
       ...prev,
-      { phase: `Fase ${prev.length + 1}`, duration_weeks: 1, deliverable: 'Deliverable' },
+      { phase: `Fase ${prev.length + 1}`, duration_weeks: 1, deliverable: 'Deliverable baru' },
     ]);
   };
 
@@ -266,6 +269,25 @@ export default function NewCommercialProposalPage() {
     setPaymentTerms((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const applyPaymentPreset = (preset: '3_TERMS' | '2_TERMS' | 'FULL') => {
+    if (preset === '3_TERMS') {
+      setPaymentTerms([
+        { milestone_name: 'Termin 1 (Down Payment / Kickoff)', percent: 30, amount: 0, trigger_condition: 'Penandatanganan Kontrak / SPK' },
+        { milestone_name: 'Termin 2 (User Acceptance Test)', percent: 50, amount: 0, trigger_condition: 'Penyelesaian Fitur & Persetujuan BAST UAT' },
+        { milestone_name: 'Termin 3 (Serah Terima & Go-Live)', percent: 20, amount: 0, trigger_condition: 'Aplikasi Live di Production & BAST Final' },
+      ]);
+    } else if (preset === '2_TERMS') {
+      setPaymentTerms([
+        { milestone_name: 'Termin 1 (Down Payment / Kickoff)', percent: 50, amount: 0, trigger_condition: 'Penandatanganan Kontrak / SPK' },
+        { milestone_name: 'Termin 2 (Pelunasan & Serah Terima)', percent: 50, amount: 0, trigger_condition: 'Aplikasi Live & BAST Final' },
+      ]);
+    } else if (preset === 'FULL') {
+      setPaymentTerms([
+        { milestone_name: 'Pelunasan 100% di Awal', percent: 100, amount: 0, trigger_condition: 'Penandatanganan Kontrak' },
+      ]);
+    }
+  };
+
   // Form Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,10 +296,8 @@ export default function NewCommercialProposalPage() {
       return;
     }
 
-    // Verify payment term percentages sum up to 100%
-    const totalTermPercent = paymentTerms.reduce((sum, t) => sum + Number(t.percent || 0), 0);
     if (totalTermPercent !== 100) {
-      if (!confirm(`Total persentase termin saat ini adalah ${totalTermPercent}%. Lanjutkan simpan?`)) {
+      if (!confirm(`Total bobot termin saat ini adalah ${totalTermPercent}%. Apakah yakin ingin melanjutkan?`)) {
         return;
       }
     }
@@ -334,8 +354,8 @@ export default function NewCommercialProposalPage() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '90px' }}>
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '120px' }}>
+      <main style={{ maxWidth: '1240px', margin: '0 auto', padding: '24px' }}>
         {/* Header Breadcrumb */}
         <div style={{ marginBottom: '24px' }}>
           <Link
@@ -346,26 +366,33 @@ export default function NewCommercialProposalPage() {
               textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '6px',
               marginBottom: '8px',
             }}
           >
             ← Kembali ke Daftar Proposal Penawaran
           </Link>
-          <h1
-            style={{
-              fontSize: '24px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              letterSpacing: '-0.02em',
-              margin: 0,
-            }}
-          >
-            Buat Kalkulasi Komersial & Proposal Klien
-          </h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-            Hubungkan baseline estimasi teknis dengan formula komersial, margin laba, diskon, timeline, dan termin pembayaran
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h1
+                style={{
+                  fontSize: '24px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.02em',
+                  margin: 0,
+                }}
+              >
+                Buat Kalkulasi Komersial & Proposal Klien
+              </h1>
+              <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                Kalkulasi margin keuntungan, diskon penawaran, delivery timeline, dan termin pembayaran klien
+              </p>
+            </div>
+            <div className="linear-badge" style={{ fontSize: '12px', padding: '6px 12px' }}>
+              Modul Kalkulasi Mandiri
+            </div>
+          </div>
         </div>
 
         {errorMessage && (
@@ -386,8 +413,8 @@ export default function NewCommercialProposalPage() {
 
         <form onSubmit={handleSubmit}>
           {/* STEP 1: Seleksi Berjenjang (Company -> Project -> Estimate) */}
-          <section className="linear-card" style={{ padding: '22px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
               <span
                 style={{
                   display: 'inline-flex',
@@ -404,9 +431,14 @@ export default function NewCommercialProposalPage() {
               >
                 1
               </span>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Pemilihan Dokumen Baseline (Perusahaan, Proyek, & Estimasi)
-              </h2>
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  Pemilihan Dokumen Baseline (Perusahaan, Proyek, & Estimasi)
+                </h2>
+                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                  Pilih rujukan estimasi biaya teknis yang akan dihitung harga penawaran komersialnya
+                </div>
+              </div>
             </div>
 
             <div
@@ -422,7 +454,7 @@ export default function NewCommercialProposalPage() {
                   Perusahaan / Klien <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <select
-                  className="input-field"
+                  className="linear-select"
                   value={selectedCompanyId}
                   onChange={handleCompanyChange}
                   required
@@ -442,7 +474,7 @@ export default function NewCommercialProposalPage() {
                   Proyek Terkait <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <select
-                  className="input-field"
+                  className="linear-select"
                   value={selectedProjectId}
                   onChange={handleProjectChange}
                   disabled={!selectedCompanyId}
@@ -465,7 +497,7 @@ export default function NewCommercialProposalPage() {
                   Dokumen Estimasi Baseline <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <select
-                  className="input-field"
+                  className="linear-select"
                   value={selectedEstimateId}
                   onChange={handleEstimateChange}
                   disabled={!selectedProjectId}
@@ -505,19 +537,19 @@ export default function NewCommercialProposalPage() {
               >
                 <div>
                   <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--accent-hover)', fontWeight: 600 }}>
-                    Baseline Estimasi Terpilih
+                    Dokumen Baseline Terpilih
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {activeEstimate.title} <span className="linear-badge">v{activeEstimate.version}</span>
+                    {activeEstimate.title} <span className="linear-badge" style={{ marginLeft: '6px' }}>v{activeEstimate.version}</span>
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                    Total WBS: {activeEstimate.total_hours} Jam Kerja
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '3px' }}>
+                    Total WBS: {activeEstimate.total_hours} Jam Kerja Manhour
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
                   <div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Biaya Modal (COGS)</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Biaya Modal (COGS Internal)</div>
                     <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: '#38bdf8' }}>
                       {formatIDR(cogsAmount)}
                     </div>
@@ -528,8 +560,8 @@ export default function NewCommercialProposalPage() {
           </section>
 
           {/* STEP 2: Formula Komersial & Target Margin */}
-          <section className="linear-card" style={{ padding: '22px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
               <span
                 style={{
                   display: 'inline-flex',
@@ -546,15 +578,20 @@ export default function NewCommercialProposalPage() {
               >
                 2
               </span>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Kalkulasi Komersial (Target Margin, Diskon, & PPN)
-              </h2>
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  Kalkulasi Komersial (Target Margin, Diskon, & PPN)
+                </h2>
+                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                  Atur formula harga jual penawaran resmi untuk klien
+                </div>
+              </div>
             </div>
 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                 gap: '18px',
                 marginBottom: '20px',
               }}
@@ -572,8 +609,8 @@ export default function NewCommercialProposalPage() {
                     step="0.5"
                     value={marginPercent}
                     onChange={(e) => setMarginPercent(parseFloat(e.target.value) || 0)}
-                    className="input-field"
-                    style={{ textAlign: 'right' }}
+                    className="linear-input font-mono-numbers"
+                    style={{ textAlign: 'right', fontWeight: 600 }}
                   />
                   <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>%</span>
                 </div>
@@ -588,7 +625,7 @@ export default function NewCommercialProposalPage() {
                   Tipe Diskon Penawaran
                 </label>
                 <select
-                  className="input-field"
+                  className="linear-select"
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value as any)}
                 >
@@ -607,7 +644,7 @@ export default function NewCommercialProposalPage() {
                   min="0"
                   value={discountValue}
                   onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
-                  className="input-field"
+                  className="linear-input font-mono-numbers"
                   style={{ textAlign: 'right' }}
                 />
               </div>
@@ -617,12 +654,12 @@ export default function NewCommercialProposalPage() {
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Pajak Pertambahan Nilai (PPN)
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-primary)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-primary)', marginTop: '4px' }}>
                   <input
                     type="checkbox"
                     checked={isTaxEnabled}
                     onChange={(e) => setIsTaxEnabled(e.target.checked)}
-                    style={{ width: '16px', height: '16px' }}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--accent-hover)' }}
                   />
                   <span>Kenakan PPN 11%</span>
                 </label>
@@ -635,53 +672,63 @@ export default function NewCommercialProposalPage() {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '12px',
-                padding: '16px',
+                padding: '18px',
                 borderRadius: '8px',
                 background: 'rgba(255, 255, 255, 0.02)',
                 border: '1px solid var(--border-subtle)',
               }}
             >
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Harga Dasar (Base Price)</div>
-                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                  Harga Dasar (Base Price)
+                </div>
+                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
                   {formatIDR(basePrice)}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Potongan Diskon</div>
-                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: '#f59e0b', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                  Potongan Diskon
+                </div>
+                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: '#f59e0b', marginTop: '4px' }}>
                   -{formatIDR(discountAmount)}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>PPN 11%</div>
-                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                  PPN 11%
+                </div>
+                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '4px' }}>
                   +{formatIDR(taxAmount)}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Total Penawaran Klien (Quotation)</div>
-                <div className="font-mono-numbers" style={{ fontSize: '20px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#10b981', fontWeight: 600 }}>
+                  Total Penawaran Klien (Quotation)
+                </div>
+                <div className="font-mono-numbers" style={{ fontSize: '20px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
                   {formatIDR(grandTotal)}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--accent-hover)', fontWeight: 600 }}>Proyeksi Gross Profit</div>
-                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-hover)', marginTop: '2px' }}>
-                  +{formatIDR(grossProfit)} ({grossProfitPercent}%)
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--accent-hover)', fontWeight: 600 }}>
+                  Proyeksi Gross Profit
+                </div>
+                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-hover)', marginTop: '4px' }}>
+                  +{formatIDR(grossProfit)} <span style={{ fontSize: '12px', fontWeight: 500 }}>({grossProfitPercent}%)</span>
                 </div>
               </div>
             </div>
           </section>
 
           {/* STEP 3: Delivery Timeline Setup (Editable) */}
-          <section className="linear-card" style={{ padding: '22px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span
                   style={{
                     display: 'inline-flex',
@@ -698,24 +745,41 @@ export default function NewCommercialProposalPage() {
                 >
                   3
                 </span>
-                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                  Delivery Timeline Setup (Jadwal & Milestone Kerja)
-                </h2>
+                <div>
+                  <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                    Delivery Timeline Setup (Jadwal & Milestone Kerja)
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                    Baseline durasi waktu kalender dan tahapan serah terima luaran fitur
+                  </div>
+                </div>
               </div>
 
               <button
                 type="button"
                 onClick={addMilestone}
                 className="btn-secondary"
-                style={{ fontSize: '11px', padding: '4px 10px' }}
+                style={{ fontSize: '12px', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                + Tambah Milestone
+                <span>+</span>
+                <span>Tambah Milestone</span>
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              <div style={{ width: '180px' }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '16px',
+                padding: '16px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border-subtle)',
+                marginBottom: '18px',
+              }}
+            >
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '6px' }}>
                   Total Durasi Kalender
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -723,50 +787,64 @@ export default function NewCommercialProposalPage() {
                     type="number"
                     min="1"
                     value={totalWeeks}
-                    onChange={(e) => setTotalWeeks(parseInt(e.target.value) || 1)}
-                    className="input-field"
-                    style={{ textAlign: 'right' }}
+                    onChange={(e) => setTotalWeeks(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="linear-input font-mono-numbers"
+                    style={{ width: '100px', textAlign: 'center', fontWeight: 600 }}
                   />
-                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Minggu</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Minggu Kalender</span>
                 </div>
               </div>
 
-              <div style={{ width: '220px' }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '6px' }}>
                   Target Mulai (Opsional)
                 </label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="input-field"
+                  className="linear-input"
+                  style={{ maxWidth: '200px' }}
                 />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '4px' }}>
+                  Akumulasi Durasi Milestone
+                </div>
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: '#38bdf8' }}>
+                  {milestones.reduce((acc, m) => acc + (Number(m.duration_weeks) || 0), 0)} Minggu
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 400, marginLeft: '6px' }}>
+                    ({milestones.length} Tahapan)
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Milestones Table */}
+            {/* Milestones Excel Table */}
             <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px' }}>
               <table className="excel-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '40px', textAlign: 'center' }}>No</th>
-                    <th style={{ minWidth: '220px', textAlign: 'left' }}>Tahapan / Fase Kerja</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>Durasi (Minggu)</th>
-                    <th style={{ minWidth: '280px', textAlign: 'left' }}>Deliverable / Hasil Luaran</th>
+                    <th style={{ width: '45px', textAlign: 'center' }}>No</th>
+                    <th style={{ minWidth: '240px', textAlign: 'left' }}>Tahapan / Fase Kerja</th>
+                    <th style={{ width: '140px', textAlign: 'center' }}>Durasi (Minggu)</th>
+                    <th style={{ minWidth: '320px', textAlign: 'left' }}>Deliverable / Hasil Luaran</th>
                     <th style={{ width: '60px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {milestones.map((m, idx) => (
                     <tr key={idx}>
-                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
+                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '12px' }}>{idx + 1}</td>
                       <td>
                         <input
                           type="text"
                           value={m.phase}
+                          placeholder="Nama fase pengerjaan..."
                           onChange={(e) => handleMilestoneChange(idx, 'phase', e.target.value)}
-                          className="input-field"
-                          style={{ width: '100%' }}
+                          className="excel-cell-input"
+                          style={{ fontWeight: 500 }}
                         />
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -774,18 +852,18 @@ export default function NewCommercialProposalPage() {
                           type="number"
                           min="1"
                           value={m.duration_weeks}
-                          onChange={(e) => handleMilestoneChange(idx, 'duration_weeks', parseInt(e.target.value) || 1)}
-                          className="input-field"
-                          style={{ width: '80px', textAlign: 'center', margin: '0 auto' }}
+                          onChange={(e) => handleMilestoneChange(idx, 'duration_weeks', Math.max(1, parseInt(e.target.value) || 1))}
+                          className="excel-cell-input font-mono-numbers"
+                          style={{ textAlign: 'center', fontWeight: 600 }}
                         />
                       </td>
                       <td>
                         <input
                           type="text"
                           value={m.deliverable}
+                          placeholder="Deskripsi luaran / deliverables..."
                           onChange={(e) => handleMilestoneChange(idx, 'deliverable', e.target.value)}
-                          className="input-field"
-                          style={{ width: '100%' }}
+                          className="excel-cell-input"
                         />
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -793,8 +871,18 @@ export default function NewCommercialProposalPage() {
                           type="button"
                           onClick={() => removeMilestone(idx)}
                           className="btn-ghost"
-                          style={{ color: 'var(--color-danger)', padding: '2px 6px', fontSize: '11px' }}
+                          style={{
+                            color: 'var(--color-danger)',
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
                           disabled={milestones.length <= 1}
+                          title="Hapus Milestone"
                         >
                           ✕
                         </button>
@@ -807,9 +895,9 @@ export default function NewCommercialProposalPage() {
           </section>
 
           {/* STEP 4: Skema Termin Pembayaran (Term of Payment) */}
-          <section className="linear-card" style={{ padding: '22px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span
                   style={{
                     display: 'inline-flex',
@@ -826,70 +914,127 @@ export default function NewCommercialProposalPage() {
                 >
                   4
                 </span>
-                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                  Skema Termin Pembayaran (Payment Milestones)
-                </h2>
+                <div>
+                  <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                    Skema Termin Pembayaran (Payment Milestones)
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                    Pembagian persentase dan syarat penagihan invoice proyek
+                  </div>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={addTerm}
-                className="btn-secondary"
-                style={{ fontSize: '11px', padding: '4px 10px' }}
+              {/* Preset Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Preset:</span>
+                <button
+                  type="button"
+                  onClick={() => applyPaymentPreset('3_TERMS')}
+                  className="btn-secondary"
+                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                >
+                  30% / 50% / 20%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyPaymentPreset('2_TERMS')}
+                  className="btn-secondary"
+                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                >
+                  50% / 50%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyPaymentPreset('FULL')}
+                  className="btn-secondary"
+                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                >
+                  100% Full
+                </button>
+                <button
+                  type="button"
+                  onClick={addTerm}
+                  className="btn-secondary"
+                  style={{ fontSize: '11px', padding: '4px 10px', marginLeft: '6px' }}
+                >
+                  + Tambah Baris
+                </button>
+              </div>
+            </div>
+
+            {/* Total Bobot Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Rincian Tahap Penagihan:
+              </div>
+              <div
+                className="font-mono-numbers"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  background: totalTermPercent === 100 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                  color: totalTermPercent === 100 ? '#10b981' : '#f59e0b',
+                  border: `1px solid ${totalTermPercent === 100 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                }}
               >
-                + Tambah Termin
-              </button>
+                Total Bobot: {totalTermPercent}% {totalTermPercent === 100 ? '✓' : '(Belum 100%)'}
+              </div>
             </div>
 
             <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px' }}>
               <table className="excel-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '40px', textAlign: 'center' }}>No</th>
-                    <th style={{ minWidth: '220px', textAlign: 'left' }}>Nama Termin / Tahap Tagihan</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Bobot (%)</th>
-                    <th style={{ width: '160px', textAlign: 'right' }}>Nominal (Rp)</th>
-                    <th style={{ minWidth: '280px', textAlign: 'left' }}>Kondisi / Syarat Penagihan</th>
+                    <th style={{ width: '45px', textAlign: 'center' }}>No</th>
+                    <th style={{ minWidth: '240px', textAlign: 'left' }}>Nama Termin / Tahap Tagihan</th>
+                    <th style={{ width: '130px', textAlign: 'center' }}>Bobot (%)</th>
+                    <th style={{ width: '180px', textAlign: 'right' }}>Nominal (Rp)</th>
+                    <th style={{ minWidth: '320px', textAlign: 'left' }}>Kondisi / Syarat Penagihan</th>
                     <th style={{ width: '60px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paymentTerms.map((t, idx) => (
                     <tr key={idx}>
-                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
+                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '12px' }}>{idx + 1}</td>
                       <td>
                         <input
                           type="text"
                           value={t.milestone_name}
+                          placeholder="Nama termin..."
                           onChange={(e) => handleTermChange(idx, 'milestone_name', e.target.value)}
-                          className="input-field"
-                          style={{ width: '100%' }}
+                          className="excel-cell-input"
+                          style={{ fontWeight: 500 }}
                         />
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                           <input
                             type="number"
                             min="0"
                             max="100"
                             value={t.percent}
                             onChange={(e) => handleTermChange(idx, 'percent', parseFloat(e.target.value) || 0)}
-                            className="input-field"
-                            style={{ width: '70px', textAlign: 'center' }}
+                            className="excel-cell-input font-mono-numbers"
+                            style={{ textAlign: 'center', width: '60px', fontWeight: 600 }}
                           />
-                          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>%</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', paddingRight: '6px' }}>%</span>
                         </div>
                       </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                        {formatIDR(t.amount)}
+                      <td style={{ textAlign: 'right', padding: '0 12px' }}>
+                        <div className="font-mono-numbers" style={{ fontWeight: 600, color: '#10b981' }}>
+                          {formatIDR(t.amount)}
+                        </div>
                       </td>
                       <td>
                         <input
                           type="text"
                           value={t.trigger_condition}
+                          placeholder="Syarat penagihan / dokumen BAST..."
                           onChange={(e) => handleTermChange(idx, 'trigger_condition', e.target.value)}
-                          className="input-field"
-                          style={{ width: '100%' }}
+                          className="excel-cell-input"
                         />
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -897,8 +1042,18 @@ export default function NewCommercialProposalPage() {
                           type="button"
                           onClick={() => removeTerm(idx)}
                           className="btn-ghost"
-                          style={{ color: 'var(--color-danger)', padding: '2px 6px', fontSize: '11px' }}
+                          style={{
+                            color: 'var(--color-danger)',
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
                           disabled={paymentTerms.length <= 1}
+                          title="Hapus Termin"
                         >
                           ✕
                         </button>
@@ -911,15 +1066,15 @@ export default function NewCommercialProposalPage() {
           </section>
 
           {/* STEP 5: Validitas & Catatan Proposal */}
-          <section className="linear-card" style={{ padding: '22px', marginBottom: '24px' }}>
+          <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '14px' }}>
-              Pengaturan Tambahan Penawaran
+              Pengaturan Tambahan & Syarat Penawaran
             </h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                  Masa Berlaku Penawaran (Hari)
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Masa Berlaku Penawaran
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
@@ -928,42 +1083,100 @@ export default function NewCommercialProposalPage() {
                     max="180"
                     value={validityDays}
                     onChange={(e) => setValidityDays(parseInt(e.target.value) || 30)}
-                    className="input-field"
-                    style={{ width: '120px', textAlign: 'right' }}
+                    className="linear-input font-mono-numbers"
+                    style={{ width: '100px', textAlign: 'center', fontWeight: 600 }}
                   />
-                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Hari sejak diterbitkan</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Hari sejak diterbitkan</span>
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Catatan / Syarat & Ketentuan Khusus Penawaran
                 </label>
                 <textarea
-                  rows={3}
+                  rows={4}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="input-field"
-                  placeholder="Contoh: Harga belum termasuk domain pihak ketiga, garansi bug 3 bulan setelah UAT..."
+                  className="linear-textarea"
+                  placeholder="Contoh: Garansi bug 3 bulan setelah UAT, termin pembayaran 14 hari kerja..."
                   style={{ width: '100%', resize: 'vertical' }}
                 />
               </div>
             </div>
           </section>
 
-          {/* Action Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
-            <Link href="/commercial" className="btn-secondary" style={{ textDecoration: 'none' }}>
-              Batal
-            </Link>
-            <button
-              type="submit"
-              disabled={isSubmitting || !selectedEstimateId}
-              className="btn-primary"
-              style={{ minWidth: '220px', padding: '10px 24px', fontSize: '14px' }}
+          {/* Sticky Bottom Summary Action Bar */}
+          <div
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 40,
+              background: 'rgba(15, 16, 17, 0.95)',
+              backdropFilter: 'blur(16px)',
+              borderTop: '1px solid var(--border-subtle)',
+              padding: '14px 24px',
+              boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.6)',
+            }}
+          >
+            <div
+              style={{
+                maxWidth: '1240px',
+                margin: '0 auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px',
+              }}
             >
-              {isSubmitting ? 'Menyimpan Proposal...' : '💾 Simpan & Buka Proposal Cetak'}
-            </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>COGS Internal</div>
+                  <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 600, color: '#38bdf8' }}>
+                    {formatIDR(cogsAmount)}
+                  </div>
+                </div>
+
+                <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
+
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Target Margin</div>
+                  <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--accent-hover)' }}>
+                    +{marginPercent}%
+                  </div>
+                </div>
+
+                <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
+
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Grand Total Penawaran Klien</div>
+                  <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: '#10b981' }}>
+                    {formatIDR(grandTotal)}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Link
+                  href="/commercial"
+                  className="btn-secondary"
+                  style={{ textDecoration: 'none', padding: '8px 16px' }}
+                >
+                  Batal
+                </Link>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !selectedEstimateId}
+                  className="btn-primary"
+                  style={{ minWidth: '220px', padding: '10px 24px', fontSize: '13px' }}
+                >
+                  {isSubmitting ? 'Menyimpan...' : '💾 Simpan & Buka Proposal Cetak'}
+                </button>
+              </div>
+            </div>
           </div>
         </form>
       </main>

@@ -3276,13 +3276,19 @@ function NewEstimateForm() {
 
           {/* Delivery Timeline Setup Section */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                  📅 Delivery Timeline Setup (Jadwal & Durasi Pengerjaan)
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="linear-badge" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Section E • Delivery Timeline
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Baseline Kalender & Jadwal</span>
+                </div>
+                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', margin: 0 }}>
+                  Delivery Timeline Setup
                 </h2>
                 <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '3px' }}>
-                  Estimasi durasi waktu kalender dan milestone tahapan pengerjaan untuk baseline proposal komersial
+                  Estimasi durasi kalender dan tahapan pengerjaan untuk diselaraskan ke modul proposal komersial
                 </p>
               </div>
 
@@ -3293,20 +3299,33 @@ function NewEstimateForm() {
                     ...prev,
                     milestones: [
                       ...prev.milestones,
-                      { phase: `Fase ${prev.milestones.length + 1}`, duration_weeks: 1, deliverable: 'Deliverable' }
+                      { phase: `Fase ${prev.milestones.length + 1}`, duration_weeks: 1, deliverable: 'Deliverable baru' }
                     ]
                   }));
                 }}
                 className="btn-secondary"
-                style={{ fontSize: '11px', padding: '4px 10px' }}
+                style={{ fontSize: '12px', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                + Tambah Tahapan
+                <span>+</span>
+                <span>Tambah Tahapan</span>
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '18px', flexWrap: 'wrap' }}>
-              <div style={{ width: '200px' }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            {/* Config Controls Header */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '16px',
+                padding: '16px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border-subtle)',
+                marginBottom: '18px',
+              }}
+            >
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '6px' }}>
                   Total Durasi Kalender
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3314,46 +3333,63 @@ function NewEstimateForm() {
                     type="number"
                     min="1"
                     value={timelineConfig.total_weeks}
-                    onChange={(e) => setTimelineConfig(prev => ({ ...prev, total_weeks: parseInt(e.target.value) || 1 }))}
-                    className="input-field"
-                    style={{ textAlign: 'right' }}
+                    onChange={(e) => setTimelineConfig(prev => ({ ...prev, total_weeks: Math.max(1, parseInt(e.target.value) || 1) }))}
+                    className="linear-input font-mono-numbers"
+                    style={{ width: '100px', textAlign: 'center', fontWeight: 600 }}
                   />
-                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Minggu</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Minggu Kalender</span>
                 </div>
               </div>
 
-              <div style={{ width: '220px' }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '6px' }}>
                   Target Mulai (Opsional)
                 </label>
                 <input
                   type="date"
                   value={timelineConfig.start_date || ''}
                   onChange={(e) => setTimelineConfig(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="input-field"
+                  className="linear-input"
+                  style={{ maxWidth: '200px' }}
                 />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '4px' }}>
+                  Akumulasi Durasi Milestone
+                </div>
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: '#38bdf8' }}>
+                  {timelineConfig.milestones.reduce((acc, m) => acc + (Number(m.duration_weeks) || 0), 0)} Minggu
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 400, marginLeft: '6px' }}>
+                    ({timelineConfig.milestones.length} Tahapan)
+                  </span>
+                </div>
               </div>
             </div>
 
+            {/* Milestones Excel Table */}
             <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px' }}>
               <table className="excel-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '40px', textAlign: 'center' }}>No</th>
-                    <th style={{ minWidth: '220px', textAlign: 'left' }}>Tahapan / Fase Pengerjaan</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>Durasi (Minggu)</th>
-                    <th style={{ minWidth: '280px', textAlign: 'left' }}>Hasil Luaran (Deliverables)</th>
+                    <th style={{ width: '45px', textAlign: 'center' }}>No</th>
+                    <th style={{ minWidth: '240px', textAlign: 'left' }}>Tahapan / Fase Pengerjaan</th>
+                    <th style={{ width: '140px', textAlign: 'center' }}>Durasi (Minggu)</th>
+                    <th style={{ minWidth: '320px', textAlign: 'left' }}>Hasil Luaran (Deliverables)</th>
                     <th style={{ width: '60px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {timelineConfig.milestones.map((m, idx) => (
                     <tr key={idx}>
-                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
+                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '12px' }}>
+                        {idx + 1}
+                      </td>
                       <td>
                         <input
                           type="text"
                           value={m.phase}
+                          placeholder="Nama fase pengerjaan..."
                           onChange={(e) => {
                             const val = e.target.value;
                             setTimelineConfig(prev => {
@@ -3362,8 +3398,8 @@ function NewEstimateForm() {
                               return { ...prev, milestones: copy };
                             });
                           }}
-                          className="input-field"
-                          style={{ width: '100%' }}
+                          className="excel-cell-input"
+                          style={{ fontWeight: 500 }}
                         />
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -3372,21 +3408,22 @@ function NewEstimateForm() {
                           min="1"
                           value={m.duration_weeks}
                           onChange={(e) => {
-                            const val = parseInt(e.target.value) || 1;
+                            const val = Math.max(1, parseInt(e.target.value) || 1);
                             setTimelineConfig(prev => {
                               const copy = [...prev.milestones];
                               copy[idx] = { ...copy[idx], duration_weeks: val };
                               return { ...prev, milestones: copy };
                             });
                           }}
-                          className="input-field"
-                          style={{ width: '80px', textAlign: 'center', margin: '0 auto' }}
+                          className="excel-cell-input font-mono-numbers"
+                          style={{ textAlign: 'center', fontWeight: 600 }}
                         />
                       </td>
                       <td>
                         <input
                           type="text"
                           value={m.deliverable}
+                          placeholder="Deskripsi hasil luaran / dokumen serah terima..."
                           onChange={(e) => {
                             const val = e.target.value;
                             setTimelineConfig(prev => {
@@ -3395,8 +3432,7 @@ function NewEstimateForm() {
                               return { ...prev, milestones: copy };
                             });
                           }}
-                          className="input-field"
-                          style={{ width: '100%' }}
+                          className="excel-cell-input"
                         />
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -3410,8 +3446,18 @@ function NewEstimateForm() {
                             }));
                           }}
                           className="btn-ghost"
-                          style={{ color: 'var(--color-danger)', padding: '2px 6px', fontSize: '11px' }}
+                          style={{
+                            color: 'var(--color-danger)',
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
                           disabled={timelineConfig.milestones.length <= 1}
+                          title="Hapus Tahapan"
                         >
                           ✕
                         </button>
