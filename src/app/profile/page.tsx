@@ -160,7 +160,7 @@ export default function ProfilePage() {
             marginBottom: '12px',
           }}
         >
-          ← Kembali ke Dashboard
+          ← Kembali ke Historical Estimates
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 
 function NavLinks({ role }: { role: string }) {
   const pathname = usePathname();
-  const isDashboard = pathname === '/';
+  const isHistorical = pathname === '/';
   const isNewEstimate = pathname === '/estimates/new';
   const isMaster = pathname?.startsWith('/master');
 
@@ -22,13 +22,13 @@ function NavLinks({ role }: { role: string }) {
           borderRadius: '6px',
           fontSize: '13px',
           fontWeight: 500,
-          backgroundColor: isDashboard ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-          color: isDashboard ? '#a5b4fc' : 'var(--text-secondary)',
-          border: isDashboard ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          backgroundColor: isHistorical ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+          color: isHistorical ? '#a5b4fc' : 'var(--text-secondary)',
+          border: isHistorical ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
           transition: 'all 0.15s ease',
         }}
       >
-        <span>Estimates / Dashboard</span>
+        <span>Historical Estimates</span>
       </Link>
 
       <Link

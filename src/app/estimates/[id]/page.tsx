@@ -215,7 +215,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
           <h2 style={{ color: '#ef4444', marginBottom: '12px', fontSize: '18px' }}>Terjadi Kesalahan</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>{errorMsg || 'Data tidak ditemukan.'}</p>
           <Link href="/" className="btn-secondary" style={{ textDecoration: 'none' }}>
-            ← Kembali ke Dashboard
+            ← Kembali ke Historical Estimates
           </Link>
         </div>
       </div>
@@ -244,7 +244,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 fontSize: '13px',
               }}
             >
-              ← Dashboard Estimasi
+              ← Historical Estimates
             </Link>
             <span style={{ color: 'var(--text-tertiary)' }}>/</span>
             <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>

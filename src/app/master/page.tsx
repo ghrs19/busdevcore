@@ -285,7 +285,7 @@ export default function MasterDataPage() {
               marginBottom: '12px',
             }}
           >
-            ← Kembali ke Dashboard
+            ← Kembali ke Historical Estimates
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
             <div>

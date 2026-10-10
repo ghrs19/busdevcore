@@ -161,7 +161,7 @@ const formatIDR = (val: number | string) => {
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
 };
 
-export default function HistoricalEstimatesDashboard() {
+export default function HistoricalEstimatesPage() {
   const router = useRouter();
   const [estimates, setEstimates] = useState<SavedEstimate[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -422,26 +422,6 @@ export default function HistoricalEstimatesDashboard() {
     sortBy,
   ]);
 
-  // Summary Metrics calculated from filtered data
-  const metrics = useMemo(() => {
-    const totalCount = filteredEstimates.length;
-    const totalCost = filteredEstimates.reduce(
-      (sum, est) => sum + (parseFloat(String(est.total_cost)) || 0),
-      0
-    );
-    const totalHours = filteredEstimates.reduce(
-      (sum, est) => sum + (parseFloat(String(est.total_hours)) || 0),
-      0
-    );
-    const avgCost = totalCount > 0 ? totalCost / totalCount : 0;
-
-    return {
-      totalCount,
-      totalCost,
-      avgCost,
-      totalHours,
-    };
-  }, [filteredEstimates]);
 
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
@@ -499,99 +479,6 @@ export default function HistoricalEstimatesDashboard() {
           </Link>
         </div>
 
-        {/* Summary Metric Cards */}
-        <section
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '16px',
-            marginBottom: '28px',
-          }}
-        >
-          <div className="linear-card" style={{ padding: '20px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-              Total Estimasi
-            </div>
-            <div
-              className="font-mono-numbers"
-              style={{
-                fontSize: '28px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                marginTop: '8px',
-              }}
-            >
-              {metrics.totalCount}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              {estimates.length === metrics.totalCount
-                ? 'Versi aktif / terbaru proyek'
-                : `Terfilter dari ${estimates.length} proyek aktif`}
-            </div>
-          </div>
-
-          <div className="linear-card" style={{ padding: '20px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-              Total Nilai Biaya
-            </div>
-            <div
-              className="font-mono-numbers"
-              style={{
-                fontSize: '28px',
-                fontWeight: 700,
-                color: '#10b981',
-                marginTop: '8px',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {formatIDR(metrics.totalCost)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Dihitung dari versi terbaru tiap proyek
-            </div>
-          </div>
-
-          <div className="linear-card" style={{ padding: '20px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-              Rata-rata Biaya / Project
-            </div>
-            <div
-              className="font-mono-numbers"
-              style={{
-                fontSize: '28px',
-                fontWeight: 700,
-                color: 'var(--accent-hover)',
-                marginTop: '8px',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {formatIDR(metrics.avgCost)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Rata-rata dari versi terbaru proyek
-            </div>
-          </div>
-
-          <div className="linear-card" style={{ padding: '20px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-              Total Jam Kerja (Manhours)
-            </div>
-            <div
-              className="font-mono-numbers"
-              style={{
-                fontSize: '28px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                marginTop: '8px',
-              }}
-            >
-              {metrics.totalHours} <span style={{ fontSize: '16px', fontWeight: 500 }}>Jam</span>
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Manhours dari versi terbaru proyek
-            </div>
-          </div>
-        </section>
 
         {/* Search, Filter & Sort Controls */}
         <section
