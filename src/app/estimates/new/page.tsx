@@ -2786,12 +2786,19 @@ function NewEstimateForm() {
                       {dbTemplates
                         .filter((t) => t.category === 'MAINTENANCE')
                         .map((t) => {
+                          const isMobile = t.name.toLowerCase().includes('mobile');
                           const isEcom = t.name.toLowerCase().includes('e-commerce') || t.name.toLowerCase().includes('ecommerce');
                           const isBasic = t.name.toLowerCase().includes('basic');
-                          const label = isEcom 
-                            ? (isBasic ? '🛒 E-Com Basic' : '🛒 E-Com Expert')
-                            : (isBasic ? '📋 Web Basic' : '⭐ Web Expert');
-                          const color = isEcom ? (isBasic ? '#f59e0b' : '#ec4899') : (isBasic ? '#38bdf8' : '#c084fc');
+                          const label = isMobile
+                            ? (isBasic ? '📱 Mobile Basic' : '📱 Mobile Expert')
+                            : isEcom 
+                              ? (isBasic ? '🛒 E-Com Basic' : '🛒 E-Com Expert')
+                              : (isBasic ? '📋 Web Basic' : '⭐ Web Expert');
+                          const color = isMobile
+                            ? (isBasic ? '#10b981' : '#06b6d4')
+                            : isEcom 
+                              ? (isBasic ? '#f59e0b' : '#ec4899') 
+                              : (isBasic ? '#38bdf8' : '#c084fc');
 
                           return (
                             <button

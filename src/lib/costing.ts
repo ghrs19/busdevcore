@@ -15,7 +15,8 @@ export const DEFAULT_ROLE_RATES: Record<string, number> = {
   WEB_DEV: 39602,
   UI_UX: 33113,
   QC_DOC: 33101,
-  DEV_OPS: 43760,
+  DEV_OPS: 47261,
+  MOBILE_DEV: 32661,
 };
 
 export const DEFAULT_ROLE_NAMES: Record<string, string> = {
@@ -24,6 +25,7 @@ export const DEFAULT_ROLE_NAMES: Record<string, string> = {
   UI_UX: 'UI/UX Designer',
   QC_DOC: 'Quality Control & Documentation',
   DEV_OPS: 'DevOps Engineer',
+  MOBILE_DEV: 'Mobile Developer',
 };
 
 export function normalizeRoleSnapshot(
