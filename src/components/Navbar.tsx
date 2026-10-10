@@ -2,7 +2,8 @@
 
 import React, { Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 function NavLinks() {
   const pathname = usePathname();
@@ -70,7 +71,10 @@ function NavLinks() {
 }
 function NavbarContent() {
   const pathname = usePathname();
-  if (pathname?.includes('/print')) {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  useEffect(() => { fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => { if (d?.user) setEmail(d.user.email); }).catch(() => {}); }, []);
+  if (pathname === '/login' || pathname?.includes('/print')) {
     return null;
   }
 
@@ -163,6 +167,7 @@ function NavbarContent() {
 
         {/* Status Badges */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {email && <><span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>👤 {email}</span><button className="btn-secondary" onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); router.replace('/login'); router.refresh(); }}>Logout</button></>}
           <span className="badge badge-connected">
             <span className="badge-dot" />
             PostgreSQL Connected

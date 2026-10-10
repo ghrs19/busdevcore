@@ -23,7 +23,11 @@ interface WBSTemplate {
 }
 
 export default function MasterDataPage() {
-  const [activeTab, setActiveTab] = useState<'ROLES' | 'TEMPLATES'>('ROLES');
+  const [activeTab, setActiveTab] = useState<'ROLES' | 'TEMPLATES' | 'USERS'>('ROLES');
+  const [users, setUsers] = useState<any[]>([]);
+  const [userForm, setUserForm] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const fetchUsers = async () => { const [list, me] = await Promise.all([fetch('/api/users'), fetch('/api/auth/me')]); const data = await list.json(); const who = await me.json(); if (list.ok) setUsers(data.users); if (me.ok) setCurrentUserId(who.user.id); };
 
   // Roles state
   const [roles, setRoles] = useState<RoleMaster[]>([]);
@@ -83,6 +87,7 @@ export default function MasterDataPage() {
   useEffect(() => {
     fetchRoles();
     fetchTemplates();
+    fetchUsers();
   }, []);
 
   const formatIDR = (val: number) => {
@@ -311,6 +316,7 @@ export default function MasterDataPage() {
               >
                 👥 Master Roles & Rates ({roles.length})
               </button>
+              <button type="button" onClick={() => { setActiveTab('USERS'); fetchUsers(); }} className={activeTab === 'USERS' ? 'btn-primary' : 'btn-ghost'} style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}>👤 Manajemen User ({users.length})</button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('TEMPLATES'); setErrorMsg(null); setSuccessMsg(null); }}
@@ -336,6 +342,8 @@ export default function MasterDataPage() {
             <button onClick={() => setSuccessMsg(null)} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer' }}>✕</button>
           </div>
         )}
+
+        {activeTab === 'USERS' && <section className="linear-card" style={{ padding: 24 }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}><h3>Manajemen User</h3><button className="btn-primary" onClick={() => setUserForm({ name: '', email: '', password: '', role: 'admin', is_active: true })}>+ Tambah User</button></div>{userForm && <form onSubmit={async e => { e.preventDefault(); const response = await fetch('/api/users', { method: userForm.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userForm) }); const result = await response.json(); if (!response.ok) { setErrorMsg(result.error); return; } setUserForm(null); fetchUsers(); }} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}><input className="linear-input" placeholder="Nama" required value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })}/><input className="linear-input" type="email" placeholder="Email" required value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })}/><input className="linear-input" type="password" placeholder={userForm.id ? 'Password baru (opsional)' : 'Password'} required={!userForm.id} value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })}/><select className="linear-input" value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })}><option value="admin">admin</option><option value="user">user</option></select>{userForm.id && <label><input type="checkbox" checked={userForm.is_active} onChange={e => setUserForm({ ...userForm, is_active: e.target.checked })}/> Aktif</label>}<button className="btn-primary">Simpan</button><button type="button" className="btn-secondary" onClick={() => setUserForm(null)}>Batal</button></form>}<div style={{ overflowX: 'auto' }}><table className="linear-table" style={{ width: '100%' }}><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Status</th><th>Dibuat</th><th>Aksi</th></tr></thead><tbody>{users.map(user => <tr key={user.id}><td>{user.name}</td><td>{user.email}</td><td>{user.role}</td><td>{user.is_active ? 'Aktif' : 'Nonaktif'}</td><td>{new Date(user.created_at).toLocaleDateString('id-ID')}</td><td><button className="btn-secondary" onClick={() => setUserForm({ ...user, password: '' })}>Edit</button> <button className="btn-secondary" disabled={user.id === currentUserId} onClick={async () => { if (!confirm(`Hapus user ${user.email}?`)) return; const r = await fetch(`/api/users?id=${user.id}`, { method: 'DELETE' }); const d = await r.json(); if (!r.ok) setErrorMsg(d.error); else fetchUsers(); }}>Hapus</button></td></tr>)}</tbody></table></div></section>}
 
         {/* TAB 1: MASTER ROLES */}
         {activeTab === 'ROLES' && (
