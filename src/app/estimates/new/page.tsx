@@ -3825,48 +3825,93 @@ function NewEstimateForm() {
               className="linear-card-elevated"
               style={{
                 width: '100%',
-                maxWidth: '460px',
+                maxWidth: '520px',
                 padding: '24px',
-                background: '#0d0f11',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+                background: '#121417',
+                border: '1px solid rgba(94, 106, 210, 0.35)',
+                borderRadius: '12px',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 20px rgba(94, 106, 210, 0.15)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '20px' }}>📝</span>
-                <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    Simpan Perubahan Revisi
-                  </h3>
-                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                    Mengedit dari snapshot <strong>v{editingEstimateMeta?.version || 1}</strong>. Disimpan sebagai versi terbaru <strong>v{((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}</strong>.
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      background: 'rgba(94, 106, 210, 0.15)',
+                      border: '1px solid rgba(94, 106, 210, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#a5b4fc',
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                      Simpan Perubahan Revisi
+                    </h3>
+                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '3px' }}>
+                      Baseline snapshot <strong>v{editingEstimateMeta?.version || 1}</strong> → Versi baru <strong>v{((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}</strong>
+                    </div>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => !isLoading && setIsRevisionModalOpen(false)}
+                  className="btn-ghost"
+                  style={{ color: 'var(--text-tertiary)', padding: '4px 8px', fontSize: '14px' }}
+                >
+                  ✕
+                </button>
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Alasan Edit / Catatan Perubahan:
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  Alasan Edit / Catatan Perubahan <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  className="input-linear"
+                <textarea
+                  className="linear-textarea"
+                  rows={3}
                   autoFocus
-                  style={{ width: '100%', fontSize: '13px' }}
+                  style={{
+                    width: '100%',
+                    fontSize: '13px',
+                    padding: '10px 14px',
+                    lineHeight: '1.5',
+                    resize: 'none',
+                    background: '#0b0c0e',
+                    borderColor: 'rgba(255, 255, 255, 0.12)',
+                  }}
                   value={revisionReason}
                   onChange={(e) => setRevisionReason(e.target.value)}
-                  placeholder="Contoh: Negosiasi diskon klien, pengurangan modul QA..."
+                  placeholder="Tuliskan catatan revisi (contoh: Penyesuaian scope manhour modul, update tarif, negosiasi klien)..."
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                       e.preventDefault();
                       executeSubmit(revisionReason);
                     }
                   }}
                 />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                    Versi sebelumnya tetap tersimpan di riwayat versi.
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                    Tekan <strong>Ctrl+Enter</strong> untuk simpan
+                  </span>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
                 <button
                   type="button"
                   className="btn-secondary"
@@ -3879,22 +3924,15 @@ function NewEstimateForm() {
                 <button
                   type="button"
                   onClick={() => executeSubmit(revisionReason)}
-                  disabled={isLoading}
+                  disabled={isLoading || !revisionReason.trim()}
+                  className="btn-primary"
                   style={{
-                    background: '#0284c7',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '8px 18px',
-                    borderRadius: '6px',
                     fontSize: '13px',
+                    padding: '8px 20px',
                     fontWeight: 600,
-                    cursor: isLoading ? 'not-allowed' : 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
                   }}
                 >
-                  {isLoading ? 'Menyimpan...' : `Simpan Revisi v${((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}`}
+                  {isLoading ? 'Menyimpan Revisi...' : `Simpan Revisi v${((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}`}
                 </button>
               </div>
             </div>
