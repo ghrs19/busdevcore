@@ -35,3 +35,21 @@ CREATE TABLE IF NOT EXISTS contract_documents (
 );
 
 CREATE INDEX IF NOT EXISTS idx_contract_docs_proposal ON contract_documents(proposal_id);
+
+-- Immutability enforcement: audit_logs is append-only
+CREATE OR REPLACE FUNCTION prevent_audit_logs_tamper()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'Audit logs bersifat append-only dan tidak boleh diubah atau dihapus!';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_audit_logs_no_update ON audit_logs;
+CREATE TRIGGER trg_audit_logs_no_update
+BEFORE UPDATE ON audit_logs
+FOR EACH ROW EXECUTE FUNCTION prevent_audit_logs_tamper();
+
+DROP TRIGGER IF EXISTS trg_audit_logs_no_delete ON audit_logs;
+CREATE TRIGGER trg_audit_logs_no_delete
+BEFORE DELETE ON audit_logs
+FOR EACH ROW EXECUTE FUNCTION prevent_audit_logs_tamper();

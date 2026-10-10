@@ -31,6 +31,28 @@ async function executeHermes(prompt: string): Promise<string> {
   });
 }
 
+// Regex detector untuk percobaan instruksi modifikasi data
+function isProhibitedAction(prompt: string): string | null {
+  const p = prompt.toLowerCase();
+  
+  // Deteksi usaha modifikasi Master Data (Roles, Users, Templates, Companies)
+  const masterKeywords = ['master data', 'master role', 'role master', 'tarif role', 'hourly rate', 'manajemen user', 'tabel user', 'template wbs'];
+  const auditKeywords = ['audit log', 'activity log', 'audit trail', 'tabel audit', 'hapus log', 'edit log', 'bersihkan log'];
+  const mutationKeywords = ['ubah', 'ganti', 'update', 'edit', 'hapus', 'delete', 'drop', 'insert', 'tambah', 'modifikasi', 'set tarif', 'reset password'];
+
+  const hasMutation = mutationKeywords.some((m) => p.includes(m));
+  
+  if (hasMutation && auditKeywords.some((a) => p.includes(a))) {
+    return 'KEBIJAKAN KEAMANAN: AI Copilot beroperasi dalam mode Read-Only dan DILARANG KERAS mengubah atau menghapus rekaman Audit Log / Activity Trail. Riwayat audit log bersifat permanen demi akuntabilitas sistem.';
+  }
+
+  if (hasMutation && masterKeywords.some((m) => p.includes(m))) {
+    return 'KEBIJAKAN KEAMANAN: AI Copilot beroperasi dalam mode Read-Only dan TIDAK MEMILIKI HAK AKSES untuk mengubah Master Data (tarif role, user, template). Pengubahan master data wajib dilakukan secara manual oleh pengguna dengan hak akses Admin di menu Master Data.';
+  }
+
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const user = await currentUser();
@@ -45,7 +67,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Pesan tidak boleh kosong' }, { status: 400 });
     }
 
-    // 1. Fetch live system summary context from PostgreSQL busdevcore
+    // Guard 1: Enforcement penolakan mutasi master data dan audit log di level controller
+    const policyViolation = isProhibitedAction(message);
+    if (policyViolation) {
+      return NextResponse.json({
+        success: true,
+        reply: policyViolation,
+      });
+    }
+
+    // 1. Fetch live system summary context from PostgreSQL busdevcore (Read-Only)
     const [companiesRes, projectsRes, estimatesRes, proposalsRes, rolesRes] = await Promise.all([
       pool.query('SELECT id, name, email, phone FROM companies ORDER BY name ASC LIMIT 30'),
       pool.query(`
@@ -82,7 +113,16 @@ export async function POST(req: Request) {
       : '';
 
     const systemPrompt = `Kamu adalah BusDev AI Assistant, asisten cerdas in-app untuk sistem Busdevcore (Project Costing ERP).
-Tugasmu adalah menjawab pertanyaan pengguna secara ringkas, to-the-point, akurat, dan ramah bisnis berdasarkan data riil dari sistem Busdevcore di bawah ini.
+Tugasmu adalah menjawab pertanyaan pengguna secara ringkas, to-the-point, akurat, dan informatif berdasarkan data riil dari sistem Busdevcore di bawah ini.
+
+ATURAN KEAMANAN & BATASAN SISTEM WAJIB (SECURITY POLICY):
+1. MODE READ-ONLY & INFORMASIONAL:
+   - Kamu HANYA berfungsi sebagai asisten pembaca dan penjawab informasi (Read-Only).
+   - Kamu DILARANG KERAS dan TIDAK DAPAT mengubah, menambah, mengedit, atau menghapus data Master Data (Role Master, Tarif Role per Jam, Akun User, Template WBS).
+   - Jika pengguna memintamu untuk mengubah tarif role, menambah user, atau mengedit master data, TOLAK SECARA TEGAS dan jelaskan bahwa pengubahan Master Data hanya bisa dilakukan oleh Administrator melalui menu "Master Data" (/master).
+2. KEKEBALAN AUDIT LOG (IMMUTABILITY):
+   - Kamu DILARANG KERAS dan TIDAK DAPAT mengubah, memanipulasi, atau menghapus riwayat Activity Log / Audit Trail.
+   - Audit log bersifat permanen, akuntabel, dan tidak boleh dimodifikasi oleh siapapun termasuk AI.
 
 DATA TERKINI SISTEM BUSDEVCORE:
 1. Daftar Klien / Perusahaan:
@@ -104,7 +144,6 @@ PANDUAN JAWABAN:
 - Gunakan Bahasa Indonesia yang natural, lugas, santai namun profesional (terse, no fluff, to the point).
 - Sebutkan angka nominal rupiah, status deal (Draft, Won, Lost, Sent, Negotiation), atau jam kerja dengan jelas jika ditanyakan.
 - Format nominal gunakan pemisah ribuan (contoh: Rp 72.150.000).
-- Jika pengguna menanyakan data di luar konteks ini, jelaskan secara jujur dan berikan rekomendasi aksi di sistem.
 
 ${historyText ? `RIWAYAT PERCAKAPAN SEBELUMNYA:\n${historyText}\n` : ''}
 PERTANYAAN PENGGUNA TERBARU:
