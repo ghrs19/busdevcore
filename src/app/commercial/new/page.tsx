@@ -1198,7 +1198,7 @@ function NewCommercialProposalForm() {
                           disabled={milestones.length <= 1}
                           title="Hapus Milestone"
                         >
-                          ✕
+                          ×
                         </button>
                       </td>
                     </tr>
@@ -1407,7 +1407,7 @@ function NewCommercialProposalForm() {
                           disabled={paymentTerms.length <= 1}
                           title="Hapus Termin"
                         >
-                          ✕
+                          ×
                         </button>
                       </td>
                     </tr>
@@ -1528,8 +1528,8 @@ function NewCommercialProposalForm() {
                   {isSubmitting
                     ? 'Menyimpan Revisi...'
                     : isRevisionMode
-                    ? `💾 Simpan Revisi Versi (v${existingVersion + 1})`
-                    : '💾 Simpan & Buka Proposal Cetak'}
+                    ? `Simpan Revisi Versi (v${existingVersion + 1})`
+                    : 'Simpan & Buka Proposal Cetak'}
                 </button>
               </div>
             </div>

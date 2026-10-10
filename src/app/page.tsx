@@ -1,4 +1,13 @@
 'use client';
+import {
+  PencilSquareIcon,
+  TrashIcon,
+  XMarkIcon,
+  ExclamationTriangleIcon,
+  ArrowsRightLeftIcon,
+  CheckIcon,
+} from '@heroicons/react/24/outline';
+
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
@@ -777,7 +786,7 @@ export default function HistoricalEstimatesPage() {
                             title="Edit / Buat Revisi Estimasi ini"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            ✏️
+                            <PencilSquareIcon style={{ width: "15px", height: "15px" }} />
                           </a>
                           <button
                             type="button"
@@ -804,7 +813,7 @@ export default function HistoricalEstimatesPage() {
                             }}
                             title="Hapus Estimasi"
                           >
-                            🗑️
+                            <TrashIcon style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
                           </button>
                         </div>
                       </td>
@@ -989,7 +998,7 @@ export default function HistoricalEstimatesPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '20px' }}>🔀</span>
+                <ArrowsRightLeftIcon style={{ width: '22px', height: '22px', color: 'var(--accent-hover)' }} />
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     Buat Revisi (Fork Versioning)

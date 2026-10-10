@@ -1,4 +1,12 @@
 'use client';
+import {
+  PencilSquareIcon,
+  TrashIcon,
+  DocumentArrowDownIcon,
+  PrinterIcon,
+  ClockIcon,
+} from '@heroicons/react/24/outline';
+
 
 import React, { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
@@ -272,7 +280,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               }}
               title="Download Data Costing Internal Format Excel (.xlsx)"
             >
-              <span>📊 Export Excel</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><DocumentArrowDownIcon style={{ width: "15px", height: "15px" }} /><span>Export Excel</span></span>
             </a>
 
             <Link
@@ -294,7 +302,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               }}
               title="Buka Lembar Costing Internal untuk Cetak atau Simpan ke PDF"
             >
-              <span>📄 Cetak PDF</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><PrinterIcon style={{ width: "15px", height: "15px" }} /><span>Cetak PDF</span></span>
             </Link>
 
             <Link
@@ -313,7 +321,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               }}
               title="Edit / Buat Revisi Estimasi ini"
             >
-              <span>✏️ Edit Revisi</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><PencilSquareIcon style={{ width: "15px", height: "15px" }} /><span>Edit Revisi</span></span>
             </Link>
             <button
               type="button"
@@ -335,7 +343,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               }}
               title="Hapus Estimasi"
             >
-              🗑️
+              <TrashIcon style={{ width: "16px", height: "16px", color: "var(--color-danger)" }} />
             </button>
           </div>
         </div>
@@ -602,7 +610,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               className={activeTab === 'HISTORY' ? 'btn-primary' : 'btn-secondary'}
               style={{ fontSize: '12px', padding: '6px 14px', borderColor: 'rgba(56, 189, 248, 0.4)', color: activeTab === 'HISTORY' ? '#fff' : '#38bdf8' }}
             >
-              📜 Riwayat Versi Revisi ({estimate.version_history.length})
+              Riwayat Versi Revisi ({estimate.version_history.length})
             </button>
           )}
         </div>
@@ -913,7 +921,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  📜 Riwayat Seluruh Versi & Revisi Estimasi
+                  Riwayat Seluruh Versi & Revisi Estimasi
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
                   Klik &quot;Buka Versi Ini&quot; untuk beralih ke halaman detail snapshot versi tersebut.

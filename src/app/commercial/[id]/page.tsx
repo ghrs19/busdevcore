@@ -446,7 +446,7 @@ function CommercialProposalDetailContent() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
             <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              🎯 CRM Lifecycle Pipeline Stage
+              CRM Lifecycle Pipeline Stage
             </div>
             {proposal.deal_status === 'lost' && proposal.lost_reason && (
               <div style={{ fontSize: '12px', color: '#ef4444' }}>
@@ -460,8 +460,8 @@ function CommercialProposalDetailContent() {
               { id: 'draft', label: '1. Draft' },
               { id: 'sent', label: '2. Sent to Client' },
               { id: 'negotiation', label: '3. Negotiation' },
-              { id: 'won', label: '4. Won (Deal) 🎉' },
-              { id: 'lost', label: 'Lost ✖' },
+              { id: 'won', label: '4. Won (Deal)' },
+              { id: 'lost', label: 'Lost' },
             ].map((st) => {
               const isCurrent = (proposal.deal_status || 'draft') === st.id;
               const isWonBtn = st.id === 'won';
@@ -581,10 +581,10 @@ function CommercialProposalDetailContent() {
         {/* Tab Navigation */}
         <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
           {[
-            { id: 'overview', label: '📋 Rincian & Deliverables' },
-            { id: 'documents', label: `📄 Dokumen Kontrak (SPK & BAST) (${contractDocs.length})` },
-            { id: 'history', label: `📚 Riwayat Versi (${versionHistory.length})` },
-            { id: 'audit', label: `📜 Activity Trail (${auditLogs.length})` },
+            { id: 'overview', label: 'Rincian & Deliverables' },
+            { id: 'documents', label: `Dokumen Kontrak (SPK & BAST) (${contractDocs.length})` },
+            { id: 'history', label: `Riwayat Versi (${versionHistory.length})` },
+            { id: 'audit', label: `Activity Trail (${auditLogs.length})` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -859,7 +859,7 @@ function CommercialProposalDetailContent() {
                     cursor: 'pointer',
                   }}
                 >
-                  {generatingDocs ? 'Memproses...' : '⚡ Generate SPK & Seluruh BAST Termin'}
+                  {generatingDocs ? 'Memproses...' : 'Generate SPK & Seluruh BAST Termin'}
                 </button>
               </div>
             </div>
@@ -874,7 +874,7 @@ function CommercialProposalDetailContent() {
                   border: '1px dashed var(--border-subtle)',
                 }}
               >
-                <div style={{ fontSize: '32px', marginBottom: '12px' }}>📑</div>
+                <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}><DocumentTextIcon style={{ width: '36px', height: '36px', color: 'var(--accent-hover)' }} /></div>
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                   Belum ada dokumen turunan kontrak
                 </div>

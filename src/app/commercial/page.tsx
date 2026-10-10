@@ -168,7 +168,7 @@ export default function CommercialProposalsListPage() {
               { id: 'draft', label: 'Draft' },
               { id: 'sent', label: 'Sent' },
               { id: 'negotiation', label: 'Negotiation' },
-              { id: 'won', label: 'Won 🎉' },
+              { id: 'won', label: 'Won (Deal)' },
               { id: 'lost', label: 'Lost' },
             ].map((tab) => (
               <button

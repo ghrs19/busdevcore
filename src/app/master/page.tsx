@@ -1,4 +1,13 @@
 'use client';
+import {
+  PencilSquareIcon,
+  TrashIcon,
+  UsersIcon,
+  UserGroupIcon,
+  DocumentDuplicateIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
+
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -314,16 +323,16 @@ export default function MasterDataPage() {
                 className={activeTab === 'ROLES' ? 'btn-primary' : 'btn-ghost'}
                 style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
               >
-                👥 Master Roles & Rates ({roles.length})
+                Master Roles & Rates ({roles.length})
               </button>
-              <button type="button" onClick={() => { setActiveTab('USERS'); fetchUsers(); }} className={activeTab === 'USERS' ? 'btn-primary' : 'btn-ghost'} style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}>👤 Manajemen User ({users.length})</button>
+              <button type="button" onClick={() => { setActiveTab('USERS'); fetchUsers(); }} className={activeTab === 'USERS' ? 'btn-primary' : 'btn-ghost'} style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}>Manajemen User ({users.length})</button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('TEMPLATES'); setErrorMsg(null); setSuccessMsg(null); }}
                 className={activeTab === 'TEMPLATES' ? 'btn-primary' : 'btn-ghost'}
                 style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
               >
-                📑 Master Template WBS ({templates.length})
+                Master Template WBS ({templates.length})
               </button>
             </div>
           </div>
@@ -493,7 +502,7 @@ export default function MasterDataPage() {
                               style={{ width: '30px', height: '30px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                               title="Edit Role & Tarif"
                             >
-                              ✏️
+                              <PencilSquareIcon style={{ width: "15px", height: "15px" }} />
                             </button>
                             <button
                               type="button"
@@ -502,7 +511,7 @@ export default function MasterDataPage() {
                               style={{ width: '30px', height: '30px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
                               title="Hapus Role"
                             >
-                              🗑️
+                              <TrashIcon style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
                             </button>
                           </div>
                         </td>
@@ -662,7 +671,7 @@ export default function MasterDataPage() {
                             style={{ width: '28px', height: '28px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             title="Edit Template"
                           >
-                            ✏️
+                            <PencilSquareIcon style={{ width: "15px", height: "15px" }} />
                           </button>
                           <button
                             type="button"
@@ -671,7 +680,7 @@ export default function MasterDataPage() {
                             style={{ width: '28px', height: '28px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
                             title="Hapus Template"
                           >
-                            🗑️
+                            <TrashIcon style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
                           </button>
                         </div>
                       </div>

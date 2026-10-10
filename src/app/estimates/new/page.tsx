@@ -1,4 +1,15 @@
 'use client';
+import {
+  TrashIcon,
+  XMarkIcon,
+  SparklesIcon,
+  ArrowPathIcon,
+  PaperClipIcon,
+  BoltIcon,
+  Cog6ToothIcon,
+  DocumentDuplicateIcon,
+} from '@heroicons/react/24/outline';
+
 
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import Link from 'next/link';
@@ -1495,7 +1506,7 @@ function NewEstimateForm() {
                 style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
                 title="Kosongkan seluruh isian form dan mulai dari awal"
               >
-                🗑️ Reset Form
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><TrashIcon style={{ width: "15px", height: "15px" }} /><span>Reset Form</span></span>
               </button>
 
             </div>
@@ -1561,7 +1572,7 @@ function NewEstimateForm() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>✨ AI Costing Assistant (Hermes)</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><SparklesIcon style={{ width: "16px", height: "16px", color: "var(--accent-hover)" }} /><span>AI Costing Assistant (Hermes)</span></span>
                 {aiChatHistory.length > 0 && (
                   <span className="badge badge-accent" style={{ fontSize: '10px' }}>
                     {aiChatHistory.filter(m => m.role === 'user').length} Iterasi Penyesuaian
@@ -1580,7 +1591,7 @@ function NewEstimateForm() {
                 style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}
                 title="Bersihkan riwayat percakapan AI"
               >
-                🔄 Reset Chat AI
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><ArrowPathIcon style={{ width: "14px", height: "14px" }} /><span>Reset Chat AI</span></span>
               </button>
             )}
           </div>
@@ -1619,7 +1630,7 @@ function NewEstimateForm() {
                       textAlign: msg.role === 'user' ? 'right' : 'left',
                     }}
                   >
-                    {msg.role === 'user' ? '👤 Anda' : '🤖 Hermes AI'} • {msg.time}
+                    {msg.role === 'user' ? 'Anda' : 'Hermes AI'} • {msg.time}
                   </div>
                   <div
                     style={{
@@ -1681,7 +1692,7 @@ function NewEstimateForm() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <label style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                📎 <strong>Tambah Lampiran File</strong> (xlsx, csv, pdf, docx, gambar mockup/arsitektur)
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><PaperClipIcon style={{ width: "15px", height: "15px", verticalAlign: "middle" }} /><strong>Tambah Lampiran File</strong></span> (xlsx, csv, pdf, docx, gambar mockup/arsitektur)
                 <input
                   type="file"
                   multiple
@@ -1747,11 +1758,20 @@ function NewEstimateForm() {
               style={{ fontSize: '13px' }}
             >
               {aiLoading ? (
-                '⏳ Menganalisis & Mengatur Ulang Draft...'
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <ArrowPathIcon className="animate-spin" style={{ width: '15px', height: '15px' }} />
+                  <span>Menganalisis & Mengatur Ulang Draft...</span>
+                </span>
               ) : aiChatHistory.length > 0 ? (
-                '✨ Terapkan Penyesuaian ke Form'
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <SparklesIcon style={{ width: '15px', height: '15px' }} />
+                  <span>Terapkan Penyesuaian ke Form</span>
+                </span>
               ) : (
-                '⚡ Generate Draft Costing'
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <BoltIcon style={{ width: '15px', height: '15px' }} />
+                  <span>Generate Draft Costing</span>
+                </span>
               )}
             </button>
             {aiLoading && (
@@ -2297,7 +2317,7 @@ function NewEstimateForm() {
                             onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
                             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
                           >
-                            🗑
+                            <TrashIcon style={{ width: "14px", height: "14px" }} />
                           </button>
                           <button
                             type="button"
@@ -2400,7 +2420,7 @@ function NewEstimateForm() {
                             onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
                             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
                           >
-                            🗑
+                            <TrashIcon style={{ width: "14px", height: "14px" }} />
                           </button>
                         </div>
                       ))}
@@ -2809,10 +2829,10 @@ function NewEstimateForm() {
                           const isEcom = t.name.toLowerCase().includes('e-commerce') || t.name.toLowerCase().includes('ecommerce');
                           const isBasic = t.name.toLowerCase().includes('basic');
                           const label = isMobile
-                            ? (isBasic ? '📱 Mobile Basic' : '📱 Mobile Expert')
+                            ? (isBasic ? 'Mobile Basic' : 'Mobile Expert')
                             : isEcom 
-                              ? (isBasic ? '🛒 E-Com Basic' : '🛒 E-Com Expert')
-                              : (isBasic ? '📋 Web Basic' : '⭐ Web Expert');
+                              ? (isBasic ? 'E-Com Basic' : 'E-Com Expert')
+                              : (isBasic ? 'Web Basic' : 'Web Expert');
                           const color = isMobile
                             ? (isBasic ? '#10b981' : '#06b6d4')
                             : isEcom 
@@ -2849,7 +2869,7 @@ function NewEstimateForm() {
                         }}
                         title="Buka menu Master Data untuk tambah/edit template"
                       >
-                        ⚙️ Kelola
+                        Kelola
                       </Link>
                     </div>
                   </div>
