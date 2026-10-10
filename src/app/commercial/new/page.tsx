@@ -880,7 +880,7 @@ function NewCommercialProposalForm() {
                 <input
                   type="number"
                   min="0"
-                  step="10000"
+                  step="any"
                   value={basePrice}
                   onChange={(e) => handleBasePriceChange(parseFloat(e.target.value) || 0)}
                   className="linear-input font-mono-numbers"
@@ -963,7 +963,7 @@ function NewCommercialProposalForm() {
                 <input
                   type="number"
                   min="0"
-                  step="50000"
+                  step="any"
                   value={grandTotal}
                   onChange={(e) => handleGrandTotalChange(parseFloat(e.target.value) || 0)}
                   className="linear-input font-mono-numbers"
@@ -1352,7 +1352,7 @@ function NewCommercialProposalForm() {
                             type="number"
                             min="0"
                             max="100"
-                            step="0.1"
+                            step="any"
                             value={t.percent}
                             onChange={(e) => handleTermPercentChange(idx, parseFloat(e.target.value) || 0)}
                             className="excel-cell-input font-mono-numbers"
@@ -1367,7 +1367,7 @@ function NewCommercialProposalForm() {
                           <input
                             type="number"
                             min="0"
-                            step="10000"
+                            step="any"
                             value={t.amount}
                             onChange={(e) => handleTermAmountChange(idx, parseFloat(e.target.value) || 0)}
                             className="excel-cell-input font-mono-numbers"
