@@ -84,12 +84,14 @@ function NewCommercialProposalForm() {
   const [existingVersion, setExistingVersion] = useState<number>(1);
   const [revisionNotes, setRevisionNotes] = useState<string>('');
 
-  // Commercial Pricing States
+  // Commercial Pricing States (Two-way linked)
   const [cogsAmount, setCogsAmount] = useState<number>(0);
-  const [marginPercent, setMarginPercent] = useState<number>(30); // Target Margin %
+  const [marginPercent, setMarginPercent] = useState<number>(30);
+  const [basePrice, setBasePrice] = useState<number>(0);
   const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'NOMINAL'>('PERCENTAGE');
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const [isTaxEnabled, setIsTaxEnabled] = useState<boolean>(true); // PPN 11%
+  const [isTaxEnabled, setIsTaxEnabled] = useState<boolean>(true);
+  const [grandTotal, setGrandTotal] = useState<number>(0);
 
   // Delivery Timeline States (Prefilled & editable)
   const [totalWeeks, setTotalWeeks] = useState<number>(4);
@@ -111,6 +113,147 @@ function NewCommercialProposalForm() {
   const [notes, setNotes] = useState<string>('• Penawaran harga sudah mencakup garansi bug fixing 3 bulan setelah UAT.\n• Pembayaran ditransfer ke rekening resmi perusahaan dalam waktu 14 hari kalender setelah invoice diterbitkan.');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // --- TWO-WAY LINKED FINANCIAL CALCULATION ENGINE ---
+
+  // Helper: calculate discount amount from basePrice
+  const calcDiscount = (base: number, type: 'PERCENTAGE' | 'NOMINAL', val: number) => {
+    if (type === 'PERCENTAGE') {
+      return Math.round(base * (Math.min(Math.max(val, 0), 100) / 100));
+    }
+    return Math.min(Math.max(val, 0), base);
+  };
+
+  // 1. When Margin % changes (Forward Calculation)
+  const handleMarginChange = (newMargin: number) => {
+    setMarginPercent(newMargin);
+    const mFrac = Math.min(Math.max(newMargin, 0), 99) / 100;
+    const newBase = mFrac < 1 ? Math.round(cogsAmount / (1 - mFrac)) : cogsAmount;
+    setBasePrice(newBase);
+
+    const disc = calcDiscount(newBase, discountType, discountValue);
+    const subtotal = Math.max(0, newBase - disc);
+    const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
+    const newGT = subtotal + tax;
+    setGrandTotal(newGT);
+    syncTermsFromGrandTotal(newGT);
+  };
+
+  // 2. When Base Price changes directly (Forward Calculation with reverse Margin)
+  const handleBasePriceChange = (newBase: number) => {
+    setBasePrice(newBase);
+    const calculatedMargin = newBase > 0
+      ? Number((((newBase - cogsAmount) / newBase) * 100).toFixed(2))
+      : 0;
+    setMarginPercent(calculatedMargin);
+
+    const disc = calcDiscount(newBase, discountType, discountValue);
+    const subtotal = Math.max(0, newBase - disc);
+    const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
+    const newGT = subtotal + tax;
+    setGrandTotal(newGT);
+    syncTermsFromGrandTotal(newGT);
+  };
+
+  // 3. When Grand Total changes directly (Reverse Calculation back to Subtotal, BasePrice & Margin)
+  const handleGrandTotalChange = (newGT: number) => {
+    setGrandTotal(newGT);
+
+    let subtotal = newGT;
+    if (isTaxEnabled) {
+      subtotal = Math.round(newGT / 1.11);
+    }
+
+    let calculatedBase = subtotal;
+    if (discountType === 'PERCENTAGE' && discountValue > 0 && discountValue < 100) {
+      calculatedBase = Math.round(subtotal / (1 - discountValue / 100));
+    } else if (discountType === 'NOMINAL') {
+      calculatedBase = subtotal + discountValue;
+    }
+    setBasePrice(calculatedBase);
+
+    const calculatedMargin = calculatedBase > 0
+      ? Number((((calculatedBase - cogsAmount) / calculatedBase) * 100).toFixed(2))
+      : 0;
+    setMarginPercent(calculatedMargin);
+    syncTermsFromGrandTotal(newGT);
+  };
+
+  // 4. When Discount or Tax toggles change
+  const handleDiscountTypeChange = (newType: 'PERCENTAGE' | 'NOMINAL') => {
+    setDiscountType(newType);
+    const disc = calcDiscount(basePrice, newType, discountValue);
+    const subtotal = Math.max(0, basePrice - disc);
+    const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
+    const newGT = subtotal + tax;
+    setGrandTotal(newGT);
+    syncTermsFromGrandTotal(newGT);
+  };
+
+  const handleDiscountValueChange = (newVal: number) => {
+    setDiscountValue(newVal);
+    const disc = calcDiscount(basePrice, discountType, newVal);
+    const subtotal = Math.max(0, basePrice - disc);
+    const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
+    const newGT = subtotal + tax;
+    setGrandTotal(newGT);
+    syncTermsFromGrandTotal(newGT);
+  };
+
+  const handleTaxToggle = (checked: boolean) => {
+    setIsTaxEnabled(checked);
+    const disc = calcDiscount(basePrice, discountType, discountValue);
+    const subtotal = Math.max(0, basePrice - disc);
+    const tax = checked ? Math.round(subtotal * 0.11) : 0;
+    const newGT = subtotal + tax;
+    setGrandTotal(newGT);
+    syncTermsFromGrandTotal(newGT);
+  };
+
+  // 5. Sync payment terms amounts when Grand Total changes
+  const syncTermsFromGrandTotal = (targetGT: number) => {
+    setPaymentTerms((prev) =>
+      prev.map((term) => ({
+        ...term,
+        amount: Math.round((targetGT * term.percent) / 100),
+      }))
+    );
+  };
+
+  // 6. When a specific Payment Term Nominal (Rp) is edited directly
+  const handleTermAmountChange = (idx: number, newAmount: number) => {
+    setPaymentTerms((prev) => {
+      const copy = [...prev];
+      const newPercent = grandTotal > 0
+        ? Number(((newAmount / grandTotal) * 100).toFixed(2))
+        : 0;
+      copy[idx] = { ...copy[idx], amount: newAmount, percent: newPercent };
+      return copy;
+    });
+  };
+
+  // 7. When a specific Payment Term Percent (%) is edited directly
+  const handleTermPercentChange = (idx: number, newPercent: number) => {
+    setPaymentTerms((prev) => {
+      const copy = [...prev];
+      const newAmount = Math.round((grandTotal * newPercent) / 100);
+      copy[idx] = { ...copy[idx], percent: newPercent, amount: newAmount };
+      return copy;
+    });
+  };
+
+  // Derived display values
+  const currentDiscountAmount = calcDiscount(basePrice, discountType, discountValue);
+  const currentSubtotal = Math.max(0, basePrice - currentDiscountAmount);
+  const currentTaxAmount = isTaxEnabled ? grandTotal - currentSubtotal : 0;
+  const grossProfit = currentSubtotal - cogsAmount;
+  const grossProfitPercent = currentSubtotal > 0
+    ? ((grossProfit / currentSubtotal) * 100).toFixed(1)
+    : '0';
+
+  const totalTermPercent = paymentTerms.reduce((sum, t) => sum + Number(t.percent || 0), 0);
+  const totalTermAmount = paymentTerms.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const termDiff = grandTotal - totalTermAmount;
 
   // 1. Initial Load Companies & Projects
   useEffect(() => {
@@ -150,8 +293,15 @@ function NewCommercialProposalForm() {
           setSelectedProjectId(p.project_id);
           setSelectedEstimateId(p.estimate_id);
 
-          setCogsAmount(Number(p.cogs_amount) || 0);
-          setMarginPercent(Number(p.margin_percent) || 30);
+          const cogs = Number(p.cogs_amount) || 0;
+          const base = Number(p.base_price) || 0;
+          const gt = Number(p.grand_total) || 0;
+          const mPercent = Number(p.margin_percent) || 30;
+
+          setCogsAmount(cogs);
+          setBasePrice(base);
+          setGrandTotal(gt);
+          setMarginPercent(mPercent);
           setDiscountType(p.discount_type || 'PERCENTAGE');
           setDiscountValue(Number(p.discount_value) || 0);
           setIsTaxEnabled(Boolean(p.is_tax_enabled));
@@ -168,7 +318,6 @@ function NewCommercialProposalForm() {
             setPaymentTerms(p.payment_terms);
           }
 
-          // Fetch estimates for this project
           if (p.project_id) {
             const estRes = await fetch(`/api/estimates?project_id=${p.project_id}`);
             const estData = await estRes.json();
@@ -177,7 +326,6 @@ function NewCommercialProposalForm() {
             }
           }
 
-          // Load active estimate details
           if (p.estimate_id) {
             const estDetailRes = await fetch(`/api/estimates/${p.estimate_id}`);
             const estDetailData = await estDetailRes.json();
@@ -234,6 +382,8 @@ function NewCommercialProposalForm() {
     if (!eid) {
       setActiveEstimate(null);
       setCogsAmount(0);
+      setBasePrice(0);
+      setGrandTotal(0);
       return;
     }
 
@@ -247,6 +397,18 @@ function NewCommercialProposalForm() {
 
         const baseCogs = est.billing_summary?.grand_total || est.total_cost || 0;
         setCogsAmount(baseCogs);
+
+        // Calculate initial base and grand total using marginPercent
+        const mFrac = Math.min(Math.max(marginPercent, 0), 99) / 100;
+        const newBase = mFrac < 1 ? Math.round(baseCogs / (1 - mFrac)) : baseCogs;
+        setBasePrice(newBase);
+
+        const disc = calcDiscount(newBase, discountType, discountValue);
+        const subtotal = Math.max(0, newBase - disc);
+        const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
+        const newGT = subtotal + tax;
+        setGrandTotal(newGT);
+        syncTermsFromGrandTotal(newGT);
 
         if (est.timeline_config && est.timeline_config.milestones) {
           setTotalWeeks(est.timeline_config.total_weeks || 4);
@@ -262,35 +424,6 @@ function NewCommercialProposalForm() {
       setIsLoadingEstimate(false);
     }
   };
-
-  // Calculations
-  const marginFrac = Math.min(Math.max(marginPercent, 0), 99) / 100;
-  const basePrice = marginFrac < 1 ? Math.round(cogsAmount / (1 - marginFrac)) : cogsAmount;
-
-  let discountAmount = 0;
-  if (discountType === 'PERCENTAGE') {
-    discountAmount = Math.round(basePrice * (Math.min(Math.max(discountValue, 0), 100) / 100));
-  } else {
-    discountAmount = Math.min(Math.max(discountValue, 0), basePrice);
-  }
-
-  const subtotalAfterDiscount = Math.max(0, basePrice - discountAmount);
-  const taxAmount = isTaxEnabled ? Math.round(subtotalAfterDiscount * 0.11) : 0;
-  const grandTotal = subtotalAfterDiscount + taxAmount;
-  const grossProfit = subtotalAfterDiscount - cogsAmount;
-  const grossProfitPercent = subtotalAfterDiscount > 0 ? ((grossProfit / subtotalAfterDiscount) * 100).toFixed(1) : '0';
-
-  const totalTermPercent = paymentTerms.reduce((sum, t) => sum + Number(t.percent || 0), 0);
-
-  // Update payment terms nominal amounts based on current Grand Total
-  useEffect(() => {
-    setPaymentTerms((prev) =>
-      prev.map((term) => ({
-        ...term,
-        amount: Math.round((grandTotal * term.percent) / 100),
-      }))
-    );
-  }, [grandTotal]);
 
   // Milestone actions
   const handleMilestoneChange = (idx: number, field: keyof Milestone, val: any) => {
@@ -314,7 +447,7 @@ function NewCommercialProposalForm() {
   };
 
   // Payment Term actions
-  const handleTermChange = (idx: number, field: keyof PaymentTerm, val: any) => {
+  const handleTermFieldChange = (idx: number, field: 'milestone_name' | 'trigger_condition', val: string) => {
     setPaymentTerms((prev) => {
       const copy = [...prev];
       copy[idx] = { ...copy[idx], [field]: val };
@@ -335,22 +468,24 @@ function NewCommercialProposalForm() {
   };
 
   const applyPaymentPreset = (preset: '3_TERMS' | '2_TERMS' | 'FULL') => {
+    let newPreset: PaymentTerm[] = [];
     if (preset === '3_TERMS') {
-      setPaymentTerms([
-        { milestone_name: 'Termin 1 (Down Payment / Kickoff)', percent: 30, amount: 0, trigger_condition: 'Penandatanganan Kontrak / SPK' },
-        { milestone_name: 'Termin 2 (User Acceptance Test)', percent: 50, amount: 0, trigger_condition: 'Penyelesaian Fitur & Persetujuan BAST UAT' },
-        { milestone_name: 'Termin 3 (Serah Terima & Go-Live)', percent: 20, amount: 0, trigger_condition: 'Aplikasi Live di Production & BAST Final' },
-      ]);
+      newPreset = [
+        { milestone_name: 'Termin 1 (Down Payment / Kickoff)', percent: 30, amount: Math.round((grandTotal * 30) / 100), trigger_condition: 'Penandatanganan Kontrak / SPK' },
+        { milestone_name: 'Termin 2 (User Acceptance Test)', percent: 50, amount: Math.round((grandTotal * 50) / 100), trigger_condition: 'Penyelesaian Fitur & Persetujuan BAST UAT' },
+        { milestone_name: 'Termin 3 (Serah Terima & Go-Live)', percent: 20, amount: Math.round((grandTotal * 20) / 100), trigger_condition: 'Aplikasi Live di Production & BAST Final' },
+      ];
     } else if (preset === '2_TERMS') {
-      setPaymentTerms([
-        { milestone_name: 'Termin 1 (Down Payment / Kickoff)', percent: 50, amount: 0, trigger_condition: 'Penandatanganan Kontrak / SPK' },
-        { milestone_name: 'Termin 2 (Pelunasan & Serah Terima)', percent: 50, amount: 0, trigger_condition: 'Aplikasi Live & BAST Final' },
-      ]);
+      newPreset = [
+        { milestone_name: 'Termin 1 (Down Payment / Kickoff)', percent: 50, amount: Math.round((grandTotal * 50) / 100), trigger_condition: 'Penandatanganan Kontrak / SPK' },
+        { milestone_name: 'Termin 2 (Pelunasan & Serah Terima)', percent: 50, amount: Math.round((grandTotal * 50) / 100), trigger_condition: 'Aplikasi Live & BAST Final' },
+      ];
     } else if (preset === 'FULL') {
-      setPaymentTerms([
-        { milestone_name: 'Pelunasan 100% di Awal', percent: 100, amount: 0, trigger_condition: 'Penandatanganan Kontrak' },
-      ]);
+      newPreset = [
+        { milestone_name: 'Pelunasan 100% di Awal', percent: 100, amount: grandTotal, trigger_condition: 'Penandatanganan Kontrak' },
+      ];
     }
+    setPaymentTerms(newPreset);
   };
 
   // Form Submit
@@ -361,8 +496,8 @@ function NewCommercialProposalForm() {
       return;
     }
 
-    if (totalTermPercent !== 100) {
-      if (!confirm(`Total bobot termin saat ini adalah ${totalTermPercent}%. Apakah yakin ingin melanjutkan?`)) {
+    if (Math.abs(termDiff) > 100) {
+      if (!confirm(`Total akumulasi nominal termin (Rp ${totalTermAmount.toLocaleString('id-ID')}) berbeda dari Grand Total Penawaran (Rp ${grandTotal.toLocaleString('id-ID')}). Apakah yakin ingin melanjutkan?`)) {
         return;
       }
     }
@@ -379,9 +514,9 @@ function NewCommercialProposalForm() {
       base_price: basePrice,
       discount_type: discountType,
       discount_value: discountValue,
-      subtotal_after_discount: subtotalAfterDiscount,
+      subtotal_after_discount: currentSubtotal,
       is_tax_enabled: isTaxEnabled,
-      tax_amount: taxAmount,
+      tax_amount: currentTaxAmount,
       grand_total: grandTotal,
       timeline_config: {
         total_weeks: totalWeeks,
@@ -456,9 +591,7 @@ function NewCommercialProposalForm() {
                   : 'Buat Kalkulasi Komersial & Proposal Klien'}
               </h1>
               <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                {isRevisionMode
-                  ? `Menyimpan perubahan akan menghasilkan versi baru v${existingVersion + 1} tanpa menimpa riwayat versi sebelumnya.`
-                  : 'Kalkulasi margin keuntungan, diskon penawaran, delivery timeline, dan termin pembayaran klien'}
+                Kalkulasi dua arah (Rupiah ↔ Persentase): nilai Grand Total dan nominal Termin dapat diedit bebas dan tersinkronisasi otomatis.
               </p>
             </div>
             <div
@@ -470,7 +603,7 @@ function NewCommercialProposalForm() {
                 color: isRevisionMode ? '#a5b4fc' : undefined,
               }}
             >
-              {isRevisionMode ? `Mode Revisi v${existingVersion + 1}` : 'Modul Kalkulasi Mandiri'}
+              {isRevisionMode ? `Mode Revisi v${existingVersion + 1}` : 'Dynamic Two-Way Pricing'}
             </div>
           </div>
         </div>
@@ -505,7 +638,7 @@ function NewCommercialProposalForm() {
                 type="text"
                 value={revisionNotes}
                 onChange={(e) => setRevisionNotes(e.target.value)}
-                placeholder="Tuliskan alasan revisi (misal: Negosiasi diskon 5%, revisi termin)..."
+                placeholder="Tuliskan alasan revisi (misal: Negosiasi nilai penawaran, revisi termin)..."
                 className="linear-input"
                 style={{ width: '100%' }}
                 required
@@ -678,7 +811,7 @@ function NewCommercialProposalForm() {
             )}
           </section>
 
-          {/* STEP 2: Formula Komersial & Target Margin */}
+          {/* STEP 2: Formula Komersial & Pricing Engine (Two-Way Reactive) */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
               <span
@@ -699,14 +832,15 @@ function NewCommercialProposalForm() {
               </span>
               <div>
                 <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                  Kalkulasi Komersial (Target Margin, Diskon, & PPN)
+                  Kalkulasi Komersial (Dua Arah: Rupiah ↔ Persentase)
                 </h2>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                  Atur formula harga jual penawaran resmi untuk klien
+                  Edit nilai nominal Rupiah secara langsung atau atur target persentase margin; semua komponen saling tersinkronisasi otomatis
                 </div>
               </div>
             </div>
 
+            {/* Input Controls Grid */}
             <div
               style={{
                 display: 'grid',
@@ -715,7 +849,7 @@ function NewCommercialProposalForm() {
                 marginBottom: '20px',
               }}
             >
-              {/* Target Margin */}
+              {/* Target Margin % */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Target Profit Margin (%)
@@ -725,47 +859,62 @@ function NewCommercialProposalForm() {
                     type="number"
                     min="0"
                     max="90"
-                    step="0.5"
+                    step="0.1"
                     value={marginPercent}
-                    onChange={(e) => setMarginPercent(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleMarginChange(parseFloat(e.target.value) || 0)}
                     className="linear-input font-mono-numbers"
                     style={{ textAlign: 'right', fontWeight: 600 }}
                   />
                   <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>%</span>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                  Formula: COGS ÷ (1 - Margin%)
+                  Terkait dengan Harga Dasar
                 </div>
               </div>
 
-              {/* Tipe Diskon */}
+              {/* Harga Dasar (Base Price) - Directly Editable */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Tipe Diskon Penawaran
-                </label>
-                <select
-                  className="linear-select"
-                  value={discountType}
-                  onChange={(e) => setDiscountType(e.target.value as any)}
-                >
-                  <option value="PERCENTAGE">Persentase (%)</option>
-                  <option value="NOMINAL">Nominal Tetap (Rp)</option>
-                </select>
-              </div>
-
-              {/* Nilai Diskon */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Nilai Diskon {discountType === 'PERCENTAGE' ? '(%)' : '(Rp)'}
+                  Harga Dasar / Base Price (Rp)
                 </label>
                 <input
                   type="number"
                   min="0"
-                  value={discountValue}
-                  onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                  step="10000"
+                  value={basePrice}
+                  onChange={(e) => handleBasePriceChange(parseFloat(e.target.value) || 0)}
                   className="linear-input font-mono-numbers"
-                  style={{ textAlign: 'right' }}
+                  style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}
                 />
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                  Sebelum diskon & pajak
+                </div>
+              </div>
+
+              {/* Tipe & Nilai Diskon */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Diskon Penawaran
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    className="linear-select"
+                    value={discountType}
+                    onChange={(e) => handleDiscountTypeChange(e.target.value as any)}
+                    style={{ width: '110px' }}
+                  >
+                    <option value="PERCENTAGE">%</option>
+                    <option value="NOMINAL">Rp</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    value={discountValue}
+                    onChange={(e) => handleDiscountValueChange(parseFloat(e.target.value) || 0)}
+                    className="linear-input font-mono-numbers"
+                    style={{ textAlign: 'right', flex: 1 }}
+                  />
+                </div>
               </div>
 
               {/* Toggle PPN 11% */}
@@ -777,7 +926,7 @@ function NewCommercialProposalForm() {
                   <input
                     type="checkbox"
                     checked={isTaxEnabled}
-                    onChange={(e) => setIsTaxEnabled(e.target.checked)}
+                    onChange={(e) => handleTaxToggle(e.target.checked)}
                     style={{ width: '16px', height: '16px', accentColor: 'var(--accent-hover)' }}
                   />
                   <span>Kenakan PPN 11%</span>
@@ -785,11 +934,57 @@ function NewCommercialProposalForm() {
               </div>
             </div>
 
-            {/* Comparison Cards: Modal COGS vs Penawaran Final */}
+            {/* Direct Editable Grand Total (Total Penawaran Klien) */}
+            <div
+              style={{
+                marginBottom: '20px',
+                padding: '16px 20px',
+                borderRadius: '8px',
+                background: 'rgba(16, 185, 129, 0.06)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#10b981', fontWeight: 700 }}>
+                  Total Penawaran Klien / Quotation Grand Total (Dapat Diedit Langsung)
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Ketik nominal harga penawaran deal/negosiasi di sini; persentase margin & harga dasar akan terhitung mundur otomatis
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#10b981' }}>Rp</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="50000"
+                  value={grandTotal}
+                  onChange={(e) => handleGrandTotalChange(parseFloat(e.target.value) || 0)}
+                  className="linear-input font-mono-numbers"
+                  style={{
+                    width: '240px',
+                    fontSize: '18px',
+                    fontWeight: 700,
+                    textAlign: 'right',
+                    color: '#10b981',
+                    borderColor: 'rgba(16, 185, 129, 0.4)',
+                    background: 'rgba(16, 185, 129, 0.05)',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Financial Summary Cards */}
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                 gap: '12px',
                 padding: '18px',
                 borderRadius: '8px',
@@ -801,7 +996,7 @@ function NewCommercialProposalForm() {
                 <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
                   Harga Dasar (Base Price)
                 </div>
-                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
                   {formatIDR(basePrice)}
                 </div>
               </div>
@@ -810,8 +1005,17 @@ function NewCommercialProposalForm() {
                 <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
                   Potongan Diskon
                 </div>
-                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: '#f59e0b', marginTop: '4px' }}>
-                  -{formatIDR(discountAmount)}
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: '#f59e0b', marginTop: '4px' }}>
+                  -{formatIDR(currentDiscountAmount)}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                  Subtotal Bersih
+                </div>
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
+                  {formatIDR(currentSubtotal)}
                 </div>
               </div>
 
@@ -819,17 +1023,8 @@ function NewCommercialProposalForm() {
                 <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
                   PPN 11%
                 </div>
-                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  +{formatIDR(taxAmount)}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#10b981', fontWeight: 600 }}>
-                  Total Penawaran Klien (Quotation)
-                </div>
-                <div className="font-mono-numbers" style={{ fontSize: '20px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
-                  {formatIDR(grandTotal)}
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  +{formatIDR(currentTaxAmount)}
                 </div>
               </div>
 
@@ -837,8 +1032,8 @@ function NewCommercialProposalForm() {
                 <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--accent-hover)', fontWeight: 600 }}>
                   Proyeksi Gross Profit
                 </div>
-                <div className="font-mono-numbers" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-hover)', marginTop: '4px' }}>
-                  +{formatIDR(grossProfit)} <span style={{ fontSize: '12px', fontWeight: 500 }}>({grossProfitPercent}%)</span>
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--accent-hover)', marginTop: '4px' }}>
+                  +{formatIDR(grossProfit)} <span style={{ fontSize: '11px', fontWeight: 500 }}>({grossProfitPercent}%)</span>
                 </div>
               </div>
             </div>
@@ -1013,7 +1208,7 @@ function NewCommercialProposalForm() {
             </div>
           </section>
 
-          {/* STEP 4: Skema Termin Pembayaran (Term of Payment) */}
+          {/* STEP 4: Skema Termin Pembayaran (Editable Rupiah ↔ Persentase) */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1035,10 +1230,10 @@ function NewCommercialProposalForm() {
                 </span>
                 <div>
                   <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                    Skema Termin Pembayaran (Payment Milestones)
+                    Skema Termin Pembayaran (Edit Bebas: Nominal Rp ↔ Persentase %)
                   </h2>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                    Pembagian persentase dan syarat penagihan invoice proyek
+                    Ketik nominal rupiah ataupun persentase pada masing-masing termin; kedua nilai saling menghitung otomatis
                   </div>
                 </div>
               </div>
@@ -1081,24 +1276,47 @@ function NewCommercialProposalForm() {
               </div>
             </div>
 
-            {/* Total Bobot Indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            {/* Validation & Balance Indicator */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '14px',
+                padding: '10px 14px',
+                borderRadius: '6px',
+                background: Math.abs(termDiff) <= 100 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                border: `1px solid ${Math.abs(termDiff) <= 100 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+                flexWrap: 'wrap',
+                gap: '10px',
+              }}
+            >
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Rincian Tahap Penagihan:
+                Akumulasi Termin: <strong>{formatIDR(totalTermAmount)}</strong> dari Target Penawaran <strong>{formatIDR(grandTotal)}</strong>
               </div>
-              <div
-                className="font-mono-numbers"
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  background: totalTermPercent === 100 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                  color: totalTermPercent === 100 ? '#10b981' : '#f59e0b',
-                  border: `1px solid ${totalTermPercent === 100 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                }}
-              >
-                Total Bobot: {totalTermPercent}% {totalTermPercent === 100 ? '✓' : '(Belum 100%)'}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span
+                  className="font-mono-numbers"
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: Math.abs(totalTermPercent - 100) <= 0.1 ? '#10b981' : '#f59e0b',
+                  }}
+                >
+                  Total Bobot: {totalTermPercent.toFixed(1)}% {Math.abs(totalTermPercent - 100) <= 0.1 ? '✓' : ''}
+                </span>
+
+                <span
+                  className="font-mono-numbers"
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: Math.abs(termDiff) <= 100 ? '#10b981' : '#f59e0b',
+                  }}
+                >
+                  {Math.abs(termDiff) <= 100 ? 'Balance Pas ✓' : `Selisih: ${termDiff > 0 ? '-' : '+'}${formatIDR(Math.abs(termDiff))}`}
+                </span>
               </div>
             </div>
 
@@ -1107,10 +1325,10 @@ function NewCommercialProposalForm() {
                 <thead>
                   <tr>
                     <th style={{ width: '45px', textAlign: 'center' }}>No</th>
-                    <th style={{ minWidth: '240px', textAlign: 'left' }}>Nama Termin / Tahap Tagihan</th>
+                    <th style={{ minWidth: '220px', textAlign: 'left' }}>Nama Termin / Tahap Tagihan</th>
                     <th style={{ width: '130px', textAlign: 'center' }}>Bobot (%)</th>
-                    <th style={{ width: '180px', textAlign: 'right' }}>Nominal (Rp)</th>
-                    <th style={{ minWidth: '320px', textAlign: 'left' }}>Kondisi / Syarat Penagihan</th>
+                    <th style={{ width: '200px', textAlign: 'right' }}>Nominal Rupiah (Rp)</th>
+                    <th style={{ minWidth: '300px', textAlign: 'left' }}>Kondisi / Syarat Penagihan</th>
                     <th style={{ width: '60px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
@@ -1123,7 +1341,7 @@ function NewCommercialProposalForm() {
                           type="text"
                           value={t.milestone_name}
                           placeholder="Nama termin..."
-                          onChange={(e) => handleTermChange(idx, 'milestone_name', e.target.value)}
+                          onChange={(e) => handleTermFieldChange(idx, 'milestone_name', e.target.value)}
                           className="excel-cell-input"
                           style={{ fontWeight: 500 }}
                         />
@@ -1134,17 +1352,32 @@ function NewCommercialProposalForm() {
                             type="number"
                             min="0"
                             max="100"
+                            step="0.1"
                             value={t.percent}
-                            onChange={(e) => handleTermChange(idx, 'percent', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleTermPercentChange(idx, parseFloat(e.target.value) || 0)}
                             className="excel-cell-input font-mono-numbers"
-                            style={{ textAlign: 'center', width: '60px', fontWeight: 600 }}
+                            style={{ textAlign: 'center', width: '65px', fontWeight: 600 }}
                           />
                           <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', paddingRight: '6px' }}>%</span>
                         </div>
                       </td>
-                      <td style={{ textAlign: 'right', padding: '0 12px' }}>
-                        <div className="font-mono-numbers" style={{ fontWeight: 600, color: '#10b981' }}>
-                          {formatIDR(t.amount)}
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '100%', paddingRight: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginRight: '4px' }}>Rp</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="10000"
+                            value={t.amount}
+                            onChange={(e) => handleTermAmountChange(idx, parseFloat(e.target.value) || 0)}
+                            className="excel-cell-input font-mono-numbers"
+                            style={{
+                              textAlign: 'right',
+                              fontWeight: 600,
+                              color: '#10b981',
+                              width: '140px',
+                            }}
+                          />
                         </div>
                       </td>
                       <td>
@@ -1152,7 +1385,7 @@ function NewCommercialProposalForm() {
                           type="text"
                           value={t.trigger_condition}
                           placeholder="Syarat penagihan / dokumen BAST..."
-                          onChange={(e) => handleTermChange(idx, 'trigger_condition', e.target.value)}
+                          onChange={(e) => handleTermFieldChange(idx, 'trigger_condition', e.target.value)}
                           className="excel-cell-input"
                         />
                       </td>
@@ -1262,7 +1495,7 @@ function NewCommercialProposalForm() {
                 <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
 
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Target Margin</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Margin Efektif</div>
                   <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--accent-hover)' }}>
                     +{marginPercent}%
                   </div>
@@ -1271,7 +1504,7 @@ function NewCommercialProposalForm() {
                 <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
 
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Grand Total Penawaran Klien</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Grand Total Penawaran Deal</div>
                   <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: '#10b981' }}>
                     {formatIDR(grandTotal)}
                   </div>
