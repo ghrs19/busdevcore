@@ -222,8 +222,31 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <a
+              href={`/api/estimates/${estimate.id}/export/excel`}
+              download
+              className="btn-secondary"
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                textDecoration: 'none',
+                color: '#10b981',
+                borderColor: 'rgba(16, 185, 129, 0.4)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                fontWeight: 500,
+                borderRadius: '6px',
+              }}
+              title="Download Data Costing Internal Format Excel (.xlsx)"
+            >
+              <span>📊 Export Excel</span>
+            </a>
+
             <Link
-              href={`/estimates/new?edit_id=${estimate.id}`}
+              href={`/estimates/${estimate.id}/print`}
+              target="_blank"
               className="btn-secondary"
               style={{
                 height: '32px',
@@ -231,6 +254,25 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 textDecoration: 'none',
                 color: '#38bdf8',
                 borderColor: 'rgba(56, 189, 248, 0.4)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                fontWeight: 500,
+                borderRadius: '6px',
+              }}
+              title="Buka Lembar Costing Internal untuk Cetak atau Simpan ke PDF"
+            >
+              <span>📄 Cetak PDF</span>
+            </Link>
+
+            <Link
+              href={`/estimates/new?edit_id=${estimate.id}`}
+              className="btn-primary"
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',

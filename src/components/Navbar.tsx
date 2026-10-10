@@ -69,6 +69,10 @@ function NavLinks() {
   );
 }
 export default function Navbar() {
+  const pathname = usePathname();
+  if (pathname?.includes('/print')) {
+    return null;
+  }
 
   return (
     <header
