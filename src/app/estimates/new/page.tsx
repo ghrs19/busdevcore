@@ -160,15 +160,15 @@ function NewEstimateForm() {
     },
   ]);
 
-  // Maintenance WBS state
+  // Maintenance WBS state (Maintenance Website Company Profile 2026)
   const [maintenanceDurationMonths, setMaintenanceDurationMonths] = useState<number>(12);
   const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTaskInput[]>([
     {
-      name: 'Server & Cloud Security Monitoring',
+      name: 'Dev Ops (Manhour)',
       role_hours: { DEV_OPS: 4 },
     },
     {
-      name: 'Preventive Bug Fixing & Minor Feature Updates',
+      name: 'Web Programmer (Manhour)',
       role_hours: { WEB_DEV: 8 },
     },
   ]);
@@ -854,24 +854,54 @@ function NewEstimateForm() {
     ]);
   };
 
-  const loadMaintenanceExample = () => {
-    setExcludedRoleCodes([]);
-    setTitle('Website Maintenance 2026');
+  const loadMaintenanceBasic = (months: number = 12) => {
+    setExcludedRoleCodes(['PM', 'UI_UX', 'QC_DOC']);
+    setTitle(`Maintenance Website Company Profile (Basic - ${months} Bulan)`);
     const it = serviceTypes.find((s) => s.code === 'IT');
     if (it) setSelectedServiceTypeId(it.id);
     const maint = categories.find((c) => c.code === 'MAINTENANCE');
     if (maint) setSelectedCategoryIds([maint.id]);
     setSelectedTagId('');
-
-    setModules([
+    setWbsTab('MAINTENANCE');
+    setMaintenanceDurationMonths(months);
+    setMaintenanceTasks([
       {
-        name: 'Monthly Maintenance',
-        tasks: [
-          { name: 'Dev Ops (Manhour)', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 4 },
-          { name: 'Web Programmer (Manhour)', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
+        name: 'Dev Ops (Manhour)',
+        role_hours: { DEV_OPS: 1 },
+      },
+      {
+        name: 'Web Programmer (Manhour)',
+        role_hours: { WEB_DEV: 2 },
       },
     ]);
+    setModules([]);
+    setInfraItems([]);
+    setOperationalItems([]);
+  };
+
+  const loadMaintenanceExpert = (months: number = 12) => {
+    setExcludedRoleCodes(['PM', 'UI_UX', 'QC_DOC']);
+    setTitle(`Maintenance Website Company Profile (Expert - ${months} Bulan)`);
+    const it = serviceTypes.find((s) => s.code === 'IT');
+    if (it) setSelectedServiceTypeId(it.id);
+    const maint = categories.find((c) => c.code === 'MAINTENANCE');
+    if (maint) setSelectedCategoryIds([maint.id]);
+    setSelectedTagId('');
+    setWbsTab('MAINTENANCE');
+    setMaintenanceDurationMonths(months);
+    setMaintenanceTasks([
+      {
+        name: 'Dev Ops (Manhour)',
+        role_hours: { DEV_OPS: 4 },
+      },
+      {
+        name: 'Web Programmer (Manhour)',
+        role_hours: { WEB_DEV: 8 },
+      },
+    ]);
+    setModules([]);
+    setInfraItems([]);
+    setOperationalItems([]);
   };
 
   // Handle register company
@@ -1311,19 +1341,21 @@ function NewEstimateForm() {
               </button>
               <button
                 type="button"
-                onClick={loadSpreadsheetExample}
+                onClick={() => loadMaintenanceBasic(12)}
                 className="btn-secondary"
-                title="204 Manhours, Rp 7.717.782"
+                style={{ borderColor: 'rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
+                title="Template Maintenance Basic 2026: Dev Ops (1h) + Web Dev (2h) = Rp 126.465/bln"
               >
-                Load Djarum Demo
+                📋 Template Basic (12 Bln)
               </button>
               <button
                 type="button"
-                onClick={loadMaintenanceExample}
+                onClick={() => loadMaintenanceExpert(12)}
                 className="btn-secondary"
-                title="12 Manhours Maintenance"
+                style={{ borderColor: 'rgba(168, 85, 247, 0.3)', color: '#c084fc' }}
+                title="Template Maintenance Expert 2026: Dev Ops (4h) + Web Dev (8h) = Rp 505.860/bln"
               >
-                Load Maintenance Demo
+                ⭐ Template Expert (12 Bln)
               </button>
             </div>
           </div>

@@ -703,7 +703,13 @@ PETUNJUK ANALISIS & MAPPING:
    - Gunakan HANYA role_code dari master role aktif berikut: ${roleCodes.join(', ')}.
    - Jika tidak ada DEVELOPMENT, isi array kosong [].
 6. Maintenance Config (maintenance_config):
-   - Jika categories menyertakan "MAINTENANCE", tentukan duration_months (misal 3, 6, atau 12 bulan), roles ([{ "role_code": string, "monthly_hours": number }]), dan daftar tasks.
+   - Jika categories menyertakan "MAINTENANCE", tentukan duration_months (default 12 bulan, atau sesuai brief 6/12 bulan).
+   - Gunakan standar skema Maintenance Website Company Profile 2026:
+     * Skema Basic: DEV_OPS (1 jam/bulan), WEB_DEV (2 jam/bulan).
+     * Skema Expert: DEV_OPS (4 jam/bulan), WEB_DEV (8 jam/bulan).
+   - Format tasks:
+     * Dev Ops (Manhour): role_hours: { "DEV_OPS": 1 atau 4 }
+     * Web Programmer (Manhour): role_hours: { "WEB_DEV": 2 atau 8 }
    - Jika tidak ada MAINTENANCE, isi duration_months: 0, roles: [], tasks: [].
 7. Infrastructure Items (infrastructure_items):
    - Jika categories menyertakan "INFRASTRUCTURE", buat daftar item ([{ "name": string, "billing_type": "ONE_TIME" | "MONTHLY" | "YEARLY", "quantity": number, "unit_cost": number, "period_count": number, "notes": string }]).
