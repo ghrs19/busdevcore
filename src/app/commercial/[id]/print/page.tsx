@@ -227,21 +227,8 @@ function CommercialProposalPrintViewContent() {
           </div>
 
           <div className="doc-meta-table">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '8px' }}>
               <div className="meta-badge">COMMERCIAL PROPOSAL</div>
-              <span
-                className="font-mono"
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  background: (proposal.version || 1) > 1 ? '#4338ca' : '#0f172a',
-                  color: '#ffffff',
-                  padding: '2px 7px',
-                  borderRadius: '4px',
-                }}
-              >
-                v{proposal.version || 1}
-              </span>
             </div>
             <div className="meta-row">
               <span className="meta-label">No. Dokumen</span>
