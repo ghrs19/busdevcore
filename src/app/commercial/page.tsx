@@ -179,7 +179,7 @@ export default function CommercialProposalsListPage() {
 
         {/* Proposals Table */}
         <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-          <table className="excel-table">
+          <table className="pro-table">
             <thead>
               <tr>
                 <th style={{ width: '160px', textAlign: 'left' }}>No. Penawaran</th>

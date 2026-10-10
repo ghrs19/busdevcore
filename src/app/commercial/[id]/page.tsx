@@ -370,7 +370,7 @@ function CommercialProposalDetailContent() {
               </h3>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', rowGap: '10px', fontSize: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', rowGap: '12px', fontSize: '12px' }}>
               <span style={{ color: 'var(--text-tertiary)' }}>Nama Klien:</span>
               <strong style={{ color: 'var(--text-primary)' }}>{proposal.company_name}</strong>
 
@@ -396,7 +396,7 @@ function CommercialProposalDetailContent() {
               </h3>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', rowGap: '10px', fontSize: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', rowGap: '12px', fontSize: '12px' }}>
               <span style={{ color: 'var(--text-tertiary)' }}>Nomor Dokumen:</span>
               <span className="font-mono-numbers" style={{ color: 'var(--accent-hover)', fontWeight: 600 }}>{proposal.proposal_number}</span>
 
@@ -418,29 +418,34 @@ function CommercialProposalDetailContent() {
         </div>
 
         {/* 3. Riwayat Seluruh Versi Dokumen (Version Chain Timeline) */}
-        <section className="linear-card" style={{ padding: '20px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '15px' }}>📚</span>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Riwayat Versi Dokumen ({proposal.proposal_number})
-              </h3>
+        <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '16px' }}>📚</span>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  Riwayat Versi Dokumen ({proposal.proposal_number})
+                </h3>
+                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                  Perbandingan nominal deal dan catatan perubahan di setiap siklus revisi
+                </div>
+              </div>
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-              {versionHistory.length} versi tersimpan di rantai revisi
+            <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600 }}>
+              {versionHistory.length} Versi Tersimpan
             </span>
           </div>
 
-          <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px' }}>
-            <table className="excel-table">
+          <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+            <table className="pro-table">
               <thead>
                 <tr>
-                  <th style={{ width: '80px', textAlign: 'center' }}>Versi</th>
+                  <th style={{ width: '90px', textAlign: 'center' }}>Versi</th>
                   <th style={{ width: '150px', textAlign: 'left' }}>Tanggal Terbit</th>
-                  <th style={{ width: '160px', textAlign: 'right' }}>Total Penawaran</th>
-                  <th style={{ width: '90px', textAlign: 'center' }}>Margin</th>
-                  <th style={{ minWidth: '260px', textAlign: 'left' }}>Catatan Perubahan Revisi</th>
-                  <th style={{ width: '120px', textAlign: 'center' }}>Dibuat Oleh</th>
+                  <th style={{ width: '170px', textAlign: 'right' }}>Total Penawaran</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Margin</th>
+                  <th style={{ minWidth: '280px', textAlign: 'left' }}>Catatan Perubahan Revisi</th>
+                  <th style={{ width: '130px', textAlign: 'center' }}>Dibuat Oleh</th>
                   <th style={{ width: '140px', textAlign: 'center' }}>Aksi</th>
                 </tr>
               </thead>
@@ -461,40 +466,44 @@ function CommercialProposalDetailContent() {
                           style={{
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: isCurrent ? 'rgba(94, 106, 210, 0.3)' : undefined,
-                            color: isCurrent ? '#a5b4fc' : undefined,
+                            padding: '3px 8px',
+                            background: isCurrent ? 'rgba(94, 106, 210, 0.3)' : 'rgba(255, 255, 255, 0.04)',
+                            color: isCurrent ? '#a5b4fc' : 'var(--text-secondary)',
+                            border: isCurrent ? '1px solid rgba(94, 106, 210, 0.5)' : '1px solid transparent',
                           }}
                         >
                           v{vh.version} {isCurrent && '●'}
                         </span>
                       </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{vhDate}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{vhDate}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
                         {formatIDR(vh.grand_total)}
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <span className="linear-badge" style={{ fontSize: '10px', color: '#10b981' }}>
+                        <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)' }}>
                           +{vh.margin_percent}%
                         </span>
                       </td>
                       <td>
-                        <div style={{ color: vh.revision_notes ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontSize: '12px' }}>
+                        <div style={{ color: vh.revision_notes ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: '13px', lineHeight: '1.4' }}>
                           {vh.revision_notes || '(Inisialisasi proposal penawaran v1)'}
                         </div>
                       </td>
-                      <td style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                      <td style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-secondary)' }}>
                         {vh.creator_name || '-'}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         {isCurrent ? (
-                          <span style={{ fontSize: '11px', color: 'var(--accent-hover)', fontWeight: 600 }}>Versi Aktif</span>
+                          <span style={{ fontSize: '11px', color: 'var(--accent-hover)', fontWeight: 600, padding: '4px 8px' }}>
+                            Sedang Dilihat
+                          </span>
                         ) : (
                           <Link
                             href={`/commercial/${vh.id}`}
                             className="btn-secondary"
-                            style={{ padding: '3px 8px', fontSize: '11px', textDecoration: 'none' }}
+                            style={{ padding: '5px 12px', fontSize: '12px', textDecoration: 'none' }}
                           >
-                            Buka Versi Ini
+                            Buka Versi
                           </Link>
                         )}
                       </td>
@@ -509,50 +518,54 @@ function CommercialProposalDetailContent() {
         {/* 4. Ruang Lingkup Deliverables, Timeline & Termin Pembayaran Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '20px', marginBottom: '24px' }}>
           {/* Section: Delivery Timeline */}
-          <section className="linear-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <section className="linear-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '15px' }}>📅</span>
                 <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                   Delivery Timeline Setup
                 </h3>
               </div>
-              <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600 }}>
-                Total: {proposal.timeline_config?.total_weeks || 4} Minggu
+              <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600, color: '#38bdf8' }}>
+                Durasi: {proposal.timeline_config?.total_weeks || 4} Minggu
               </span>
             </div>
 
             {proposal.timeline_config && Array.isArray(proposal.timeline_config.milestones) ? (
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px' }}>
-                <table className="excel-table">
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+                <table className="pro-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '35px', textAlign: 'center' }}>No</th>
-                      <th style={{ minWidth: '150px', textAlign: 'left' }}>Tahapan Kerja</th>
-                      <th style={{ width: '80px', textAlign: 'center' }}>Durasi</th>
-                      <th style={{ minWidth: '180px', textAlign: 'left' }}>Deliverables</th>
+                      <th style={{ width: '40px', textAlign: 'center' }}>No</th>
+                      <th style={{ minWidth: '160px', textAlign: 'left' }}>Tahapan Kerja</th>
+                      <th style={{ width: '90px', textAlign: 'center' }}>Durasi</th>
+                      <th style={{ minWidth: '200px', textAlign: 'left' }}>Hasil Luaran (Deliverables)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {proposal.timeline_config.milestones.map((m, idx) => (
                       <tr key={idx}>
-                        <td style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '11px' }}>{idx + 1}</td>
-                        <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.phase}</td>
-                        <td style={{ textAlign: 'center', color: '#38bdf8', fontWeight: 600 }}>{m.duration_weeks} Mgg</td>
-                        <td style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>{m.deliverable}</td>
+                        <td style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '12px' }}>{idx + 1}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.phase}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', color: '#38bdf8' }}>
+                            {m.duration_weeks} Mgg
+                          </span>
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '12.5px' }}>{m.deliverable}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>Tidak ada konfigurasi timeline.</div>
+              <div style={{ color: 'var(--text-tertiary)', fontSize: '12px', padding: '16px', textAlign: 'center' }}>Tidak ada konfigurasi timeline.</div>
             )}
           </section>
 
           {/* Section: Payment Terms */}
-          <section className="linear-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <section className="linear-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '15px' }}>💳</span>
                 <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
@@ -565,83 +578,94 @@ function CommercialProposalDetailContent() {
             </div>
 
             {Array.isArray(proposal.payment_terms) && proposal.payment_terms.length > 0 ? (
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px' }}>
-                <table className="excel-table">
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+                <table className="pro-table">
                   <thead>
                     <tr>
-                      <th style={{ minWidth: '140px', textAlign: 'left' }}>Termin</th>
-                      <th style={{ width: '65px', textAlign: 'center' }}>Bobot</th>
-                      <th style={{ width: '130px', textAlign: 'right' }}>Nominal</th>
-                      <th style={{ minWidth: '160px', textAlign: 'left' }}>Kondisi Penagihan</th>
+                      <th style={{ minWidth: '150px', textAlign: 'left' }}>Tahap Tagihan</th>
+                      <th style={{ width: '70px', textAlign: 'center' }}>Bobot</th>
+                      <th style={{ width: '140px', textAlign: 'right' }}>Nominal</th>
+                      <th style={{ minWidth: '180px', textAlign: 'left' }}>Kondisi Penagihan</th>
                     </tr>
                   </thead>
                   <tbody>
                     {proposal.payment_terms.map((t, idx) => (
                       <tr key={idx}>
-                        <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{t.milestone_name}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>{t.percent}%</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t.milestone_name}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px' }}>
+                            {t.percent}%
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
                           {formatIDR(t.amount)}
                         </td>
-                        <td style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>{t.trigger_condition}</td>
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{t.trigger_condition}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>Tidak ada termin pembayaran.</div>
+              <div style={{ color: 'var(--text-tertiary)', fontSize: '12px', padding: '16px', textAlign: 'center' }}>Tidak ada termin pembayaran.</div>
             )}
           </section>
         </div>
 
         {/* 5. Scope of Work (Deliverables dari Baseline) */}
-        <section className="linear-card" style={{ padding: '20px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '15px' }}>📦</span>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Ruang Lingkup Fitur & Modul (Scope of Work Baseline)
-              </h3>
+        <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '16px' }}>📦</span>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  Ruang Lingkup Fitur & Modul (Scope of Work Baseline)
+                </h3>
+                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                  Deliverables resmi yang termuat di dalam proposal dokumen klien
+                </div>
+              </div>
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-              {modules.length} modul fungsional terdaftar
+            <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600 }}>
+              {modules.length} Modul Terdaftar
             </span>
           </div>
 
-          <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px' }}>
-            <table className="excel-table">
+          <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+            <table className="pro-table">
               <thead>
                 <tr>
-                  <th style={{ width: '40px', textAlign: 'center' }}>No</th>
-                  <th style={{ width: '260px', textAlign: 'left' }}>Modul / Fungsionalitas</th>
-                  <th style={{ minWidth: '320px', textAlign: 'left' }}>Rincian Fitur & Deliverables</th>
+                  <th style={{ width: '45px', textAlign: 'center' }}>No</th>
+                  <th style={{ width: '280px', textAlign: 'left' }}>Modul / Fungsionalitas</th>
+                  <th style={{ minWidth: '360px', textAlign: 'left' }}>Rincian Fitur & Deliverables</th>
                 </tr>
               </thead>
               <tbody>
                 {modules.length === 0 ? (
                   <tr>
-                    <td colSpan={3} style={{ textAlign: 'center', padding: '16px', color: 'var(--text-tertiary)' }}>
+                    <td colSpan={3} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-tertiary)' }}>
                       Tidak ada rincian modul dalam baseline estimasi.
                     </td>
                   </tr>
                 ) : (
                   modules.map((m, idx) => (
                     <tr key={m.id}>
-                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '11px' }}>{idx + 1}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</td>
+                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '12px' }}>{idx + 1}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '13.5px' }}>{m.name}</td>
                       <td>
                         {Array.isArray(m.tasks) && m.tasks.length > 0 ? (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {m.tasks.map((t) => (
                               <span
                                 key={t.id}
                                 className="linear-badge"
                                 style={{
-                                  fontSize: '11px',
-                                  padding: '2px 8px',
-                                  color: 'var(--text-secondary)',
+                                  fontSize: '11.5px',
+                                  padding: '4px 10px',
+                                  color: 'var(--text-primary)',
                                   background: 'rgba(255, 255, 255, 0.04)',
+                                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                                  lineHeight: '1.4',
                                 }}
                               >
                                 {t.name}
@@ -649,7 +673,7 @@ function CommercialProposalDetailContent() {
                             ))}
                           </div>
                         ) : (
-                          <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>Penyelesaian modul {m.name}</span>
+                          <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>Penyelesaian modul {m.name}</span>
                         )}
                       </td>
                     </tr>
@@ -662,19 +686,19 @@ function CommercialProposalDetailContent() {
 
         {/* 6. Catatan Khusus & Ketentuan */}
         {proposal.notes && (
-          <section className="linear-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+          <section className="linear-card" style={{ padding: '22px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>
               📝 Syarat & Ketentuan Khusus Penawaran
             </h3>
             <div
               style={{
-                fontSize: '12px',
-                lineHeight: '1.6',
+                fontSize: '12.5px',
+                lineHeight: '1.7',
                 color: 'var(--text-secondary)',
                 whiteSpace: 'pre-wrap',
                 background: 'rgba(255, 255, 255, 0.02)',
-                padding: '12px 16px',
-                borderRadius: '6px',
+                padding: '14px 18px',
+                borderRadius: '8px',
                 border: '1px solid var(--border-subtle)',
               }}
             >
