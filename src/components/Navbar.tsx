@@ -67,6 +67,24 @@ function NavLinks({ role }: { role: string }) {
         <span>Proposal & Komersial</span>
       </Link>
 
+      <Link
+        href="/audit"
+        className="pill-item"
+        style={{
+          textDecoration: 'none',
+          padding: '6px 14px',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: 500,
+          backgroundColor: pathname.startsWith('/audit') ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+          color: pathname.startsWith('/audit') ? '#a5b4fc' : 'var(--text-secondary)',
+          border: pathname.startsWith('/audit') ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <span>📜 Audit Log</span>
+      </Link>
+
       {role === 'admin' && <Link
         href="/master"
         className="pill-item"
