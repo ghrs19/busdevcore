@@ -52,6 +52,10 @@ interface SavedEstimate {
   notes?: string | null;
   created_at: string;
   updated_at?: string;
+  creator_name?: string | null;
+  creator_email?: string | null;
+  updater_name?: string | null;
+  updater_email?: string | null;
   project_id?: number | null;
   project_name?: string | null;
   company_id: number;
@@ -817,6 +821,7 @@ export default function HistoricalEstimatesDashboard() {
                             month: 'short',
                             year: 'numeric',
                           })}
+                          {est.creator_name ? ` • Oleh: ${est.creator_name}` : ''}
                         </div>
                       </td>
                       <td>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { currentUser } from '@/lib/auth';
 
 export async function POST(
   req: Request,
@@ -7,6 +8,8 @@ export async function POST(
 ) {
   const client = await pool.connect();
   try {
+    const user = await currentUser();
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
     const sourceId = parseInt(id, 10);
     if (isNaN(sourceId)) {
@@ -61,12 +64,12 @@ export async function POST(
           title, company_id, project_id, service_type_id, category_id, tag_id,
           status, rate_snapshots, total_hours, total_cost, notes,
           maintenance_config, infrastructure_items, operational_items, billing_summary,
-          parent_id, version, revision_notes
+          parent_id, version, revision_notes, created_by_user_id, updated_by_user_id
         ) VALUES (
           $1, $2, $3, $4, $5, $6,
           'DRAFT', $7::jsonb, $8, $9, $10,
           $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb,
-          $15, $16, $17
+          $15, $16, $17, $18, $18
         ) RETURNING id, version
       `, [
         newTitle,
@@ -85,7 +88,8 @@ export async function POST(
         toPgJson(source.billing_summary),
         rootParentId,
         nextVersion,
-        revisionNotes
+        revisionNotes,
+        user.id
       ]);
       newEstimateId = insertEstRes.rows[0].id;
     } catch (e: any) {

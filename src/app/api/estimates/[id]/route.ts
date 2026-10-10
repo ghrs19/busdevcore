@@ -89,8 +89,8 @@ export async function GET(
       SELECT pe.id, pe.version, pe.title, pe.status, pe.total_hours, pe.total_cost, pe.revision_notes, pe.created_at, pe.updated_at,
         u.name AS creator_name, u.email AS creator_email
       FROM project_estimates pe LEFT JOIN users u ON pe.created_by_user_id = u.id
-      WHERE id = $1 OR parent_id = $1 OR id = $2 OR parent_id = $2
-      ORDER BY version DESC, id DESC
+      WHERE pe.id = $1 OR pe.parent_id = $1 OR pe.id = $2 OR pe.parent_id = $2
+      ORDER BY pe.version DESC, pe.id DESC
     `, [rootId, estimateId]);
 
     return NextResponse.json({
@@ -308,7 +308,7 @@ export async function PUT(
         currentEst.service_type_id,
         currentEst.category_id,
         tag_id || currentEst.tag_id,
-        JSON.stringify(currentEst.rate_snapshots),
+        typeof currentEst.rate_snapshots === 'string' ? currentEst.rate_snapshots : JSON.stringify(currentEst.rate_snapshots),
         grandTotalHours,
         grandTotalCost,
         notes || currentEst.notes,
@@ -375,15 +375,17 @@ export async function PUT(
     // 9. Re-insert modules & tasks if modules provided
     if (Array.isArray(modules)) {
       await client.query('DELETE FROM estimate_modules WHERE estimate_id = $1', [targetEstimateId]);
-      for (const mod of calculatedDevModules) {
+      for (let mIdx = 0; mIdx < calculatedDevModules.length; mIdx++) {
+        const mod = calculatedDevModules[mIdx];
         const modRes = await client.query(`
           INSERT INTO estimate_modules (estimate_id, name, order_index, total_hours, total_cost)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING id
-        `, [targetEstimateId, mod.name, mod.order_index, mod.total_hours, mod.total_cost]);
+        `, [targetEstimateId, mod.name, Number.isInteger(mod.order_index) ? mod.order_index : mIdx, mod.total_hours, mod.total_cost]);
 
         const modId = modRes.rows[0].id;
-        for (const task of mod.tasks) {
+        for (let tIdx = 0; tIdx < mod.tasks.length; tIdx++) {
+          const task = mod.tasks[tIdx];
           await client.query(`
             INSERT INTO estimate_tasks (
               module_id, name, order_index,
@@ -393,7 +395,7 @@ export async function PUT(
           `, [
             modId,
             task.name,
-            task.order_index,
+            Number.isInteger(task.order_index) ? task.order_index : tIdx,
             task.hours_pm || 0,
             task.hours_web_dev || 0,
             task.hours_ui_ux || 0,
@@ -419,7 +421,8 @@ export async function PUT(
       total_hours: grandTotalHours,
     });
   } catch (err: unknown) {
-    await client.query('ROLLBACK');
+    console.error('ERROR ON PUT ESTIMATE:', err);
+    await client.query('ROLLBACK').catch(() => {});
     const msg = err instanceof Error ? err.message : 'Unknown database error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   } finally {
