@@ -8,6 +8,7 @@ function NavLinks() {
   const pathname = usePathname();
   const isDashboard = pathname === '/';
   const isNewEstimate = pathname === '/estimates/new';
+  const isMaster = pathname?.startsWith('/master');
 
   return (
     <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -45,6 +46,24 @@ function NavLinks() {
         }}
       >
         <span>+ Buat Costing</span>
+      </Link>
+
+      <Link
+        href="/master"
+        className="pill-item"
+        style={{
+          textDecoration: 'none',
+          padding: '6px 14px',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: 500,
+          backgroundColor: isMaster ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+          color: isMaster ? '#a5b4fc' : 'var(--text-secondary)',
+          border: isMaster ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <span>⚙️ Master Data</span>
       </Link>
     </nav>
   );

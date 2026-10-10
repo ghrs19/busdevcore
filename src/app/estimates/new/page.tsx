@@ -160,6 +160,20 @@ function NewEstimateForm() {
     },
   ]);
 
+  // Dynamic WBS Templates loaded from Master
+  const [dbTemplates, setDbTemplates] = useState<Array<{ id: number; name: string; category: string; description: string | null; payload: any }>>([]);
+
+  useEffect(() => {
+    fetch('/api/templates?active_only=true')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.templates)) {
+          setDbTemplates(data.templates);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Maintenance WBS state (Maintenance Website Company Profile 2026)
   const [maintenanceDurationMonths, setMaintenanceDurationMonths] = useState<number>(12);
   const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTaskInput[]>([
@@ -854,29 +868,12 @@ function NewEstimateForm() {
     ]);
   };
 
-  const applyMaintenanceTemplate = (tier: 'BASIC' | 'EXPERT') => {
-    if (tier === 'BASIC') {
-      setMaintenanceTasks([
-        {
-          name: 'Dev Ops (Manhour)',
-          role_hours: { DEV_OPS: 1 },
-        },
-        {
-          name: 'Web Programmer (Manhour)',
-          role_hours: { WEB_DEV: 2 },
-        },
-      ]);
-    } else {
-      setMaintenanceTasks([
-        {
-          name: 'Dev Ops (Manhour)',
-          role_hours: { DEV_OPS: 4 },
-        },
-        {
-          name: 'Web Programmer (Manhour)',
-          role_hours: { WEB_DEV: 8 },
-        },
-      ]);
+  const applyMaintenanceTemplate = (tplPayload: any) => {
+    if (Array.isArray(tplPayload) && tplPayload.length > 0) {
+      setMaintenanceTasks(tplPayload.map(t => ({
+        name: t.name || 'Maintenance Task',
+        role_hours: t.role_hours || {},
+      })));
     }
   };
 
@@ -2618,26 +2615,41 @@ function NewEstimateForm() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderLeft: '1px solid var(--border-color)', paddingLeft: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderLeft: '1px solid var(--border-color)', paddingLeft: '12px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Template WBS:</span>
-                      <button
-                        type="button"
-                        onClick={() => applyMaintenanceTemplate('BASIC')}
-                        className="btn-secondary"
-                        style={{ padding: '3px 8px', fontSize: '11px', minHeight: 'auto', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
-                        title="Terapkan Template Basic 2026: Dev Ops (1h) + Web Dev (2h)"
+                      {dbTemplates
+                        .filter((t) => t.category === 'MAINTENANCE')
+                        .map((t, idx) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => applyMaintenanceTemplate(t.payload)}
+                            className="btn-secondary"
+                            style={{
+                              padding: '3px 8px',
+                              fontSize: '11px',
+                              minHeight: 'auto',
+                              borderColor: idx === 0 ? 'rgba(56, 189, 248, 0.4)' : 'rgba(168, 85, 247, 0.4)',
+                              color: idx === 0 ? '#38bdf8' : '#c084fc',
+                            }}
+                            title={t.description || t.name}
+                          >
+                            {t.name.includes('Basic') ? '📋 Basic' : t.name.includes('Expert') ? '⭐ Expert' : `📑 ${t.name}`}
+                          </button>
+                        ))}
+                      <Link
+                        href="/master"
+                        target="_blank"
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--text-tertiary)',
+                          textDecoration: 'none',
+                          marginLeft: '4px',
+                        }}
+                        title="Buka menu Master Data untuk tambah/edit template"
                       >
-                        📋 Basic (1h/2h)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyMaintenanceTemplate('EXPERT')}
-                        className="btn-secondary"
-                        style={{ padding: '3px 8px', fontSize: '11px', minHeight: 'auto', borderColor: 'rgba(168, 85, 247, 0.4)', color: '#c084fc' }}
-                        title="Terapkan Template Expert 2026: Dev Ops (4h) + Web Dev (8h)"
-                      >
-                        ⭐ Expert (4h/8h)
-                      </button>
+                        ⚙️ Kelola
+                      </Link>
                     </div>
                   </div>
                 </div>
