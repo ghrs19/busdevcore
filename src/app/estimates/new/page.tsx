@@ -228,6 +228,21 @@ function NewEstimateForm() {
     );
   };
 
+  // Delivery Timeline Setup state
+  const [timelineConfig, setTimelineConfig] = useState<{
+    total_weeks: number;
+    start_date?: string;
+    milestones: Array<{ phase: string; duration_weeks: number; deliverable: string }>;
+  }>({
+    total_weeks: 4,
+    start_date: '',
+    milestones: [
+      { phase: 'Requirement & UI/UX Design', duration_weeks: 1, deliverable: 'Design Prototype & SRS' },
+      { phase: 'Core Development & Integration', duration_weeks: 2, deliverable: 'Staging Application & API' },
+      { phase: 'UAT, Deployment & Go-Live', duration_weeks: 1, deliverable: 'Production Deployment' },
+    ],
+  });
+
   // Infrastructure WBS state
   const [infraItems, setInfraItems] = useState<InfrastructureItemInput[]>([
     {
@@ -615,6 +630,9 @@ function NewEstimateForm() {
         // 8. Infrastructure Items
         if (Array.isArray(est.infrastructure_items)) {
           setInfraItems(est.infrastructure_items);
+        }
+        if (est.timeline_config && Array.isArray(est.timeline_config.milestones)) {
+          setTimelineConfig(est.timeline_config);
         }
 
         // 9. Operational Items
@@ -1319,6 +1337,7 @@ function NewEstimateForm() {
         } : null,
         infrastructure_items: isInfrastructure ? infraItems : null,
         operational_items: isOperational ? operationalItems : null,
+        timeline_config: timelineConfig,
         revision_notes: reasonText || revisionReason || null,
       };
 
@@ -3253,6 +3272,155 @@ function NewEstimateForm() {
                 </div>
               </div>
             )}
+          </section>
+
+          {/* Delivery Timeline Setup Section */}
+          <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  📅 Delivery Timeline Setup (Jadwal & Durasi Pengerjaan)
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '3px' }}>
+                  Estimasi durasi waktu kalender dan milestone tahapan pengerjaan untuk baseline proposal komersial
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTimelineConfig(prev => ({
+                    ...prev,
+                    milestones: [
+                      ...prev.milestones,
+                      { phase: `Fase ${prev.milestones.length + 1}`, duration_weeks: 1, deliverable: 'Deliverable' }
+                    ]
+                  }));
+                }}
+                className="btn-secondary"
+                style={{ fontSize: '11px', padding: '4px 10px' }}
+              >
+                + Tambah Tahapan
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '18px', flexWrap: 'wrap' }}>
+              <div style={{ width: '200px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  Total Durasi Kalender
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="number"
+                    min="1"
+                    value={timelineConfig.total_weeks}
+                    onChange={(e) => setTimelineConfig(prev => ({ ...prev, total_weeks: parseInt(e.target.value) || 1 }))}
+                    className="input-field"
+                    style={{ textAlign: 'right' }}
+                  />
+                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Minggu</span>
+                </div>
+              </div>
+
+              <div style={{ width: '220px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  Target Mulai (Opsional)
+                </label>
+                <input
+                  type="date"
+                  value={timelineConfig.start_date || ''}
+                  onChange={(e) => setTimelineConfig(prev => ({ ...prev, start_date: e.target.value }))}
+                  className="input-field"
+                />
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px' }}>
+              <table className="excel-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '40px', textAlign: 'center' }}>No</th>
+                    <th style={{ minWidth: '220px', textAlign: 'left' }}>Tahapan / Fase Pengerjaan</th>
+                    <th style={{ width: '130px', textAlign: 'center' }}>Durasi (Minggu)</th>
+                    <th style={{ minWidth: '280px', textAlign: 'left' }}>Hasil Luaran (Deliverables)</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {timelineConfig.milestones.map((m, idx) => (
+                    <tr key={idx}>
+                      <td style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
+                      <td>
+                        <input
+                          type="text"
+                          value={m.phase}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTimelineConfig(prev => {
+                              const copy = [...prev.milestones];
+                              copy[idx] = { ...copy[idx], phase: val };
+                              return { ...prev, milestones: copy };
+                            });
+                          }}
+                          className="input-field"
+                          style={{ width: '100%' }}
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          value={m.duration_weeks}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 1;
+                            setTimelineConfig(prev => {
+                              const copy = [...prev.milestones];
+                              copy[idx] = { ...copy[idx], duration_weeks: val };
+                              return { ...prev, milestones: copy };
+                            });
+                          }}
+                          className="input-field"
+                          style={{ width: '80px', textAlign: 'center', margin: '0 auto' }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={m.deliverable}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTimelineConfig(prev => {
+                              const copy = [...prev.milestones];
+                              copy[idx] = { ...copy[idx], deliverable: val };
+                              return { ...prev, milestones: copy };
+                            });
+                          }}
+                          className="input-field"
+                          style={{ width: '100%' }}
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (timelineConfig.milestones.length <= 1) return;
+                            setTimelineConfig(prev => ({
+                              ...prev,
+                              milestones: prev.milestones.filter((_, i) => i !== idx)
+                            }));
+                          }}
+                          className="btn-ghost"
+                          style={{ color: 'var(--color-danger)', padding: '2px 6px', fontSize: '11px' }}
+                          disabled={timelineConfig.milestones.length <= 1}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           {/* Sticky Bottom Summary & Multi-Billing Action Bar */}

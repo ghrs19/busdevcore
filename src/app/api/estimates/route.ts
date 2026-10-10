@@ -124,6 +124,7 @@ export async function POST(req: Request) {
       infrastructure_items,
       operational,
       operational_items,
+      timeline_config,
     } = body;
 
     let effectiveTitle = typeof title === 'string' ? title.trim() : '';
@@ -322,9 +323,9 @@ export async function POST(req: Request) {
 
     const estInsert = await client.query(
       `INSERT INTO project_estimates 
-        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes, maintenance_config, infrastructure_items, operational_items, billing_summary, created_by_user_id, updated_by_user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
-       RETURNING id, title, total_hours, total_cost, status, created_at, maintenance_config, infrastructure_items, operational_items, billing_summary`,
+        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes, maintenance_config, infrastructure_items, operational_items, billing_summary, created_by_user_id, updated_by_user_id, timeline_config)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16, $17)
+       RETURNING id, title, total_hours, total_cost, status, created_at, maintenance_config, infrastructure_items, operational_items, billing_summary, timeline_config`,
       [
         calculated.title,
         company_id,
@@ -341,6 +342,7 @@ export async function POST(req: Request) {
         calculated.infrastructure ? JSON.stringify(calculated.infrastructure.items) : null,
         calculated.operational ? JSON.stringify(calculated.operational.items) : null,
         JSON.stringify(calculated.billing_summary), user.id,
+        timeline_config ? JSON.stringify(timeline_config) : null,
       ]
     );
 

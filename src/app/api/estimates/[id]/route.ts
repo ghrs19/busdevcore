@@ -168,6 +168,7 @@ export async function PUT(
       maintenance_duration_months = 12,
       infrastructure_items = [],
       operational_items = [],
+      timeline_config,
       categories: rawCategoryIds,
       category_ids,
       category_id,
@@ -294,12 +295,14 @@ export async function PUT(
           title, company_id, project_id, service_type_id, category_id, tag_id,
           status, rate_snapshots, total_hours, total_cost, notes,
           maintenance_config, infrastructure_items, operational_items, billing_summary,
-          parent_id, version, revision_notes, created_at, updated_at, created_by_user_id, updated_by_user_id
+          parent_id, version, revision_notes, created_at, updated_at, created_by_user_id, updated_by_user_id,
+          timeline_config
         ) VALUES (
           $1, $2, $3, $4, $5, $6,
           'DRAFT', $7::jsonb, $8, $9, $10,
           $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb,
-          $15, $16, $17, NOW(), NOW(), $18, $18
+          $15, $16, $17, NOW(), NOW(), $18, $18,
+          $19::jsonb
         ) RETURNING id
       `, [
         title || newTitle,
@@ -318,7 +321,8 @@ export async function PUT(
         JSON.stringify(billingSummary),
         rootParentId,
         nextVersion,
-        revision_notes || `Revisi versi v${nextVersion}`, user.id
+        revision_notes || `Revisi versi v${nextVersion}`, user.id,
+        timeline_config ? JSON.stringify(timeline_config) : null
       ]);
 
       targetEstimateId = insertRes.rows[0].id;
@@ -354,6 +358,7 @@ export async function PUT(
         JSON.stringify(billingSummary),
         tag_id || null,
         estimateId, user.id,
+        timeline_config ? JSON.stringify(timeline_config) : null,
       ]);
     }
 

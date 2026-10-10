@@ -49,6 +49,24 @@ function NavLinks({ role }: { role: string }) {
         <span>+ Buat Costing</span>
       </Link>
 
+      <Link
+        href="/commercial"
+        className="pill-item"
+        style={{
+          textDecoration: 'none',
+          padding: '6px 14px',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: 500,
+          backgroundColor: pathname.startsWith('/commercial') ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+          color: pathname.startsWith('/commercial') ? '#a5b4fc' : 'var(--text-secondary)',
+          border: pathname.startsWith('/commercial') ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <span>Proposal & Komersial</span>
+      </Link>
+
       {role === 'admin' && <Link
         href="/master"
         className="pill-item"
