@@ -168,7 +168,37 @@ function NavbarContent() {
 
         {/* Status Badges */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {email && <><span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>👤 {email}</span><button className="btn-secondary" onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); router.replace('/login'); router.refresh(); }}>Logout</button></>}
+          {email && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Link
+                href="/profile"
+                className="btn-secondary"
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '12px',
+                  padding: '4px 10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                title="Buka Pengaturan Akun & Profil"
+              >
+                <span>👤</span>
+                <span>{email}</span>
+              </Link>
+              <button
+                className="btn-ghost"
+                style={{ fontSize: '12px', padding: '4px 8px' }}
+                onClick={async () => {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                  router.replace('/login');
+                  router.refresh();
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          )}
           <span className="badge badge-connected">
             <span className="badge-dot" />
             PostgreSQL Connected

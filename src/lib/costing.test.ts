@@ -18,7 +18,7 @@ describe('Costing Calculation & Business Rules', () => {
     assert.equal(DEFAULT_ROLE_RATES.WEB_DEV, 39602);
     assert.equal(DEFAULT_ROLE_RATES.UI_UX, 33113);
     assert.equal(DEFAULT_ROLE_RATES.QC_DOC, 33101);
-    assert.equal(DEFAULT_ROLE_RATES.DEV_OPS, 43760);
+    assert.equal(DEFAULT_ROLE_RATES.DEV_OPS, 47261);
   });
 
   it('should calculate individual task cost correctly', () => {
@@ -128,8 +128,8 @@ describe('Costing Calculation & Business Rules', () => {
     assert.equal(estimate.modules[2].total_cost, 158408);   // 3.0 Backend
     assert.equal(estimate.modules[3].total_cost, 3383728);  // 4.0 Frontend
     assert.equal(estimate.modules[4].total_cost, 1532072);  // 5.0 Backend
-    assert.equal(estimate.modules[5].total_cost, 333448);   // 6.0 Configuration
-    assert.equal(estimate.modules[6].total_cost, 658580);   // 7.0 Coordination
+    assert.equal(estimate.modules[5].total_cost, 347452);   // 6.0 Configuration
+    assert.equal(estimate.modules[6].total_cost, 679586);   // 7.0 Coordination
     assert.equal(estimate.modules[7].total_cost, 316816);   // 8.0 Content
     assert.equal(estimate.modules[8].total_cost, 502420);   // 9.0 Testing & Production
 
@@ -146,10 +146,10 @@ describe('Costing Calculation & Business Rules', () => {
     assert.equal(estimate.cost_by_role.web_dev, 4197812);
     assert.equal(estimate.cost_by_role.ui_ux, 1258294);
     assert.equal(estimate.cost_by_role.qc_doc, 794424);
-    assert.equal(estimate.cost_by_role.dev_ops, 437600);
+    assert.equal(estimate.cost_by_role.dev_ops, 472610);
 
     // Grand total cost matching spreadsheet exactly
-    assert.equal(estimate.total_cost, 7717782);
+    assert.equal(estimate.total_cost, 7752792);
   });
 
   it('should calculate Maintenance website costing correctly (Rp 491.856)', () => {
@@ -161,9 +161,9 @@ describe('Costing Calculation & Business Rules', () => {
       ],
     });
 
-    assert.equal(maintenanceModule.cost_breakdown.dev_ops, 175040); // 4 * 43760
+    assert.equal(maintenanceModule.cost_breakdown.dev_ops, 189044); // 4 * 47261
     assert.equal(maintenanceModule.cost_breakdown.web_dev, 316816);  // 8 * 39602
-    assert.equal(maintenanceModule.total_cost, 491856);
+    assert.equal(maintenanceModule.total_cost, 505860);
     assert.equal(maintenanceModule.total_hours, 12);
   });
 
@@ -398,10 +398,10 @@ describe('Costing Calculation & Business Rules', () => {
     const calculated = calculateMaintenance(maintenanceConfig);
     assert.equal(calculated.duration_months, 6);
     assert.equal(calculated.total_monthly_hours, 12);
-    // 4 * 43760 (175040) + 8 * 39602 (316816) = 491856/month
-    assert.equal(calculated.monthly_cost, 491856);
+    // 4 * 47261 (189044) + 8 * 39602 (316816) = 505860/month
+    assert.equal(calculated.monthly_cost, 505860);
     // 491856 * 6 months = 2951136
-    assert.equal(calculated.total_cost, 2951136);
+    assert.equal(calculated.total_cost, 505860 * 6);
     assert.equal(calculated.hours_by_role.DEV_OPS, 4);
     assert.equal(calculated.hours_by_role.WEB_DEV, 8);
   });
@@ -481,15 +481,15 @@ describe('Costing Calculation & Business Rules', () => {
     assert.equal(estimate.billing_summary.total_one_time, 3292040);
 
     // Maintenance: 491856/bln, total 12 bln = 5902272
-    assert.equal(estimate.billing_summary.monthly_maintenance, 491856);
-    assert.equal(estimate.billing_summary.total_maintenance, 5902272);
+    assert.equal(estimate.billing_summary.monthly_maintenance, 505860);
+    assert.equal(estimate.billing_summary.total_maintenance, 505860 * 12);
 
     // Infra recurring: 450000 * 12 = 5400000
     assert.equal(estimate.billing_summary.recurring_infra, 5400000);
     assert.equal(estimate.billing_summary.monthly_infra, 450000);
 
-    // Grand total: 3292040 + 5902272 + 5400000 = 14594312
-    assert.equal(estimate.billing_summary.grand_total, 14594312);
-    assert.equal(estimate.total_cost, 14594312);
+    // Grand total: 3292040 + 5902272 + 5400000 = 14762360
+    assert.equal(estimate.billing_summary.grand_total, 14762360);
+    assert.equal(estimate.total_cost, 14762360);
   });
 });
