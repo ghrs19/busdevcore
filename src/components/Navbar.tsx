@@ -68,7 +68,7 @@ function NavLinks() {
     </nav>
   );
 }
-export default function Navbar() {
+function NavbarContent() {
   const pathname = usePathname();
   if (pathname?.includes('/print')) {
     return null;
@@ -175,4 +175,8 @@ export default function Navbar() {
       </div>
     </header>
   );
+}
+
+export default function Navbar() {
+  return <Suspense fallback={null}><NavbarContent /></Suspense>;
 }

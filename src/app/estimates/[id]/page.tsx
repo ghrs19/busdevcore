@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { compareVersions } from '@/lib/version-diff';
 type RoleSnapshotEntry = { code: string; name: string; rate: number };
 
 interface EstimateDetailTask {
@@ -113,6 +114,9 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
   const [estimate, setEstimate] = useState<EstimateDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [compareId, setCompareId] = useState<number | null>(null);
+  const [comparison, setComparison] = useState<EstimateDetail | null>(null);
+  const [comparisonError, setComparisonError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'ALL' | 'DEV' | 'MAINTENANCE' | 'INFRASTRUCTURE' | 'OPERATION' | 'HISTORY'>('ALL');
 
   // Delete state
@@ -151,6 +155,27 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
     };
   }, [estimateId]);
 
+  useEffect(() => {
+    if (compareId === null) return;
+    const controller = new AbortController();
+    fetch(`/api/estimates/${compareId}`, { signal: controller.signal })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok || !data.success || !data.estimate) throw new Error(data.error || 'Gagal memuat versi pembanding');
+        return data.estimate as EstimateDetail;
+      })
+      .then((data) => {
+        if (data.id !== compareId || !data.version_history?.some((v) => v.id === estimateId)) {
+          throw new Error('Versi pembanding tidak berada dalam riwayat yang sama');
+        }
+        setComparison(data);
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setComparisonError(error instanceof Error ? error.message : 'Gagal memuat versi pembanding');
+      });
+    return () => controller.abort();
+  }, [compareId, estimateId]);
+
   const handleDelete = async () => {
     if (!estimate) return;
     setIsDeleting(true);
@@ -162,8 +187,8 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
         return;
       }
       router.push('/');
-    } catch (e: any) {
-      alert(e.message || 'Network error');
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Network error');
     } finally {
       setIsDeleting(false);
     }
@@ -964,6 +989,40 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               </table>
             </div>
           </div>
+        )}
+
+        {activeTab === 'HISTORY' && estimate.version_history && estimate.version_history.length > 1 && (
+          <section className="linear-card-elevated" style={{ padding: '20px', marginBottom: '28px' }} aria-label="Perbandingan versi">
+            <h2 style={{ fontSize: '16px', marginBottom: '12px' }}>Bandingkan rincian task antar versi</h2>
+            <label htmlFor="compare-version" style={{ display: 'block', marginBottom: '8px' }}>Bandingkan v{estimate.version} dengan:</label>
+            <select id="compare-version" className="linear-select" style={{ maxWidth: '240px' }} value={compareId ?? ''}
+              onChange={(event) => { setComparison(null); setComparisonError(null); setCompareId(event.target.value ? Number(event.target.value) : null); }}>
+              <option value="">Pilih versi</option>
+              {estimate.version_history.filter((version) => version.id !== estimate.id).map((version) => (
+                <option value={version.id} key={version.id}>v{version.version} — #{version.id}</option>
+              ))}
+            </select>
+            {comparisonError && <p role="alert" style={{ color: 'var(--color-danger)', marginTop: '12px' }}>{comparisonError}</p>}
+            {compareId !== null && !comparison && !comparisonError && <p role="status" style={{ marginTop: '12px' }}>Memuat perbandingan...</p>}
+            {comparison && compareId === comparison.id && (() => {
+              const changes = compareVersions(comparison, estimate);
+              return <div style={{ overflowX: 'auto', marginTop: '16px' }}>
+                <p style={{ marginBottom: '12px' }}>v{comparison.version} → v{estimate.version}. Hanya task dengan perubahan jam atau biaya ditampilkan.</p>
+                {changes.length === 0 ? <p>Tidak ada perubahan task atau jam kerja.</p> : (
+                  <table className="linear-table" style={{ minWidth: '700px' }}>
+                    <thead><tr><th scope="col">MODUL</th><th scope="col">TASK</th><th scope="col">JAM v{comparison.version}</th><th scope="col">JAM v{estimate.version}</th><th scope="col">BIAYA v{comparison.version}</th><th scope="col">BIAYA v{estimate.version}</th></tr></thead>
+                    <tbody>{changes.map((row, index) => <tr key={`${row.module}-${row.task}-${index}`}>
+                      <td>{row.module}</td><td>{row.task}</td>
+                      <td>{row.beforeHours === null ? '—' : `${row.beforeHours}h`}</td>
+                      <td>{row.afterHours === null ? '—' : `${row.afterHours}h`}</td>
+                      <td>{row.beforeCost === null ? '—' : formatIDR(row.beforeCost)}</td>
+                      <td>{row.afterCost === null ? '—' : formatIDR(row.afterCost)}</td>
+                    </tr>)}</tbody>
+                  </table>
+                )}
+              </div>;
+            })()}
+          </section>
         )}
 
         {/* Delete Confirmation Modal */}

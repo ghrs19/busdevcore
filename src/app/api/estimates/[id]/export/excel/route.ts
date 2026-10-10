@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import * as XLSX from 'xlsx';
+import { normalizeRoleSnapshot } from '@/lib/costing';
 
 export async function GET(
   req: Request,
@@ -71,7 +72,7 @@ export async function GET(
     const wb = XLSX.utils.book_new();
 
     // 1. SHEET: SUMMARY & RATES
-    const ratesData: any[] = [
+    const ratesData: (string | number)[][] = [
       ['INTERNAL PROJECT COSTING SHEET', ''],
       ['STATUS', 'CONFIDENTIAL - FOR INTERNAL TEAM USE ONLY'],
       ['GENERATED AT', new Date().toISOString().replace('T', ' ').slice(0, 19)],
@@ -96,10 +97,8 @@ export async function GET(
     ];
 
     if (est.rate_snapshots && typeof est.rate_snapshots === 'object') {
-      Object.entries(est.rate_snapshots).forEach(([code, val]: [string, any]) => {
-        const name = typeof val === 'object' && val !== null ? val.name || code : code;
-        const rate = typeof val === 'object' && val !== null ? val.rate || 0 : Number(val || 0);
-        ratesData.push([code, name, rate]);
+      Object.entries(normalizeRoleSnapshot(est.rate_snapshots)).forEach(([code, val]) => {
+        ratesData.push([code, val.name, val.rate]);
       });
     }
 
@@ -108,13 +107,13 @@ export async function GET(
 
     // 2. SHEET: WBS DEVELOPMENT (If has modules or DEV category)
     if (modules.length > 0 || catCodes.includes('DEV') || catCodes.includes('DEVELOPMENT')) {
-      const devData: any[] = [
+      const devData: (string | number)[][] = [
         ['WBS DEVELOPMENT - MODUL & MANHOURS BREAKDOWN'],
         ['Modul', 'Task', 'PM (Jam)', 'Web Dev (Jam)', 'UI-UX (Jam)', 'QC-Doc (Jam)', 'DevOps (Jam)', 'Total Jam', 'Subtotal Biaya (IDR)']
       ];
 
       modules.forEach(m => {
-        m.tasks.forEach((t: any) => {
+        m.tasks.forEach((t: { name: string; hours_pm?: number; hours_web_dev?: number; hours_ui_ux?: number; hours_qc_doc?: number; hours_dev_ops?: number; total_hours?: number; total_cost?: number }) => {
           devData.push([
             m.name,
             t.name,
@@ -143,7 +142,7 @@ export async function GET(
     if (est.maintenance_config || catCodes.includes('MAINTENANCE')) {
       const mConf = est.maintenance_config || {};
       const maintTasks = Array.isArray(mConf.tasks) ? mConf.tasks : [];
-      const maintData: any[] = [
+      const maintData: (string | number)[][] = [
         ['WBS MAINTENANCE - RUTIN BULANAN'],
         ['Durasi Kontrak (Bulan)', Number(mConf.duration_months || 12)],
         ['Rate / Biaya Bulanan', Number(mConf.monthly_cost || 0)],
@@ -152,7 +151,7 @@ export async function GET(
         ['Nama Task Rutin', 'Detail Alokasi Jam Role', 'Total Jam/Bulan', 'Biaya/Bulan (IDR)']
       ];
 
-      maintTasks.forEach((t: any) => {
+      maintTasks.forEach((t: { name: string; role_hours?: Record<string, number>; total_hours?: number; monthly_cost?: number }) => {
         const rhStr = t.role_hours ? Object.entries(t.role_hours).map(([k, v]) => `${k}: ${v}h`).join(', ') : '-';
         maintData.push([
           t.name,
@@ -168,12 +167,12 @@ export async function GET(
 
     // 4. SHEET: WBS INFRASTRUCTURE (If has infrastructure)
     if (Array.isArray(est.infrastructure_items) && est.infrastructure_items.length > 0) {
-      const infraData: any[] = [
+      const infraData: (string | number)[][] = [
         ['WBS INFRASTRUCTURE - HARDWARE & CLOUD ITEMS'],
         ['Nama Item / Komponen', 'Billing Type', 'Qty', 'Durasi (Bln/Thn)', 'Biaya Satuan (IDR)', 'Subtotal (IDR)', 'Catatan / Provider']
       ];
 
-      est.infrastructure_items.forEach((item: any) => {
+      est.infrastructure_items.forEach((item: { name: string; billing_type: string; quantity?: number; unit_cost?: number; period_count?: number; notes?: string }) => {
         const qty = Number(item.quantity || 1);
         const cost = Number(item.unit_cost || 0);
         const period = Number(item.period_count || 1);
@@ -195,12 +194,12 @@ export async function GET(
 
     // 5. SHEET: WBS OPERATIONAL (If has operational)
     if (Array.isArray(est.operational_items) && est.operational_items.length > 0) {
-      const opData: any[] = [
+      const opData: (string | number)[][] = [
         ['WBS OPERATIONAL - BIAYA PERJALANAN & AKOMODASI'],
         ['Nama Item Operasional', 'Jumlah Orang (Pax)', 'Jumlah Hari', 'Rate/Hari/Pax (IDR)', 'Subtotal Biaya (IDR)', 'Catatan / Lokasi']
       ];
 
-      est.operational_items.forEach((item: any) => {
+      est.operational_items.forEach((item: { name: string; people_count?: number; days_count?: number; unit_cost_per_day?: number; unit_cost?: number; notes?: string }) => {
         const pax = Number(item.people_count || 1);
         const days = Number(item.days_count || 1);
         const rate = Number(item.unit_cost_per_day || item.unit_cost || 0);

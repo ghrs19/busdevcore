@@ -311,6 +311,8 @@ function NewEstimateForm() {
       const result = await res.json();
       if (!res.ok || !result.success) throw new Error(result.error || 'Gagal membuat draft costing.');
       const draft = result.draft || result.data || result;
+      const usedFallback = result.source === 'fallback';
+      const fallbackNotice = 'Layanan AI gagal. Draft otomatis non-AI; periksa angka sebelum menyimpan.';
       if (draft.title) setTitle(draft.title);
       if (draft.notes || draft.summary_notes) setNotes(draft.notes || draft.summary_notes);
 
@@ -365,10 +367,10 @@ function NewEstimateForm() {
       setAiChatHistory(prev => [
         ...prev,
         { role: 'user', text: submittedPrompt || (aiFiles.length > 0 ? `Lampirkan ${aiFiles.length} file brief` : 'Generate costing'), time: nowTime },
-        { role: 'assistant', text: draft.summary_notes || draft.summary || 'Draft costing telah diperbarui sesuai instruksi.', time: nowTime }
+        { role: 'assistant', text: usedFallback ? fallbackNotice : (draft.summary_notes || draft.summary || 'Draft costing telah diperbarui sesuai instruksi.'), time: nowTime }
       ]);
-      setAiSummary(draft.summary_notes || draft.summary || 'Draft costing berhasil diperbarui.');
-      setSuccessMsg(aiChatHistory.length > 0 ? 'Draft costing berhasil disesuaikan oleh AI!' : 'Draft costing AI berhasil diterapkan ke form.');
+      setAiSummary(usedFallback ? fallbackNotice : (draft.summary_notes || draft.summary || 'Draft costing berhasil diperbarui.'));
+      setSuccessMsg(usedFallback ? 'Layanan AI gagal. Draft otomatis non-AI diterapkan; periksa angka sebelum menyimpan.' : aiChatHistory.length > 0 ? 'Draft costing berhasil disesuaikan oleh AI!' : 'Draft costing AI berhasil diterapkan ke form.');
       setTimeout(() => setSuccessMsg(null), 4000);
       setAiPrompt('');
       setAiFiles([]);

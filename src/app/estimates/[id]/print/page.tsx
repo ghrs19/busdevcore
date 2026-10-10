@@ -1,6 +1,8 @@
 import React from 'react';
-import Link from 'next/link';
 import pool from '@/lib/db';
+import { normalizeRoleSnapshot } from '@/lib/costing';
+
+export const instant = false;
 
 async function getEstimate(id: number) {
   const estRes = await pool.query(`
@@ -73,34 +75,6 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
 
   return (
     <div className="print-container" style={{ background: '#ffffff', color: '#111827', minHeight: '100vh', padding: '32px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-      {/* Top Action Bar (Hidden on print) */}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-        <Link
-          href={`/estimates/${estimateId}`}
-          style={{ textDecoration: 'none', color: '#4b5563', fontSize: '14px', fontWeight: 500 }}
-        >
-          ← Kembali ke Detail Estimasi
-        </Link>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={undefined}
-            className="print-btn"
-            style={{
-              padding: '8px 18px',
-              backgroundColor: '#1f2937',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              fontWeight: 600,
-              fontSize: '13px',
-              cursor: 'pointer',
-            }}
-          >
-            🖨️ Cetak / Simpan ke PDF
-          </button>
-        </div>
-      </div>
-
       {/* Internal Confidential Banner */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #111827', paddingBottom: '16px', marginBottom: '20px' }}>
         <div>
@@ -138,13 +112,13 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
         <div style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', background: '#f9fafb' }}>
           <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 600 }}>Total One-Time Charge</div>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#111827', marginTop: '4px' }}>
-            {formatIDR(estimate.billing_summary?.one_time_total || estimate.total_cost || 0)}
+            {formatIDR(estimate.billing_summary?.total_one_time ?? estimate.total_cost ?? 0)}
           </div>
         </div>
         <div style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', background: '#f9fafb' }}>
           <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 600 }}>Monthly / Recurring</div>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#2563eb', marginTop: '4px' }}>
-            {formatIDR(estimate.billing_summary?.monthly_total || 0)}/bln
+            {formatIDR(estimate.billing_summary?.total_monthly_recurring ?? 0)}/bln
           </div>
         </div>
         <div style={{ padding: '12px', border: '1px solid #bbf7d0', borderRadius: '6px', background: '#f0fdf4' }}>
@@ -169,7 +143,7 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
             </tr>
           </thead>
           <tbody>
-            {estimate.rate_snapshots && Object.entries(estimate.rate_snapshots).map(([code, val]: [string, any]) => (
+            {estimate.rate_snapshots && Object.entries(normalizeRoleSnapshot(estimate.rate_snapshots)).map(([code, val]) => (
               <tr key={code} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '6px 12px', fontFamily: 'monospace', fontWeight: 600 }}>{code}</td>
                 <td style={{ padding: '6px 12px' }}>{val.name || code}</td>
@@ -202,15 +176,15 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
               </tr>
             </thead>
             <tbody>
-              {estimate.modules.map((mod: any, mIdx: number) => (
+              {estimate.modules.map((mod: { name: string; total_hours?: number; total_cost?: number ; tasks: { name: string; hours_pm?: number; hours_web_dev?: number; hours_ui_ux?: number; hours_qc_doc?: number; hours_dev_ops?: number; total_hours?: number; total_cost?: number }[] }, mIdx: number) => (
                 <React.Fragment key={mIdx}>
                   <tr style={{ background: '#f9fafb', fontWeight: 700, borderBottom: '1px solid #e5e7eb' }}>
                     <td style={{ padding: '6px 12px' }}>{mod.name}</td>
                     <td colSpan={5}></td>
                     <td style={{ padding: '6px 12px', textAlign: 'center' }}>{mod.total_hours}h</td>
-                    <td style={{ padding: '6px 12px', textAlign: 'right' }}>{formatIDR(mod.total_cost)}</td>
+                    <td style={{ padding: '6px 12px', textAlign: 'right' }}>{formatIDR(mod.total_cost || 0)}</td>
                   </tr>
-                  {Array.isArray(mod.tasks) && mod.tasks.map((t: any, tIdx: number) => (
+                  {Array.isArray(mod.tasks) && mod.tasks.map((t, tIdx: number) => (
                     <tr key={tIdx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '4px 12px 4px 24px', color: '#4b5563' }}>• {t.name}</td>
                       <td style={{ padding: '4px 6px', textAlign: 'center' }}>{t.hours_pm || '-'}</td>
@@ -219,7 +193,7 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
                       <td style={{ padding: '4px 6px', textAlign: 'center' }}>{t.hours_qc_doc || '-'}</td>
                       <td style={{ padding: '4px 6px', textAlign: 'center' }}>{t.hours_dev_ops || '-'}</td>
                       <td style={{ padding: '4px 6px', textAlign: 'center', fontWeight: 600 }}>{t.total_hours}h</td>
-                      <td style={{ padding: '4px 12px', textAlign: 'right', fontWeight: 500 }}>{formatIDR(t.total_cost)}</td>
+                      <td style={{ padding: '4px 12px', textAlign: 'right', fontWeight: 500 }}>{formatIDR(t.total_cost || 0)}</td>
                     </tr>
                   ))}
                 </React.Fragment>
@@ -250,14 +224,14 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(estimate.maintenance_config.tasks) && estimate.maintenance_config.tasks.map((t: any, idx: number) => (
+              {Array.isArray(estimate.maintenance_config.tasks) && estimate.maintenance_config.tasks.map((t: { name: string; role_hours?: Record<string, number>; total_hours?: number; monthly_cost?: number }, idx: number) => (
                 <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '6px 12px', fontWeight: 500 }}>{t.name}</td>
                   <td style={{ padding: '6px 12px', color: '#4b5563' }}>
                     {t.role_hours ? Object.entries(t.role_hours).map(([k, v]) => `${k}: ${v}h`).join(', ') : '-'}
                   </td>
                   <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 600 }}>{t.total_hours}h</td>
-                  <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 600 }}>{formatIDR(t.monthly_cost)}</td>
+                  <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 600 }}>{formatIDR(t.monthly_cost || 0)}</td>
                 </tr>
               ))}
             </tbody>
@@ -282,7 +256,7 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
               </tr>
             </thead>
             <tbody>
-              {estimate.infrastructure_items.map((item: any, idx: number) => {
+              {estimate.infrastructure_items.map((item: { name: string; billing_type: string; quantity?: number; unit_cost?: number; period_count?: number; notes?: string }, idx: number) => {
                 const qty = Number(item.quantity || 1);
                 const cost = Number(item.unit_cost || 0);
                 const period = Number(item.period_count || 1);
@@ -326,7 +300,7 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
               </tr>
             </thead>
             <tbody>
-              {estimate.operational_items.map((item: any, idx: number) => {
+              {estimate.operational_items.map((item: { name: string; people_count?: number; days_count?: number; unit_cost_per_day?: number; unit_cost?: number; notes?: string }, idx: number) => {
                 const pax = Number(item.people_count || 1);
                 const days = Number(item.days_count || 1);
                 const rate = Number(item.unit_cost_per_day || item.unit_cost || 0);
@@ -374,6 +348,7 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
       {/* CSS for print media */}
       <style>{`
         @media print {
+          body > header { display: none !important; }
           @page {
             size: A4 portrait;
             margin: 15mm;

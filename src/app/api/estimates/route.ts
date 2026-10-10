@@ -137,8 +137,14 @@ export async function POST(req: Request) {
 
     if (project_id && project_id !== 'new') {
       const pId = parseInt(String(project_id), 10);
-      if (!isNaN(pId)) {
-        const pCheck = await client.query('SELECT id, name, company_id FROM projects WHERE id = $1', [pId]);
+      if (!Number.isSafeInteger(pId) || pId <= 0 || String(pId) !== String(project_id)) {
+        return NextResponse.json({ success: false, error: 'ID project tidak valid.' }, { status: 400 });
+      }
+      {
+        const pCheck = await client.query('SELECT id, name FROM projects WHERE id = $1 AND company_id = $2', [pId, company_id]);
+        if (pCheck.rows.length === 0) {
+          return NextResponse.json({ success: false, error: 'Project tidak ditemukan untuk perusahaan ini.' }, { status: 400 });
+        }
         if (pCheck.rows.length > 0) {
           resolvedProjectId = pCheck.rows[0].id;
           resolvedProjectName = pCheck.rows[0].name;

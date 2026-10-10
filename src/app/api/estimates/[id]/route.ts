@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { maintenanceRevisionInput } from '@/lib/revision-input';
 import { normalizeRoleSnapshot } from '@/lib/costing';
 
 export async function GET(
@@ -154,6 +155,7 @@ export async function PUT(
       revision_notes,
       status,
       modules = [],
+      maintenance_config,
       maintenance_tasks = [],
       maintenance_duration_months = 12,
       infrastructure_items = [],
@@ -219,10 +221,16 @@ export async function PUT(
     let maintenanceConfigData = null;
     let totalMaintenanceCost = 0;
     let totalMaintenanceHours = 0;
-    if (Array.isArray(maintenance_tasks) && maintenance_tasks.length > 0) {
+    const maintenanceInput = maintenanceRevisionInput({
+      maintenance_config, maintenance_tasks, maintenance_duration_months,
+    });
+    const normalizedMaintenanceTasks = Array.isArray(maintenanceInput.tasks)
+      ? maintenanceInput.tasks
+      : [];
+    if (normalizedMaintenanceTasks.length > 0) {
       const maintResult = calculateMaintenance({
-        duration_months: Number(maintenance_duration_months) || 12,
-        tasks: maintenance_tasks,
+        duration_months: Number(maintenanceInput.duration_months) || 12,
+        tasks: normalizedMaintenanceTasks,
       }, calcRates);
       maintenanceConfigData = maintResult;
       totalMaintenanceCost = maintResult.total_cost;

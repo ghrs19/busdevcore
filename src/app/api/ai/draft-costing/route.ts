@@ -63,6 +63,7 @@ if (typeof (globalThis as any).DOMMatrix === 'undefined') {
 }
 
 import { NextResponse } from 'next/server';
+import { parseDraftFormData, validateDraftUploads } from '@/lib/draft-upload';
 import pool from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
@@ -561,9 +562,17 @@ export async function POST(req: Request) {
   const tempFilesToClean: string[] = [];
 
   try {
-    const formData = await req.formData();
+    let formData: FormData;
+    try {
+      formData = await parseDraftFormData(req);
+    } catch (error) {
+      if (error instanceof RangeError) return NextResponse.json({ success: false, error: error.message }, { status: 413 });
+      throw error;
+    }
     const prompt = (formData.get('prompt') as string) || '';
     const files = formData.getAll('files') as File[];
+    const uploadError = validateDraftUploads(files);
+    if (uploadError) return NextResponse.json({ success: false, error: uploadError }, { status: 400 });
     const currentStateRaw = (formData.get('current_state') as string) || '';
     const chatHistoryRaw = (formData.get('chat_history') as string) || '';
 
@@ -771,17 +780,20 @@ Keluarkan HANYA JSON valid sesuai struktur berikut tanpa pembuka atau penutup ma
 
     // 4. Eksekusi Hermes busdev
     let draftResult;
+    let source: 'ai' | 'fallback' = 'ai';
     try {
       const hermesOutput = await executeHermes(systemPrompt);
       const rawJson = extractJson(hermesOutput);
       draftResult = normalizeDraft(rawJson, companies, projects, roles);
     } catch (llmError) {
       console.warn('Hermes execution warning, using intelligent fallback draft:', llmError);
+      source = 'fallback';
       draftResult = generateFallbackDraft(prompt, parsedDocumentTexts.join('\n'), companies, projects, roles);
     }
 
     return NextResponse.json({
       success: true,
+      source,
       draft: draftResult,
     });
   } catch (err: unknown) {

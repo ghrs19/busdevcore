@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3001",
     "lint": "eslint",
-    "test": "node --test src/lib/costing.test.ts",
+    "test": "node --test src/lib/costing.test.ts scripts/gaps.test.mjs scripts/version-diff.test.mjs",
     "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
