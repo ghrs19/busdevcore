@@ -235,14 +235,7 @@ function NavbarContent() {
               </button>
             </div>
           )}
-          <span className="badge badge-connected">
-            <span className="badge-dot" />
-            PostgreSQL Connected
-          </span>
-          <span className="badge badge-port">
-            <span className="badge-dot" />
-            Port 3001
-          </span>
+
         </div>
       </div>
     </header>
