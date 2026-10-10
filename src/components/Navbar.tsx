@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-function NavLinks() {
+function NavLinks({ role }: { role: string }) {
   const pathname = usePathname();
   const isDashboard = pathname === '/';
   const isNewEstimate = pathname === '/estimates/new';
@@ -49,7 +49,7 @@ function NavLinks() {
         <span>+ Buat Costing</span>
       </Link>
 
-      <Link
+      {role === 'admin' && <Link
         href="/master"
         className="pill-item"
         style={{
@@ -65,7 +65,7 @@ function NavLinks() {
         }}
       >
         <span>⚙️ Master Data</span>
-      </Link>
+      </Link>}
     </nav>
   );
 }
@@ -73,7 +73,8 @@ function NavbarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const [email, setEmail] = useState('');
-  useEffect(() => { fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => { if (d?.user) setEmail(d.user.email); }).catch(() => {}); }, []);
+  const [role, setRole] = useState('');
+  useEffect(() => { fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => { if (d?.user) { setEmail(d.user.email); setRole(d.user.role); } }).catch(() => {}); }, []);
   if (pathname === '/login' || pathname?.includes('/print')) {
     return null;
   }
@@ -162,7 +163,7 @@ function NavbarContent() {
 
         {/* Global Navigation Links */}
         <Suspense fallback={<nav style={{ height: '32px' }} />}>
-          <NavLinks />
+          <NavLinks role={role} />
         </Suspense>
 
         {/* Status Badges */}

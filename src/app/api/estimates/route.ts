@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { currentUser } from '@/lib/auth';
 import {
   calculateEstimate,
   DEFAULT_ROLE_RATES,
@@ -31,6 +32,8 @@ export async function GET() {
         e.billing_summary,
         e.created_at,
         e.updated_at,
+        u_creator.name AS creator_name, u_creator.email AS creator_email,
+        u_updater.name AS updater_name, u_updater.email AS updater_email,
         e.project_id,
         p.name as project_name,
         c.id as company_id,
@@ -64,6 +67,8 @@ export async function GET() {
       LEFT JOIN projects p ON e.project_id = p.id
       LEFT JOIN categories cat ON e.category_id = cat.id
       LEFT JOIN tags t ON e.tag_id = t.id
+      LEFT JOIN users u_creator ON e.created_by_user_id = u_creator.id
+      LEFT JOIN users u_updater ON e.updated_by_user_id = u_updater.id
       WHERE e.id IN (
         SELECT id FROM (
           SELECT id,
@@ -97,6 +102,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
+    const user = await currentUser();
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const body = await req.json();
     const {
       company_id,
@@ -315,8 +322,8 @@ export async function POST(req: Request) {
 
     const estInsert = await client.query(
       `INSERT INTO project_estimates 
-        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes, maintenance_config, infrastructure_items, operational_items, billing_summary)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        (title, company_id, project_id, service_type_id, category_id, tag_id, status, rate_snapshots, total_hours, total_cost, notes, maintenance_config, infrastructure_items, operational_items, billing_summary, created_by_user_id, updated_by_user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
        RETURNING id, title, total_hours, total_cost, status, created_at, maintenance_config, infrastructure_items, operational_items, billing_summary`,
       [
         calculated.title,
@@ -333,7 +340,7 @@ export async function POST(req: Request) {
         calculated.maintenance ? JSON.stringify(calculated.maintenance) : null,
         calculated.infrastructure ? JSON.stringify(calculated.infrastructure.items) : null,
         calculated.operational ? JSON.stringify(calculated.operational.items) : null,
-        JSON.stringify(calculated.billing_summary),
+        JSON.stringify(calculated.billing_summary), user.id,
       ]
     );
 

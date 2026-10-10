@@ -37,6 +37,8 @@ interface VersionHistoryItem {
   total_cost: number | string;
   revision_notes: string | null;
   created_at: string;
+  creator_name?: string | null;
+  creator_email?: string | null;
 }
 
 interface EstimateDetail {
@@ -55,6 +57,10 @@ interface EstimateDetail {
   revision_notes?: string | null;
   created_at: string;
   updated_at?: string;
+  creator_name?: string | null;
+  creator_email?: string | null;
+  updater_name?: string | null;
+  updater_email?: string | null;
   total_hours: number | string;
   total_cost: number | string;
   notes?: string | null;
@@ -470,6 +476,16 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Jam Kerja Teknis</div>
               <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '3px' }}>
                 {Number(estimate.total_hours)} Jam
+              </div>
+            </div>
+            <div className="linear-card-elevated" style={{ padding: '12px 14px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Dibuat oleh</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '3px' }}>
+                {estimate.creator_name || '-'}{estimate.creator_email ? ` (${estimate.creator_email})` : ''}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '6px' }}>Terakhir direvisi oleh</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '3px' }}>
+                {estimate.updater_name || '-'}{estimate.updater_email ? ` (${estimate.updater_email})` : ''}
               </div>
             </div>
           </div>
@@ -914,6 +930,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                   <tr>
                     <th style={{ width: '80px', textAlign: 'center' }}>VERSI</th>
                     <th>DOKUMEN & CATATAN PERUBAHAN</th>
+                    <th>Dibuat/Direvisi Oleh</th>
                     <th style={{ width: '130px', textAlign: 'center' }}>TANGGAL</th>
                     <th style={{ width: '110px', textAlign: 'right' }}>JAM KERJA</th>
                     <th style={{ width: '160px', textAlign: 'right' }}>TOTAL BIAYA</th>
@@ -960,6 +977,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                             </div>
                           )}
                         </td>
+                        <td style={{ fontSize: '11px' }}>{verItem.creator_name || '-'}{verItem.creator_email ? ` (${verItem.creator_email})` : ''}</td>
                         <td style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-secondary)' }}>
                           {new Date(verItem.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>

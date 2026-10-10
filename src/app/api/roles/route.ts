@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { currentUser } from '@/lib/auth';
+const forbidden = { error: 'Hanya Administrator yang memiliki akses ke modul ini.' };
+async function adminOnly() { return (await currentUser())?.role === 'admin'; }
 
 export async function GET(req: Request) {
   try {
@@ -26,6 +29,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  if (!await adminOnly()) return NextResponse.json(forbidden, { status: 403 });
   try {
     const body = await req.json();
     const { code, name, default_hourly_rate, is_active } = body;
@@ -76,6 +80,7 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  if (!await adminOnly()) return NextResponse.json(forbidden, { status: 403 });
   try {
     const body = await req.json();
     const { id, code, name, default_hourly_rate, is_active } = body;
@@ -129,6 +134,7 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  if (!await adminOnly()) return NextResponse.json(forbidden, { status: 403 });
   try {
     const { searchParams } = new URL(req.url);
     const idParam = searchParams.get('id');

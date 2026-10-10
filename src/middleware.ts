@@ -17,6 +17,16 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/login' || pathname.startsWith('/api/auth/') || pathname.startsWith('/_next/') || /\.(?:ico|png|jpg|jpeg|svg|css|js|woff2?)$/i.test(pathname)) return NextResponse.next();
   const allowed = pathname === '/' || pathname.startsWith('/estimates') || pathname.startsWith('/master');
   if (allowed && !await valid(request.cookies.get('busdev_session')?.value)) return NextResponse.redirect(new URL('/login', request.url));
+  if (pathname === '/master' || pathname.startsWith('/master/')) {
+    const token = request.cookies.get('busdev_session')?.value;
+    if (!token || !await valid(token)) return NextResponse.redirect(new URL('/login', request.url));
+    try {
+      const url = new URL('/api/auth/me', request.url);
+      const response = await fetch(url, { headers: { cookie: `busdev_session=${token}` } });
+      const result = await response.json();
+      if (result?.user?.role !== 'admin') return NextResponse.redirect(new URL('/?restricted=1', request.url));
+    } catch { return NextResponse.redirect(new URL('/?restricted=1', request.url)); }
+  }
   return NextResponse.next();
 }
 export const config = { matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'] };

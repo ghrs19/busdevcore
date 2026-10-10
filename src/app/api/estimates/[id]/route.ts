@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { currentUser } from '@/lib/auth';
 import { maintenanceRevisionInput } from '@/lib/revision-input';
 import { normalizeRoleSnapshot } from '@/lib/costing';
 
@@ -17,6 +18,8 @@ export async function GET(
     const estRes = await pool.query(`
       SELECT 
         e.*,
+        u_creator.name AS creator_name, u_creator.email AS creator_email,
+        u_updater.name AS updater_name, u_updater.email AS updater_email,
         p.name as project_name,
         c.name as company_name,
         c.email as company_email,
@@ -44,6 +47,8 @@ export async function GET(
       LEFT JOIN projects p ON e.project_id = p.id
       LEFT JOIN categories cat ON e.category_id = cat.id
       LEFT JOIN tags t ON e.tag_id = t.id
+      LEFT JOIN users u_creator ON e.created_by_user_id = u_creator.id
+      LEFT JOIN users u_updater ON e.updated_by_user_id = u_updater.id
       WHERE e.id = $1
     `, [estimateId]);
 
@@ -81,8 +86,9 @@ export async function GET(
     // Fetch all versions in this chain (root parent or siblings)
     const rootId = estimate.parent_id ? estimate.parent_id : estimate.id;
     const historyRes = await pool.query(`
-      SELECT id, version, title, status, total_hours, total_cost, revision_notes, created_at, updated_at
-      FROM project_estimates
+      SELECT pe.id, pe.version, pe.title, pe.status, pe.total_hours, pe.total_cost, pe.revision_notes, pe.created_at, pe.updated_at,
+        u.name AS creator_name, u.email AS creator_email
+      FROM project_estimates pe LEFT JOIN users u ON pe.created_by_user_id = u.id
       WHERE id = $1 OR parent_id = $1 OR id = $2 OR parent_id = $2
       ORDER BY version DESC, id DESC
     `, [rootId, estimateId]);
@@ -142,6 +148,8 @@ export async function PUT(
 ) {
   const client = await pool.connect();
   try {
+    const user = await currentUser();
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
     const estimateId = parseInt(id, 10);
     if (isNaN(estimateId)) {
@@ -286,12 +294,12 @@ export async function PUT(
           title, company_id, project_id, service_type_id, category_id, tag_id,
           status, rate_snapshots, total_hours, total_cost, notes,
           maintenance_config, infrastructure_items, operational_items, billing_summary,
-          parent_id, version, revision_notes, created_at, updated_at
+          parent_id, version, revision_notes, created_at, updated_at, created_by_user_id, updated_by_user_id
         ) VALUES (
           $1, $2, $3, $4, $5, $6,
           'DRAFT', $7::jsonb, $8, $9, $10,
           $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb,
-          $15, $16, $17, NOW(), NOW()
+          $15, $16, $17, NOW(), NOW(), $18, $18
         ) RETURNING id
       `, [
         title || newTitle,
@@ -310,7 +318,7 @@ export async function PUT(
         JSON.stringify(billingSummary),
         rootParentId,
         nextVersion,
-        revision_notes || `Revisi versi v${nextVersion}`
+        revision_notes || `Revisi versi v${nextVersion}`, user.id
       ]);
 
       targetEstimateId = insertRes.rows[0].id;
@@ -331,6 +339,7 @@ export async function PUT(
           billing_summary = $10::jsonb,
           tag_id = $11,
           updated_at = NOW()
+          , updated_by_user_id = $13
         WHERE id = $12
       `, [
         title || null,
@@ -344,7 +353,7 @@ export async function PUT(
         opItemsData ? JSON.stringify(opItemsData.items) : null,
         JSON.stringify(billingSummary),
         tag_id || null,
-        estimateId,
+        estimateId, user.id,
       ]);
     }
 
