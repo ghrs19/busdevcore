@@ -247,14 +247,7 @@ function CommercialProposalPrintViewContent() {
               <span className="meta-label">No. Dokumen</span>
               <span className="meta-value font-mono">{proposal.proposal_number}</span>
             </div>
-            {proposal.revision_notes && (
-              <div className="meta-row">
-                <span className="meta-label">Catatan Revisi</span>
-                <span className="meta-value" style={{ fontSize: '10.5px', color: '#4338ca' }}>
-                  {proposal.revision_notes}
-                </span>
-              </div>
-            )}
+
             <div className="meta-row">
               <span className="meta-label">Tanggal Terbit</span>
               <span className="meta-value">{dateFormatted}</span>
@@ -284,9 +277,9 @@ function CommercialProposalPrintViewContent() {
           <div className="info-col">
             <div className="caption-label">Informasi Proyek:</div>
             <div className="party-name">{proposal.project_name}</div>
-            <div className="party-detail">
-              Ref. Baseline: <span className="font-mono">{proposal.estimate_title} (v{proposal.estimate_version})</span>
-            </div>
+            {proposal.project_description && (
+              <div className="party-detail">{proposal.project_description}</div>
+            )}
             {proposal.creator_name && (
               <div className="party-subinfo">Disiapkan oleh: {proposal.creator_name}</div>
             )}
