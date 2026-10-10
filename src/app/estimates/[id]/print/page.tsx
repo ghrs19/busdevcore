@@ -77,6 +77,18 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
     <div className="print-container" style={{ background: '#ffffff', color: '#111827', minHeight: '100vh', padding: '32px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* Internal Confidential Banner */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #111827', paddingBottom: '16px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '8px' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-pentacode-pdf.png"
+            alt="PT Penta Code Digital"
+            style={{ height: '28px', width: 'auto', objectFit: 'contain' }}
+          />
+          <div style={{ borderLeft: '2px solid #e5e7eb', paddingLeft: '10px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#111827', letterSpacing: '0.04em' }}>PT PENTA CODE DIGITAL</div>
+            <div style={{ fontSize: '9.5px', color: '#6b7280' }}>Engineering & Costing Department</div>
+          </div>
+        </div>
         <div>
           <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', backgroundColor: '#fee2e2', color: '#b91c1c', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
             CONFIDENTIAL - INTERNAL COSTING SHEET

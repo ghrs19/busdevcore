@@ -219,10 +219,10 @@ function CommercialProposalPrintViewContent() {
           <div className="brand-group">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-pentacode.png"
+              src="/logo-pentacode-pdf.png"
               alt="PT Penta Code Digital"
               style={{
-                height: '38px',
+                height: '32px',
                 width: 'auto',
                 objectFit: 'contain',
                 display: 'block',
