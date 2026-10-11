@@ -6,6 +6,11 @@ import {
   ExclamationTriangleIcon,
   ArrowsRightLeftIcon,
   CheckIcon,
+  BanknotesIcon,
+  ArrowTrendingUpIcon,
+  BriefcaseIcon,
+  ClockIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 
@@ -172,6 +177,27 @@ const formatIDR = (val: number | string) => {
 
 export default function HistoricalEstimatesPage() {
   const router = useRouter();
+  // Executive Dashboard Metrics
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
+
+  useEffect(() => {
+    async function fetchDashboardMetrics() {
+      try {
+        const res = await fetch('/api/dashboard/overview');
+        const data = await res.json();
+        if (data.success && data.metrics) {
+          setMetrics(data.metrics);
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard metrics:', err);
+      } finally {
+        setLoadingMetrics(false);
+      }
+    }
+    fetchDashboardMetrics();
+  }, []);
+
   const [estimates, setEstimates] = useState<SavedEstimate[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);

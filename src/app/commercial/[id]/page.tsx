@@ -2,6 +2,8 @@
 
 import {
   ArrowDownTrayIcon,
+  PaperClipIcon,
+  ArrowUpTrayIcon,
   PrinterIcon,
   PencilSquareIcon,
   BuildingOfficeIcon,
@@ -100,6 +102,9 @@ interface ContractDocument {
   notes?: string;
   creator_name?: string;
   created_at: string;
+  file_url?: string;
+  file_name?: string;
+  file_size?: number;
 }
 
 interface AuditLogItem {
@@ -222,6 +227,34 @@ function CommercialProposalDetailContent() {
       alert('Terjadi kesalahan koneksi');
     } finally {
       setChangingStatus(false);
+    }
+  }
+
+  const [uploadingDocId, setUploadingDocId] = useState<number | null>(null);
+
+  async function handleUploadContractFile(docId: number, file: File) {
+    if (!proposal) return;
+    setUploadingDocId(docId);
+    try {
+      const formData = new FormData();
+      formData.append('document_id', String(docId));
+      formData.append('file', file);
+
+      const res = await fetch(`/api/commercial/${proposal.id}/documents/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('File dokumen berhasil diunggah ke MinIO Object Storage!');
+        loadAllData();
+      } else {
+        alert(data.error || 'Gagal mengunggah file');
+      }
+    } catch {
+      alert('Gagal terhubung ke server');
+    } finally {
+      setUploadingDocId(null);
     }
   }
 
@@ -969,23 +1002,77 @@ function CommercialProposalDetailContent() {
                             </span>
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <a
-                              href={`/api/contract-documents/${doc.id}/docx`}
-                              download
-                              className="btn-secondary"
-                              style={{
-                                padding: '4px 10px',
-                                fontSize: '11px',
-                                textDecoration: 'none',
-                                color: '#38bdf8',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                            >
-                              <ArrowDownTrayIcon style={{ width: "15px", height: "15px" }} />
-                              <span>Word (.docx)</span>
-                            </a>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <a
+                                href={`/api/contract-documents/${doc.id}/docx`}
+                                download
+                                className="btn-secondary"
+                                style={{
+                                  padding: '4px 10px',
+                                  fontSize: '11px',
+                                  textDecoration: 'none',
+                                  color: '#38bdf8',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                                title="Download Draf Word Resmi"
+                              >
+                                <ArrowDownTrayIcon style={{ width: "14px", height: "14px" }} />
+                                <span>Draf .docx</span>
+                              </a>
+
+                              {/* Upload / View Signed File */}
+                              {doc.file_url ? (
+                                <a
+                                  href={doc.file_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="btn-secondary"
+                                  style={{
+                                    padding: '4px 10px',
+                                    fontSize: '11px',
+                                    textDecoration: 'none',
+                                    color: '#10b981',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                                    background: 'rgba(16, 185, 129, 0.08)',
+                                  }}
+                                  title={`Buka file tersimpan: ${doc.file_name || 'Dokumen Bertanda Tangan'}`}
+                                >
+                                  <PaperClipIcon style={{ width: '13px', height: '13px' }} />
+                                  <span>Lihat Scan TTD</span>
+                                </a>
+                              ) : (
+                                <label
+                                  className="btn-secondary"
+                                  style={{
+                                    padding: '4px 10px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    color: 'var(--text-primary)',
+                                  }}
+                                  title="Upload file hasil scan bertanda tangan / bermeterai ke MinIO"
+                                >
+                                  <ArrowUpTrayIcon style={{ width: '13px', height: '13px' }} />
+                                  <span>{uploadingDocId === doc.id ? 'Mengunggah...' : 'Upload Scan TTD'}</span>
+                                  <input
+                                    type="file"
+                                    accept=".pdf,.png,.jpg,.jpeg,.docx"
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleUploadContractFile(doc.id, file);
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

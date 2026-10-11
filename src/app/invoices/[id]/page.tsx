@@ -6,6 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   PrinterIcon,
+  PaperClipIcon,
+  ArrowUpTrayIcon,
   ArrowLeftIcon,
   PencilSquareIcon,
   CheckCircleIcon,
@@ -31,6 +33,8 @@ interface InvoiceDetail {
   paid_date?: string;
   paid_amount?: number | string;
   proof_reference?: string;
+  proof_file_url?: string;
+  proof_file_name?: string;
   notes?: string;
   billing_type: 'milestone' | 'recurring_monthly';
   phase: string;
@@ -125,6 +129,33 @@ function InvoiceDetailPageInner() {
       notes: invoice.notes || '',
     });
     setIsEditing(true);
+  };
+
+  const [uploadingProof, setUploadingProof] = useState(false);
+
+  const handleUploadProofFile = async (file: File) => {
+    if (!invoice) return;
+    setUploadingProof(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`/api/invoices/${invoice.id}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Bukti pembayaran berhasil diunggah ke MinIO Storage!');
+        loadDetail();
+      } else {
+        alert(data.error || 'Gagal mengunggah file bukti');
+      }
+    } catch {
+      alert('Gagal terhubung ke server');
+    } finally {
+      setUploadingProof(false);
+    }
   };
 
   const handleSaveModal = async (e: React.FormEvent) => {
@@ -364,13 +395,65 @@ function InvoiceDetailPageInner() {
               )}
 
               {invoice.proof_reference && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
                   <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Ref. Transfer Bank</span>
                   <span style={{ fontSize: '12.5px', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
                     {invoice.proof_reference}
                   </span>
                 </div>
               )}
+
+              {/* Bukti Fisik / Scan Bukti Bayar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Bukti Struk / Slip Transfer</span>
+                {invoice.proof_file_url ? (
+                  <a
+                    href={invoice.proof_file_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '11.5px',
+                      textDecoration: 'none',
+                      color: '#10b981',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                    }}
+                    title={`Lihat file: ${invoice.proof_file_name || 'Bukti Transfer'}`}
+                  >
+                    <PaperClipIcon style={{ width: '13px', height: '13px' }} />
+                    <span>Lihat Bukti Bayar</span>
+                  </a>
+                ) : (
+                  <label
+                    className="btn-secondary"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '11.5px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Upload slip transfer / bukti setor ke MinIO Storage"
+                  >
+                    <ArrowUpTrayIcon style={{ width: '13px', height: '13px' }} />
+                    <span>{uploadingProof ? 'Mengunggah...' : 'Upload Slip Bank'}</span>
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleUploadProofFile(file);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
             </div>
           </div>
 

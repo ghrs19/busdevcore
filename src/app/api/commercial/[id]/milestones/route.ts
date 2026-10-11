@@ -192,9 +192,11 @@ export async function PATCH(
         paid_amount = $6,
         proof_reference = $7,
         notes = $8,
-        updated_by_user_id = $9,
+        proof_file_url = COALESCE($9, proof_file_url),
+        proof_file_name = COALESCE($10, proof_file_name),
+        updated_by_user_id = $11,
         updated_at = NOW()
-      WHERE id = $10 AND proposal_id = $11
+      WHERE id = $12 AND proposal_id = $13
       RETURNING *
     `, [
       billing_status || null,
@@ -205,6 +207,8 @@ export async function PATCH(
       Number(paid_amount) || 0,
       proof_reference || null,
       notes || null,
+      body.proof_file_url || null,
+      body.proof_file_name || null,
       user.id,
       milestone_id,
       proposalId,

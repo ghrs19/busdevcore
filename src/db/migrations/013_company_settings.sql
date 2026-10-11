@@ -19,3 +19,17 @@ CREATE TABLE IF NOT EXISTS company_settings (
 INSERT INTO company_settings (id, company_name) 
 VALUES (1, 'PT PENTA CODE DIGITAL')
 ON CONFLICT (id) DO NOTHING;
+
+-- Document attachments for signed files and payment receipts
+ALTER TABLE contract_documents
+  ADD COLUMN IF NOT EXISTS file_url TEXT,
+  ADD COLUMN IF NOT EXISTS file_name VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS file_size INT,
+  ADD COLUMN IF NOT EXISTS mime_type VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS uploaded_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE payment_milestone_invoices
+  ADD COLUMN IF NOT EXISTS proof_file_url TEXT,
+  ADD COLUMN IF NOT EXISTS proof_file_name VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS proof_file_size INT,
+  ADD COLUMN IF NOT EXISTS proof_mime_type VARCHAR(100);
