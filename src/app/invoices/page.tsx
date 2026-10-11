@@ -154,7 +154,7 @@ export default function InvoicesTrackerPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px 20px' }}>
+      <main style={{ maxWidth: '1440px', margin: '0 auto', padding: '28px 24px' }}>
         {/* Top Header */}
         <div
           style={{
@@ -292,18 +292,18 @@ export default function InvoicesTrackerPage() {
         {/* Invoices List Table */}
         <div className="linear-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <table className="pro-table">
+            <table className="pro-table" style={{ width: '100%', minWidth: '1180px' }}>
               <thead>
                 <tr>
-                  <th style={{ width: '130px', textAlign: 'left' }}>Proposal</th>
-                  <th style={{ minWidth: '180px', textAlign: 'left' }}>Klien & Proyek</th>
-                  <th style={{ width: '110px', textAlign: 'center' }}>Fase / Tipe</th>
-                  <th style={{ width: '220px', textAlign: 'left' }}>Uraian Penagihan</th>
-                  <th style={{ width: '135px', textAlign: 'right' }}>Nominal</th>
-                  <th style={{ width: '150px', textAlign: 'center' }}>Status Penagihan</th>
-                  <th style={{ width: '125px', textAlign: 'left' }}>No. Invoice</th>
-                  <th style={{ width: '110px', textAlign: 'left' }}>Jatuh Tempo</th>
-                  <th style={{ width: '85px', textAlign: 'center' }}>Aksi</th>
+                  <th style={{ width: '150px', textAlign: 'left', padding: '16px 20px' }}>No. Dokumen</th>
+                  <th style={{ minWidth: '220px', textAlign: 'left', padding: '16px 20px' }}>Klien & Proyek</th>
+                  <th style={{ width: '130px', textAlign: 'center', padding: '16px 14px' }}>Model</th>
+                  <th style={{ minWidth: '260px', textAlign: 'left', padding: '16px 20px' }}>Uraian Milestone / Termin</th>
+                  <th style={{ width: '160px', textAlign: 'right', padding: '16px 20px' }}>Nominal (IDR)</th>
+                  <th style={{ width: '160px', textAlign: 'center', padding: '16px 14px' }}>Status Penagihan</th>
+                  <th style={{ width: '170px', textAlign: 'left', padding: '16px 16px' }}>No. Invoice Resmi</th>
+                  <th style={{ width: '130px', textAlign: 'left', padding: '16px 16px' }}>Jatuh Tempo</th>
+                  <th style={{ width: '120px', textAlign: 'center', padding: '16px 16px' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -328,92 +328,134 @@ export default function InvoicesTrackerPage() {
                     const isRecurring = inv.billing_type === 'recurring_monthly';
 
                     return (
-                      <tr key={inv.id}>
-                        <td>
+                      <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
                           <Link
                             href={`/commercial/${inv.proposal_id}`}
                             style={{
-                              color: 'var(--accent-hover)',
+                              color: '#a5b4fc',
                               fontWeight: 700,
                               textDecoration: 'none',
                               fontFamily: 'var(--font-mono)',
-                              fontSize: '12.5px',
+                              fontSize: '13px',
+                              display: 'inline-block',
                             }}
+                            title="Buka Dokumen Proposal Asal"
                           >
-                            {inv.proposal_number} v{inv.proposal_version}
+                            {inv.proposal_number}
                           </Link>
+                          <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                            Versi {inv.proposal_version}
+                          </div>
                         </td>
-                        <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '13px' }}>
+
+                        <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '13.5px', letterSpacing: '-0.01em' }}>
                             {inv.company_name}
                           </div>
-                          <div style={{ fontSize: '11.5px', color: 'var(--text-tertiary)' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '3px', lineHeight: 1.4 }}>
                             {inv.project_name}
                           </div>
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+
+                        <td style={{ padding: '18px 14px', textAlign: 'center', verticalAlign: 'top' }}>
                           <span
                             className="linear-badge"
                             style={{
                               fontSize: '10.5px',
                               fontWeight: 700,
-                              padding: '2px 6px',
-                              background: isRecurring ? 'rgba(168, 85, 247, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              background: isRecurring ? 'rgba(168, 85, 247, 0.12)' : 'rgba(56, 189, 248, 0.12)',
                               color: isRecurring ? '#c084fc' : '#38bdf8',
                               border: `1px solid ${isRecurring ? 'rgba(168, 85, 247, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
                             }}
                           >
-                            {isRecurring ? 'Retainer Mnt' : 'Termin Dev'}
+                            {isRecurring ? 'Retainer' : 'Milestone'}
                           </span>
                         </td>
-                        <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '12.5px' }}>
-                            {inv.milestone_name} {inv.percent > 0 ? `(${inv.percent}%)` : ''}
+
+                        <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '13px' }}>
+                            {inv.milestone_name}
+                            {inv.percent > 0 && (
+                              <span style={{ color: 'var(--text-tertiary)', fontWeight: 500, marginLeft: '6px', fontSize: '12px' }}>
+                                ({inv.percent}%)
+                              </span>
+                            )}
                           </div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                            {inv.coverage_period ? `Periode: ${inv.coverage_period}` : (inv.trigger_condition || '-')}
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-tertiary)', marginTop: '4px', lineHeight: 1.45 }}>
+                            {inv.coverage_period ? `Cakupan: ${inv.coverage_period}` : (inv.trigger_condition || '-')}
                           </div>
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: isRecurring ? '#c084fc' : '#10b981', fontFamily: 'var(--font-mono)' }}>
-                          {formatIDR(inv.amount)}
+
+                        <td style={{ padding: '18px 20px', textAlign: 'right', verticalAlign: 'top' }}>
+                          <div
+                            className="font-mono-numbers"
+                            style={{
+                              fontWeight: 800,
+                              fontSize: '14.5px',
+                              color: isRecurring ? '#c084fc' : '#10b981',
+                              letterSpacing: '0.02em',
+                            }}
+                          >
+                            {formatIDR(inv.amount)}
+                          </div>
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+
+                        <td style={{ padding: '18px 14px', textAlign: 'center', verticalAlign: 'top' }}>
                           <span
                             className="linear-badge"
                             style={{
                               fontSize: '11px',
                               fontWeight: 700,
-                              padding: '3px 8px',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
                               background: sb.bg,
                               color: sb.text,
                               border: `1px solid ${sb.border}`,
+                              display: 'inline-block',
                             }}
                           >
                             {sb.label}
                           </span>
                         </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
-                          <Link
-                            href={`/invoices/${inv.id}`}
-                            style={{
-                              color: inv.invoice_number ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                              textDecoration: 'none',
-                              fontWeight: inv.invoice_number ? 600 : 400,
-                            }}
-                          >
-                            {inv.invoice_number || '(Draft)'}
-                          </Link>
+
+                        <td style={{ padding: '18px 16px', verticalAlign: 'top' }}>
+                          {inv.invoice_number ? (
+                            <Link
+                              href={`/invoices/${inv.id}`}
+                              style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '12.5px',
+                                color: 'var(--text-primary)',
+                                textDecoration: 'none',
+                                fontWeight: 700,
+                              }}
+                              title="Buka Detail Invoice"
+                            >
+                              {inv.invoice_number}
+                            </Link>
+                          ) : (
+                            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+                              (Belum Terbit)
+                            </span>
+                          )}
                         </td>
-                        <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                          {dueDateStr}
+
+                        <td style={{ padding: '18px 16px', verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '12.5px', color: inv.due_date ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontWeight: inv.due_date ? 500 : 400 }}>
+                            {dueDateStr}
+                          </div>
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+
+                        <td style={{ padding: '18px 16px', textAlign: 'center', verticalAlign: 'top' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                             <Link
                               href={`/invoices/${inv.id}`}
                               className="btn-secondary"
-                              style={{ padding: '4px 8px', fontSize: '11.5px', textDecoration: 'none', color: 'var(--text-primary)' }}
-                              title="Buka Detail Invoice"
+                              style={{ padding: '5px 10px', fontSize: '12px', textDecoration: 'none', borderRadius: '6px', color: 'var(--text-primary)' }}
+                              title="Buka Detail & Cetak Invoice"
                             >
                               Detail
                             </Link>
@@ -421,10 +463,10 @@ export default function InvoicesTrackerPage() {
                               type="button"
                               onClick={() => openEditModal(inv)}
                               className="btn-secondary"
-                              style={{ padding: '4px 6px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center' }}
+                              style={{ padding: '5px 8px', fontSize: '12px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center' }}
                               title="Update Status Cepat"
                             >
-                              <PencilSquareIcon style={{ width: '13px', height: '13px' }} />
+                              <PencilSquareIcon style={{ width: '14px', height: '14px' }} />
                             </button>
                           </div>
                         </td>
