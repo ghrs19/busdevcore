@@ -19,8 +19,14 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'ID proposal tidak valid' }, { status: 400 });
     }
 
-    // 1. Ambil data proposal
-    const propRes = await pool.query(`SELECT id, proposal_number, payment_terms FROM commercial_proposals WHERE id = $1`, [proposalId]);
+    // 1. Ambil data proposal beserta estimasi asalnya
+    const propRes = await pool.query(`
+      SELECT cp.*, pe.maintenance_config, pe.infrastructure_items, pe.billing_summary
+      FROM commercial_proposals cp
+      LEFT JOIN project_estimates pe ON cp.estimate_id = pe.id
+      WHERE cp.id = $1
+    `, [proposalId]);
+
     if (propRes.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Proposal tidak ditemukan' }, { status: 404 });
     }
@@ -28,15 +34,15 @@ export async function GET(
     const proposal = propRes.rows[0];
     const terms = Array.isArray(proposal.payment_terms) ? proposal.payment_terms : [];
 
-    // 2. Sync / ensure milestones exist in payment_milestone_invoices
+    // 2. Sync Milestone Fase 1 (Development)
     for (let i = 0; i < terms.length; i++) {
       const term = terms[i];
       const termIdx = i + 1;
       await pool.query(`
         INSERT INTO payment_milestone_invoices (
-          proposal_id, term_index, milestone_name, percent, amount, trigger_condition
-        ) VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (proposal_id, term_index) DO UPDATE
+          proposal_id, billing_type, phase, term_index, milestone_name, percent, amount, trigger_condition
+        ) VALUES ($1, 'milestone', 'DEVELOPMENT', $2, $3, $4, $5, $6)
+        ON CONFLICT (proposal_id, billing_type, term_index) DO UPDATE
         SET milestone_name = EXCLUDED.milestone_name,
             percent = EXCLUDED.percent,
             amount = EXCLUDED.amount,
@@ -44,16 +50,92 @@ export async function GET(
       `, [proposalId, termIdx, term.milestone_name, term.percent, term.amount, term.trigger_condition]);
     }
 
-    // 3. Fetch current status records
+    // 3. Sync Recurring Fase 2 (Maintenance & Cloud Retainer 1 Tahun / durasi tertentu)
+    const mntConfig = proposal.maintenance_config || {};
+    let durationMonths = parseInt(mntConfig.duration_months || 0, 10);
+    const monthlyMaintenanceCost = parseFloat(mntConfig.monthly_cost || 0);
+
+    // Ambil infra bulanan
+    let monthlyInfraCost = 0;
+    if (Array.isArray(proposal.infrastructure_items)) {
+      for (const item of proposal.infrastructure_items) {
+        if (item.billing_type === 'MONTHLY') {
+          monthlyInfraCost += (parseFloat(item.unit_cost || 0) * (parseInt(item.quantity || 1, 10)));
+        } else if (item.billing_type === 'YEARLY') {
+          monthlyInfraCost += ((parseFloat(item.unit_cost || 0) * (parseInt(item.quantity || 1, 10))) / 12);
+        }
+      }
+    }
+
+    // Jika maintenance tidak set durasi tapi ada infra rutin bulanan, defaultkan 12 bulan (1 tahun)
+    if (durationMonths <= 0 && monthlyInfraCost > 0) {
+      durationMonths = 12;
+    }
+
+    const marginPct = parseFloat(proposal.margin_percent || 0);
+    const multiplier = 1 + (marginPct / 100);
+
+    const billedMonthlyMnt = Math.round(monthlyMaintenanceCost * multiplier);
+    const billedMonthlyInfra = Math.round(monthlyInfraCost * multiplier);
+    const totalMonthlyBilled = billedMonthlyMnt + billedMonthlyInfra;
+
+    if (durationMonths > 0 && totalMonthlyBilled > 0) {
+      const baseDate = new Date(proposal.created_at || new Date());
+      baseDate.setMonth(baseDate.getMonth() + 2); // Mulai bulan ke-2 atau setelah dev
+
+      for (let m = 1; m <= durationMonths; m++) {
+        const schedDate = new Date(baseDate);
+        schedDate.setMonth(baseDate.getMonth() + (m - 1));
+        schedDate.setDate(5); // Due date tgl 5 tiap bulan
+
+        const monthName = schedDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+        const milestoneTitle = `Retainer Bulan ${m} (${monthName}) - Mnt & Cloud`;
+        const coverage = `01 - ${new Date(schedDate.getFullYear(), schedDate.getMonth() + 1, 0).getDate()} ${monthName}`;
+        const condition = `Jasa Pemeliharaan Sistem & Alokasi Cloud Hosting (${monthName})`;
+
+        await pool.query(`
+          INSERT INTO payment_milestone_invoices (
+            proposal_id, billing_type, phase, term_index, period_month, coverage_period,
+            milestone_name, percent, amount, trigger_condition, due_date
+          ) VALUES ($1, 'recurring_monthly', 'POST_LAUNCH_RETAINER', $2, $3, $4, $5, 0, $6, $7, $8)
+          ON CONFLICT (proposal_id, billing_type, term_index) DO UPDATE
+          SET milestone_name = EXCLUDED.milestone_name,
+              period_month = EXCLUDED.period_month,
+              coverage_period = EXCLUDED.coverage_period,
+              amount = EXCLUDED.amount,
+              trigger_condition = EXCLUDED.trigger_condition
+        `, [
+          proposalId,
+          m,
+          m,
+          coverage,
+          milestoneTitle,
+          totalMonthlyBilled,
+          condition,
+          schedDate.toISOString().split('T')[0]
+        ]);
+      }
+    }
+
+    // 4. Fetch all schedule records
     const res = await pool.query(`
       SELECT pmi.*, u.name as updated_by_name
       FROM payment_milestone_invoices pmi
       LEFT JOIN users u ON pmi.updated_by_user_id = u.id
       WHERE pmi.proposal_id = $1
-      ORDER BY pmi.term_index ASC
+      ORDER BY 
+        CASE WHEN pmi.billing_type = 'milestone' THEN 1 ELSE 2 END ASC,
+        pmi.term_index ASC
     `, [proposalId]);
 
-    return NextResponse.json({ success: true, milestones: res.rows });
+    return NextResponse.json({
+      success: true,
+      milestones: res.rows.filter(r => r.billing_type === 'milestone'),
+      recurring: res.rows.filter(r => r.billing_type === 'recurring_monthly'),
+      has_recurring: durationMonths > 0 && totalMonthlyBilled > 0,
+      monthly_recurring_rate: totalMonthlyBilled,
+      duration_months: durationMonths,
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Database error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
@@ -137,6 +219,7 @@ export async function PATCH(
       action: 'INVOICE_STATUS_UPDATE',
       details: {
         milestone: updated.milestone_name,
+        billing_type: updated.billing_type,
         term_index: updated.term_index,
         billing_status: updated.billing_status,
         invoice_number: updated.invoice_number,

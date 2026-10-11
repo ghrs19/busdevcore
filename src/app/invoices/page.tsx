@@ -9,12 +9,19 @@ import {
   ExclamationCircleIcon,
   PencilSquareIcon,
   BuildingOfficeIcon,
+  ArrowPathIcon,
+  SparklesIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
 interface InvoiceItem {
   id: number;
   proposal_id: number;
+  billing_type: 'milestone' | 'recurring_monthly';
+  phase: string;
   term_index: number;
+  period_month?: number;
+  coverage_period?: string;
   milestone_name: string;
   percent: number;
   amount: number | string;
@@ -38,6 +45,8 @@ interface SummaryData {
   total_paid: number | string;
   total_invoiced: number | string;
   total_unbilled: number | string;
+  total_recurring_pipeline: number | string;
+  mrr_rate: number | string;
 }
 
 const formatIDR = (val: number | string) => {
@@ -64,6 +73,7 @@ export default function InvoicesTrackerPage() {
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'milestone' | 'recurring_monthly'>('all');
 
   // Edit Modal State
   const [editingItem, setEditingItem] = useState<InvoiceItem | null>(null);
@@ -81,12 +91,12 @@ export default function InvoicesTrackerPage() {
 
   useEffect(() => {
     loadInvoices();
-  }, [statusFilter]);
+  }, [statusFilter, typeFilter]);
 
   async function loadInvoices() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/invoices?status=${statusFilter}`);
+      const res = await fetch(`/api/invoices?status=${statusFilter}&type=${typeFilter}`);
       const data = await res.json();
       if (data.success) {
         setInvoices(data.invoices || []);
@@ -163,26 +173,26 @@ export default function InvoicesTrackerPage() {
               Payment Milestone & Invoice Tracker
             </h1>
             <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Monitoring arus kas penagihan termin (Unbilled, Invoiced, Paid) dan status piutang dari deal proposal resmi.
+              Monitoring arus kas hibrida: Termin Development & Retainer Bulanan (Maintenance & Cloud Infra 1 Tahun).
             </p>
           </div>
         </div>
 
-        {/* 4 Stat Metric Cards */}
+        {/* 5 Stat Metric Cards */}
         {summary && (
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '14px',
               marginBottom: '24px',
             }}
           >
             <div className="linear-card" style={{ padding: '18px' }}>
               <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                Total Komitmen Termin
+                Total Komitmen Kontrak
               </div>
-              <div className="font-mono-numbers" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '6px' }}>
+              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '6px' }}>
                 {formatIDR(summary.total_contract_value)}
               </div>
             </div>
@@ -191,7 +201,7 @@ export default function InvoicesTrackerPage() {
               <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#10b981', fontWeight: 600 }}>
                 Total Realisasi Masuk (Paid)
               </div>
-              <div className="font-mono-numbers" style={{ fontSize: '20px', fontWeight: 800, color: '#10b981', marginTop: '6px' }}>
+              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: '#10b981', marginTop: '6px' }}>
                 {formatIDR(summary.total_paid)}
               </div>
             </div>
@@ -200,51 +210,83 @@ export default function InvoicesTrackerPage() {
               <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#38bdf8', fontWeight: 600 }}>
                 Piutang Ditagihkan (Invoiced)
               </div>
-              <div className="font-mono-numbers" style={{ fontSize: '20px', fontWeight: 800, color: '#38bdf8', marginTop: '6px' }}>
+              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: '#38bdf8', marginTop: '6px' }}>
                 {formatIDR(summary.total_invoiced)}
+              </div>
+            </div>
+
+            <div className="linear-card" style={{ padding: '18px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#c084fc', fontWeight: 600 }}>
+                Monthly Retainer (MRR)
+              </div>
+              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: '#c084fc', marginTop: '6px' }}>
+                {formatIDR(summary.mrr_rate)}/bln
               </div>
             </div>
 
             <div className="linear-card" style={{ padding: '18px' }}>
               <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                Belum Ditagihkan (Unbilled)
+                Belum Ditagih (Unbilled)
               </div>
-              <div className="font-mono-numbers" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '6px' }}>
+              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '6px' }}>
                 {formatIDR(summary.total_unbilled)}
               </div>
             </div>
           </div>
         )}
 
-        {/* Filter Tabs */}
+        {/* Filter Bar with Type & Status */}
         <div
           className="linear-card"
           style={{
-            padding: '12px 18px',
+            padding: '14px 18px',
             marginBottom: '20px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            justifyContent: 'space-between',
             flexWrap: 'wrap',
+            gap: '12px',
           }}
         >
-          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginRight: '6px' }}>Filter Status:</span>
-          {[
-            { id: 'all', label: 'Semua Termin' },
-            { id: 'unbilled', label: 'Unbilled' },
-            { id: 'invoiced', label: 'Invoiced' },
-            { id: 'paid', label: 'Paid / Lunas' },
-            { id: 'overdue', label: 'Overdue' },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setStatusFilter(t.id)}
-              className={statusFilter === t.id ? 'btn-primary' : 'btn-secondary'}
-              style={{ padding: '4px 12px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer' }}
-            >
-              {t.label}
-            </button>
-          ))}
+          {/* Tipe Billing Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginRight: '4px' }}>Model:</span>
+            {[
+              { id: 'all', label: 'Semua Model' },
+              { id: 'milestone', label: 'Termin Proyek (Dev)' },
+              { id: 'recurring_monthly', label: 'Retainer Bulanan (Mnt & Cloud)' },
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTypeFilter(t.id as any)}
+                className={typeFilter === t.id ? 'btn-primary' : 'btn-secondary'}
+                style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Status Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginRight: '4px' }}>Status:</span>
+            {[
+              { id: 'all', label: 'Semua Status' },
+              { id: 'unbilled', label: 'Unbilled' },
+              { id: 'invoiced', label: 'Invoiced' },
+              { id: 'paid', label: 'Paid' },
+              { id: 'overdue', label: 'Overdue' },
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setStatusFilter(s.id)}
+                className={statusFilter === s.id ? 'btn-primary' : 'btn-secondary'}
+                style={{ padding: '4px 10px', fontSize: '11.5px', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Invoices List Table */}
@@ -255,25 +297,26 @@ export default function InvoicesTrackerPage() {
                 <tr>
                   <th style={{ width: '130px', textAlign: 'left' }}>Proposal</th>
                   <th style={{ minWidth: '180px', textAlign: 'left' }}>Klien & Proyek</th>
-                  <th style={{ width: '180px', textAlign: 'left' }}>Tahap Termin</th>
-                  <th style={{ width: '140px', textAlign: 'right' }}>Nominal</th>
+                  <th style={{ width: '110px', textAlign: 'center' }}>Fase / Tipe</th>
+                  <th style={{ width: '220px', textAlign: 'left' }}>Uraian Penagihan</th>
+                  <th style={{ width: '135px', textAlign: 'right' }}>Nominal</th>
                   <th style={{ width: '150px', textAlign: 'center' }}>Status Penagihan</th>
-                  <th style={{ width: '130px', textAlign: 'left' }}>No. Invoice</th>
-                  <th style={{ width: '120px', textAlign: 'left' }}>Jatuh Tempo</th>
-                  <th style={{ width: '90px', textAlign: 'center' }}>Aksi</th>
+                  <th style={{ width: '125px', textAlign: 'left' }}>No. Invoice</th>
+                  <th style={{ width: '110px', textAlign: 'left' }}>Jatuh Tempo</th>
+                  <th style={{ width: '85px', textAlign: 'center' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
-                      Memuat data invoice tracker...
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
+                      Memuat jadwal penagihan hibrida...
                     </td>
                   </tr>
                 ) : invoices.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
-                      Tidak ada termin penagihan dengan kriteria ini.
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
+                      Tidak ada data penagihan dengan kriteria ini.
                     </td>
                   </tr>
                 ) : (
@@ -282,6 +325,7 @@ export default function InvoicesTrackerPage() {
                     const dueDateStr = inv.due_date
                       ? new Date(inv.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                       : '-';
+                    const isRecurring = inv.billing_type === 'recurring_monthly';
 
                     return (
                       <tr key={inv.id}>
@@ -307,15 +351,30 @@ export default function InvoicesTrackerPage() {
                             {inv.project_name}
                           </div>
                         </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span
+                            className="linear-badge"
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              background: isRecurring ? 'rgba(168, 85, 247, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                              color: isRecurring ? '#c084fc' : '#38bdf8',
+                              border: `1px solid ${isRecurring ? 'rgba(168, 85, 247, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                            }}
+                          >
+                            {isRecurring ? 'Retainer Mnt' : 'Termin Dev'}
+                          </span>
+                        </td>
                         <td>
                           <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '12.5px' }}>
-                            {inv.milestone_name} ({inv.percent}%)
+                            {inv.milestone_name} {inv.percent > 0 ? `(${inv.percent}%)` : ''}
                           </div>
                           <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                            {inv.trigger_condition || '-'}
+                            {inv.coverage_period ? `Periode: ${inv.coverage_period}` : (inv.trigger_condition || '-')}
                           </div>
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: isRecurring ? '#c084fc' : '#10b981', fontFamily: 'var(--font-mono)' }}>
                           {formatIDR(inv.amount)}
                         </td>
                         <td style={{ textAlign: 'center' }}>

@@ -11,6 +11,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const statusFilter = searchParams.get('status');
+    const typeFilter = searchParams.get('type'); // 'all', 'milestone', 'recurring_monthly'
 
     let query = `
       SELECT 
@@ -23,25 +24,36 @@ export async function GET(req: Request) {
       JOIN commercial_proposals cp ON pmi.proposal_id = cp.id
       JOIN companies c ON cp.company_id = c.id
       JOIN projects p ON cp.project_id = p.id
+      WHERE 1=1
     `;
     const params: unknown[] = [];
 
     if (statusFilter && statusFilter !== 'all') {
-      query += ` WHERE pmi.billing_status = $1 `;
       params.push(statusFilter);
+      query += ` AND pmi.billing_status = $${params.length} `;
     }
 
-    query += ` ORDER BY pmi.due_date ASC NULLS LAST, pmi.id DESC `;
+    if (typeFilter && typeFilter !== 'all') {
+      params.push(typeFilter);
+      query += ` AND pmi.billing_type = $${params.length} `;
+    }
+
+    query += ` ORDER BY 
+      CASE WHEN pmi.billing_type = 'milestone' THEN 1 ELSE 2 END ASC,
+      pmi.due_date ASC NULLS LAST, 
+      pmi.id ASC `;
 
     const res = await pool.query(query, params);
 
-    // Summary calculations
+    // Summary calculations with MRR
     const summaryRes = await pool.query(`
       SELECT 
         COALESCE(SUM(amount), 0) as total_contract_value,
         COALESCE(SUM(CASE WHEN billing_status = 'paid' THEN paid_amount ELSE 0 END), 0) as total_paid,
         COALESCE(SUM(CASE WHEN billing_status = 'invoiced' THEN amount ELSE 0 END), 0) as total_invoiced,
-        COALESCE(SUM(CASE WHEN billing_status = 'unbilled' THEN amount ELSE 0 END), 0) as total_unbilled
+        COALESCE(SUM(CASE WHEN billing_status = 'unbilled' THEN amount ELSE 0 END), 0) as total_unbilled,
+        COALESCE(SUM(CASE WHEN billing_type = 'recurring_monthly' AND billing_status != 'paid' THEN amount ELSE 0 END), 0) as total_recurring_pipeline,
+        COALESCE(ROUND(AVG(CASE WHEN billing_type = 'recurring_monthly' THEN amount ELSE NULL END)), 0) as mrr_rate
       FROM payment_milestone_invoices
     `);
 
