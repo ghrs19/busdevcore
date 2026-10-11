@@ -137,14 +137,14 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px', color: 'var(--text-secondary)' }}>
+      <div style={{ maxWidth: '1360px', margin: '40px auto', padding: '0 20px', color: 'var(--text-secondary)' }}>
         Memuat data profil...
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '32px auto', padding: '0 24px' }}>
+    <div style={{ maxWidth: '1360px', margin: '32px auto', padding: '0 24px' }}>
       {/* Breadcrumb & Navigation */}
       <div style={{ marginBottom: '24px' }}>
         <Link

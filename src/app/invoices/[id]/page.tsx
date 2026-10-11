@@ -212,7 +212,7 @@ function InvoiceDetailPageInner() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: '1120px', margin: '0 auto', padding: '24px 20px' }}>
+      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 20px' }}>
         {/* Navigation Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <Link

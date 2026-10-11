@@ -371,7 +371,7 @@ export default function MasterDataPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)' }}>
       
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 24px 80px 24px' }}>
+      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '32px 24px 80px 24px' }}>
         {/* Header Breadcrumb */}
         <div style={{ marginBottom: '24px' }}>
           <Link

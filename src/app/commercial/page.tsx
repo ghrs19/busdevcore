@@ -88,7 +88,7 @@ export default function CommercialProposalsListPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px 20px' }}>
+      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 20px' }}>
         {/* Top Header */}
         <div
           style={{

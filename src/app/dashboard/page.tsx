@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: '1440px', margin: '0 auto', padding: '28px 24px' }}>
+      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '28px 24px' }}>
         {/* Top Header */}
         <div
           style={{

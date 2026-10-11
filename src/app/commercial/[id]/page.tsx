@@ -330,7 +330,7 @@ function CommercialProposalDetailContent() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '90px' }}>
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px 20px' }}>
+      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 20px' }}>
         {/* Top Breadcrumb & Action Header */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>

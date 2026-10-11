@@ -564,7 +564,7 @@ function NewCommercialProposalForm() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '120px' }}>
-      <main style={{ maxWidth: '1240px', margin: '0 auto', padding: '24px' }}>
+      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px' }}>
         {/* Header Breadcrumb */}
         <div style={{ marginBottom: '24px' }}>
           <Link
@@ -1524,7 +1524,7 @@ function NewCommercialProposalForm() {
           >
             <div
               style={{
-                maxWidth: '1240px',
+                maxWidth: '1360px',
                 margin: '0 auto',
                 display: 'flex',
                 alignItems: 'center',
