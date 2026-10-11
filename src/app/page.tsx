@@ -498,7 +498,7 @@ export default function HistoricalEstimatesPage() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Historical Estimates
+              Costing Estimates
             </h1>
             <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
               Database arsip kalkulasi costing, monitoring manhours, dan detail breakdown WBS
@@ -666,7 +666,7 @@ export default function HistoricalEstimatesPage() {
           </div>
         </section>
 
-        {/* Historical Estimates Table */}
+        {/* Costing Estimates Table */}
         <section className="linear-card" style={{ overflow: 'hidden' }}>
           {isLoading ? (
             <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>

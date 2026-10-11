@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  BanknotesIcon,
-  DocumentTextIcon,
-  PlusCircleIcon,
+  ChartBarIcon,
+  CalculatorIcon,
   BriefcaseIcon,
+  BanknotesIcon,
   ClipboardDocumentListIcon,
   Cog6ToothIcon,
   UserCircleIcon,
@@ -16,99 +16,58 @@ import {
 
 function NavLinks({ role }: { role: string }) {
   const pathname = usePathname();
-  const isHistorical = pathname === '/';
-  const isNewEstimate = pathname === '/estimates/new';
+  const isDashboard = pathname === '/dashboard';
+  const isCosting = pathname === '/' || pathname === '/costing' || pathname?.startsWith('/estimates');
+  const isCommercial = pathname?.startsWith('/commercial');
+  const isInvoices = pathname?.startsWith('/invoices');
+  const isLogs = pathname?.startsWith('/audit');
   const isMaster = pathname?.startsWith('/master');
 
+  const navItemStyle = (isActive: boolean) => ({
+    textDecoration: 'none',
+    padding: '6px 13px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: 500,
+    backgroundColor: isActive ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
+    color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
+    border: isActive ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    transition: 'all 0.15s ease',
+  });
+
   return (
-    <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <Link
-        href="/"
-        className="pill-item"
-        style={{
-          textDecoration: 'none',
-          padding: '6px 14px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 500,
-          backgroundColor: isHistorical ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-          color: isHistorical ? '#a5b4fc' : 'var(--text-secondary)',
-          border: isHistorical ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.15s ease',
-        }}
-      >
-        <DocumentTextIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Historical Estimates</span>
+    <nav style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      {/* 1. Dashboard */}
+      <Link href="/dashboard" className="pill-item" style={navItemStyle(isDashboard)}>
+        <ChartBarIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
+        <span>Dashboard</span>
       </Link>
 
+      {/* 2. Costing */}
+      <Link href="/" className="pill-item" style={navItemStyle(isCosting)}>
+        <CalculatorIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
+        <span>Costing</span>
+      </Link>
 
-      <Link
-        href="/invoices"
-        className="pill-item"
-        style={{
-          textDecoration: 'none',
-          padding: '6px 14px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 500,
-          backgroundColor: pathname.startsWith('/invoices') ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-          color: pathname.startsWith('/invoices') ? '#a5b4fc' : 'var(--text-secondary)',
-          border: pathname.startsWith('/invoices') ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.15s ease',
-        }}
-      >
+      {/* 3. Commercials/Quote */}
+      <Link href="/commercial" className="pill-item" style={navItemStyle(isCommercial)}>
+        <BriefcaseIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
+        <span>Commercials/Quote</span>
+      </Link>
+
+      {/* 4. Invoices */}
+      <Link href="/invoices" className="pill-item" style={navItemStyle(isInvoices)}>
         <BanknotesIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
         <span>Invoices</span>
       </Link>
 
-      <Link
-        href="/commercial"
-        className="pill-item"
-        style={{
-          textDecoration: 'none',
-          padding: '6px 14px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 500,
-          backgroundColor: pathname.startsWith('/commercial') ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-          color: pathname.startsWith('/commercial') ? '#a5b4fc' : 'var(--text-secondary)',
-          border: pathname.startsWith('/commercial') ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.15s ease',
-        }}
-      >
-        <BriefcaseIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Proposal & Komersial</span>
-      </Link>
-
-      <Link
-        href="/audit"
-        className="pill-item"
-        style={{
-          textDecoration: 'none',
-          padding: '6px 14px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 500,
-          backgroundColor: pathname.startsWith('/audit') ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-          color: pathname.startsWith('/audit') ? '#a5b4fc' : 'var(--text-secondary)',
-          border: pathname.startsWith('/audit') ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.15s ease',
-        }}
-      >
+      {/* 5. Logs */}
+      <Link href="/audit" className="pill-item" style={navItemStyle(isLogs)}>
         <ClipboardDocumentListIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Audit Log</span>
+        <span>Logs</span>
       </Link>
 
       {role === 'admin' && (
@@ -196,43 +155,12 @@ function NavbarContent() {
             src="/logo-pentacode.png"
             alt="PT Penta Code Digital"
             style={{
-              height: '28px',
+              height: '30px',
               width: 'auto',
               objectFit: 'contain',
               display: 'block',
             }}
           />
-          <div style={{ borderLeft: '1px solid var(--border-subtle)', paddingLeft: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                busdevcore
-              </span>
-              <span
-                style={{
-                  fontSize: '9.5px',
-                  color: '#a5b4fc',
-                  background: 'rgba(94, 106, 210, 0.15)',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                  border: '1px solid rgba(94, 106, 210, 0.3)',
-                  fontWeight: 600,
-                  letterSpacing: '0.04em',
-                }}
-              >
-                ERP
-              </span>
-            </div>
-            <p style={{ fontSize: '10.5px', color: 'var(--text-tertiary)', lineHeight: 1.1, margin: 0 }}>
-              PT Penta Code Digital
-            </p>
-          </div>
         </Link>
 
         {/* Global Navigation Links */}
