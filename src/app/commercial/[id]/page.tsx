@@ -49,6 +49,7 @@ interface ProposalDetail {
   validity_days: number;
   deal_status: string;
   lost_reason?: string;
+  maintenance_billing_mode?: string;
   notes?: string;
   creator_name?: string;
   created_at: string;
@@ -721,6 +722,18 @@ function CommercialProposalDetailContent() {
                     </h3>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span
+                      className="linear-badge"
+                      style={{
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        background: proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                        color: proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? '#c084fc' : '#38bdf8',
+                        border: `1px solid ${proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                      }}
+                    >
+                      {proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'Mnt: Ditagih Bulanan' : 'Mnt: All-in Proyek'}
+                    </span>
                     <Link
                       href="/invoices"
                       className="btn-secondary"

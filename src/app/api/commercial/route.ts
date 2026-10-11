@@ -88,6 +88,7 @@ export async function POST(req: Request) {
       payment_terms,
       validity_days,
       notes,
+      maintenance_billing_mode,
     } = body;
 
     if (!company_id || !project_id || !estimate_id) {
@@ -117,6 +118,7 @@ export async function POST(req: Request) {
         discount_type, discount_value, subtotal_after_discount,
         is_tax_enabled, tax_amount, grand_total,
         timeline_config, payment_terms, validity_days, notes,
+        maintenance_billing_mode,
         created_by_user_id, created_at, updated_at
       ) VALUES (
         $1, 1, $2, $3, $4,
@@ -124,8 +126,8 @@ export async function POST(req: Request) {
         $8, $9, $10,
         $11, $12, $13,
         $14::jsonb, $15::jsonb, $16, $17,
-        $18, NOW(), NOW()
-      ) RETURNING id, proposal_number, version, grand_total, created_at`,
+        $18, $19, NOW(), NOW()
+      ) RETURNING id, proposal_number, version, grand_total, maintenance_billing_mode, created_at`,
       [
         proposal_number,
         company_id,
@@ -144,6 +146,7 @@ export async function POST(req: Request) {
         payment_terms ? JSON.stringify(payment_terms) : null,
         Number(validity_days) || 30,
         notes?.trim() || null,
+        maintenance_billing_mode || 'ALL_IN_PROJECT',
         user.id,
       ]
     );

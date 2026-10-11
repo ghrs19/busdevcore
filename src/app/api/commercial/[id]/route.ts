@@ -158,6 +158,7 @@ export async function PUT(
       validity_days,
       notes,
       revision_notes,
+      maintenance_billing_mode,
     } = body;
 
     // 4. Insert NEW record with incremented version and parent_id
@@ -169,6 +170,7 @@ export async function PUT(
         discount_type, discount_value, subtotal_after_discount,
         is_tax_enabled, tax_amount, grand_total,
         timeline_config, payment_terms, validity_days, notes,
+        maintenance_billing_mode,
         created_by_user_id, created_at, updated_at
       ) VALUES (
         $1, $2, $3, $4,
@@ -177,8 +179,8 @@ export async function PUT(
         $11, $12, $13,
         $14, $15, $16,
         $17::jsonb, $18::jsonb, $19, $20,
-        $21, NOW(), NOW()
-      ) RETURNING id, proposal_number, version, grand_total, created_at`,
+        $21, $22, NOW(), NOW()
+      ) RETURNING id, proposal_number, version, grand_total, maintenance_billing_mode, created_at`,
       [
         currentProposal.proposal_number,
         nextVersion,
@@ -200,6 +202,7 @@ export async function PUT(
         payment_terms ? JSON.stringify(payment_terms) : null,
         Number(validity_days) || 30,
         notes?.trim() || null,
+        maintenance_billing_mode || currentProposal.maintenance_billing_mode || 'ALL_IN_PROJECT',
         user.id,
       ]
     );

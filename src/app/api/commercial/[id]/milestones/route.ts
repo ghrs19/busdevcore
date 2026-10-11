@@ -33,8 +33,9 @@ export async function GET(
 
     const proposal = propRes.rows[0];
     const terms = Array.isArray(proposal.payment_terms) ? proposal.payment_terms : [];
+    const billingMode = proposal.maintenance_billing_mode || 'ALL_IN_PROJECT';
 
-    // 2. Sync Milestone Fase 1 (Development)
+    // 2. Sync Milestone Fase 1 (Development / All-in Contract)
     for (let i = 0; i < terms.length; i++) {
       const term = terms[i];
       const termIdx = i + 1;
@@ -50,12 +51,11 @@ export async function GET(
       `, [proposalId, termIdx, term.milestone_name, term.percent, term.amount, term.trigger_condition]);
     }
 
-    // 3. Sync Recurring Fase 2 (Maintenance & Cloud Retainer 1 Tahun / durasi tertentu)
+    // 3. Sync Recurring Fase 2 (Hanya jika mode = MONTHLY_RETAINER)
     const mntConfig = proposal.maintenance_config || {};
     let durationMonths = parseInt(mntConfig.duration_months || 0, 10);
     const monthlyMaintenanceCost = parseFloat(mntConfig.monthly_cost || 0);
 
-    // Ambil infra bulanan
     let monthlyInfraCost = 0;
     if (Array.isArray(proposal.infrastructure_items)) {
       for (const item of proposal.infrastructure_items) {
@@ -67,26 +67,24 @@ export async function GET(
       }
     }
 
-    // Jika maintenance tidak set durasi tapi ada infra rutin bulanan, defaultkan 12 bulan (1 tahun)
     if (durationMonths <= 0 && monthlyInfraCost > 0) {
       durationMonths = 12;
     }
 
     const marginPct = parseFloat(proposal.margin_percent || 0);
     const multiplier = 1 + (marginPct / 100);
-
     const billedMonthlyMnt = Math.round(monthlyMaintenanceCost * multiplier);
     const billedMonthlyInfra = Math.round(monthlyInfraCost * multiplier);
     const totalMonthlyBilled = billedMonthlyMnt + billedMonthlyInfra;
 
-    if (durationMonths > 0 && totalMonthlyBilled > 0) {
+    if (billingMode === 'MONTHLY_RETAINER' && durationMonths > 0 && totalMonthlyBilled > 0) {
       const baseDate = new Date(proposal.created_at || new Date());
-      baseDate.setMonth(baseDate.getMonth() + 2); // Mulai bulan ke-2 atau setelah dev
+      baseDate.setMonth(baseDate.getMonth() + 2); // Mulai bulan ke-2 setelah dev
 
       for (let m = 1; m <= durationMonths; m++) {
         const schedDate = new Date(baseDate);
         schedDate.setMonth(baseDate.getMonth() + (m - 1));
-        schedDate.setDate(5); // Due date tgl 5 tiap bulan
+        schedDate.setDate(5);
 
         const monthName = schedDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
         const milestoneTitle = `Retainer Bulan ${m} (${monthName}) - Mnt & Cloud`;
@@ -115,6 +113,12 @@ export async function GET(
           schedDate.toISOString().split('T')[0]
         ]);
       }
+    } else if (billingMode === 'ALL_IN_PROJECT') {
+      // Hapus draft recurring jika mode ALL_IN_PROJECT (karena sudah masuk termin milestone)
+      await pool.query(`
+        DELETE FROM payment_milestone_invoices 
+        WHERE proposal_id = $1 AND billing_type = 'recurring_monthly'
+      `, [proposalId]);
     }
 
     // 4. Fetch all schedule records
@@ -132,7 +136,8 @@ export async function GET(
       success: true,
       milestones: res.rows.filter(r => r.billing_type === 'milestone'),
       recurring: res.rows.filter(r => r.billing_type === 'recurring_monthly'),
-      has_recurring: durationMonths > 0 && totalMonthlyBilled > 0,
+      has_recurring: billingMode === 'MONTHLY_RETAINER' && durationMonths > 0 && totalMonthlyBilled > 0,
+      maintenance_billing_mode: billingMode,
       monthly_recurring_rate: totalMonthlyBilled,
       duration_months: durationMonths,
     });

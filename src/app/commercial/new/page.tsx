@@ -103,7 +103,9 @@ function NewCommercialProposalForm() {
   ]);
 
   // Payment Terms (Milestones)
+  const [maintenanceBillingMode, setMaintenanceBillingMode] = useState<'ALL_IN_PROJECT' | 'MONTHLY_RETAINER'>('ALL_IN_PROJECT');
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([
+
     { milestone_name: 'Termin 1 (Down Payment / Kickoff)', percent: 30, amount: 0, trigger_condition: 'Penandatanganan Kontrak / SPK' },
     { milestone_name: 'Termin 2 (User Acceptance Test)', percent: 50, amount: 0, trigger_condition: 'Penyelesaian Fitur & Persetujuan BAST UAT' },
     { milestone_name: 'Termin 3 (Serah Terima & Go-Live)', percent: 20, amount: 0, trigger_condition: 'Aplikasi Live di Production & BAST Final' },
@@ -317,6 +319,9 @@ function NewCommercialProposalForm() {
           if (Array.isArray(p.payment_terms) && p.payment_terms.length > 0) {
             setPaymentTerms(p.payment_terms);
           }
+          if (p.maintenance_billing_mode) {
+            setMaintenanceBillingMode(p.maintenance_billing_mode);
+          }
 
           if (p.project_id) {
             const estRes = await fetch(`/api/estimates?project_id=${p.project_id}`);
@@ -523,6 +528,7 @@ function NewCommercialProposalForm() {
         start_date: startDate || null,
         milestones,
       },
+      maintenance_billing_mode: maintenanceBillingMode,
       payment_terms: paymentTerms,
       validity_days: validityDays,
       notes,
@@ -1210,6 +1216,49 @@ function NewCommercialProposalForm() {
 
           {/* STEP 4: Skema Termin Pembayaran (Editable Rupiah ↔ Persentase) */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
+            {/* Toggle Billing Mode Maintenance & Cloud */}
+            <div
+              style={{
+                marginBottom: '20px',
+                padding: '14px 16px',
+                borderRadius: '8px',
+                background: 'rgba(94, 106, 210, 0.08)',
+                border: '1px solid rgba(94, 106, 210, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Skema Penagihan Maintenance & Cloud Hosting
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                  Pilih apakah biaya maintenance & infra disatukan di termin proyek atau ditagih bulanan setelah go-live.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setMaintenanceBillingMode('ALL_IN_PROJECT')}
+                  className={maintenanceBillingMode === 'ALL_IN_PROJECT' ? 'btn-primary' : 'btn-secondary'}
+                  style={{ fontSize: '11.5px', padding: '6px 12px', borderRadius: '6px' }}
+                >
+                  ✓ Dibayar Sekaligus (All-in di Termin Proyek)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMaintenanceBillingMode('MONTHLY_RETAINER')}
+                  className={maintenanceBillingMode === 'MONTHLY_RETAINER' ? 'btn-primary' : 'btn-secondary'}
+                  style={{ fontSize: '11.5px', padding: '6px 12px', borderRadius: '6px' }}
+                >
+                  Ditagih Terpisah per Bulan (Post-Launch Retainer)
+                </button>
+              </div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span
