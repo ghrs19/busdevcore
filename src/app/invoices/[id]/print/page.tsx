@@ -36,6 +36,20 @@ interface InvoicePrintData {
   project_name: string;
 }
 
+interface IssuerSettings {
+  company_name: string;
+  tagline: string;
+  address: string;
+  email: string;
+  website: string;
+  phone: string;
+  bank_name: string;
+  bank_account_number: string;
+  bank_account_name: string;
+  signer_name: string;
+  signer_role: string;
+}
+
 const formatIDR = (val: number | string) => {
   const num = typeof val === 'string' ? parseFloat(val) : val;
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
@@ -45,6 +59,7 @@ function InvoicePrintViewInner() {
   const params = useParams();
   const invoiceId = params?.id as string;
   const [data, setData] = useState<InvoicePrintData | null>(null);
+  const [issuer, setIssuer] = useState<IssuerSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,6 +69,9 @@ function InvoicePrintViewInner() {
         .then((res) => {
           if (res.success && res.invoice) {
             setData(res.invoice);
+            if (res.issuer_settings) {
+              setIssuer(res.issuer_settings);
+            }
           }
         })
         .finally(() => setLoading(false));
@@ -124,8 +142,8 @@ function InvoicePrintViewInner() {
               }}
             />
             <div style={{ borderLeft: '2px solid #e2e8f0', paddingLeft: '12px' }}>
-              <div className="brand-title">PT PENTA CODE DIGITAL</div>
-              <div className="brand-subtitle">Software Development & Digital Solutions • pentacode.id</div>
+              <div className="brand-title">{issuer?.company_name || 'PT PENTA CODE DIGITAL'}</div>
+              <div className="brand-subtitle">{issuer?.tagline || 'Software Development & Digital Solutions • pentacode.id'}</div>
             </div>
           </div>
 
@@ -150,11 +168,19 @@ function InvoicePrintViewInner() {
         <section className="entity-grid">
           <div className="entity-box">
             <div className="entity-label">DITAGIHKAN OLEH (PENGIRIM):</div>
-            <div className="entity-name">PT PENTA CODE DIGITAL</div>
+            <div className="entity-name">{issuer?.company_name || 'PT PENTA CODE DIGITAL'}</div>
             <div className="entity-details">
-              Graha Pena Lantai 15, Jl. Ahmad Yani No. 88<br />
-              Surabaya, Jawa Timur - Indonesia<br />
-              Email: finance@pentacode.id • Web: pentacode.id
+              {issuer?.address ? (
+                <>
+                  {issuer.address}<br />
+                </>
+              ) : (
+                <>
+                  Graha Pena Lantai 15, Jl. Ahmad Yani No. 88<br />
+                  Surabaya, Jawa Timur - Indonesia<br />
+                </>
+              )}
+              Email: {issuer?.email || 'finance@pentacode.id'} • Web: {issuer?.website || 'pentacode.id'}
             </div>
           </div>
 
@@ -233,17 +259,17 @@ function InvoicePrintViewInner() {
             <div className="bank-title">INSTRUKSI PEMBAYARAN TRANSFER BANK</div>
             <div className="bank-row">
               <span className="bank-label">Bank Penerima:</span>
-              <span className="bank-val">Bank Central Asia (BCA)</span>
+              <span className="bank-val">{issuer?.bank_name || 'Bank Central Asia (BCA)'}</span>
             </div>
             <div className="bank-row">
               <span className="bank-label">Nomor Rekening:</span>
               <span className="bank-val font-mono" style={{ fontSize: '13.5px', letterSpacing: '0.04em' }}>
-                088-726-1928
+                {issuer?.bank_account_number || '088-726-1928'}
               </span>
             </div>
             <div className="bank-row">
               <span className="bank-label">Atas Nama:</span>
-              <span className="bank-val">PT PENTA CODE DIGITAL</span>
+              <span className="bank-val">{issuer?.bank_account_name || 'PT PENTA CODE DIGITAL'}</span>
             </div>
             <div className="bank-row">
               <span className="bank-label">Berita Transfer:</span>
@@ -256,18 +282,18 @@ function InvoicePrintViewInner() {
           <div className="signature-box">
             <div style={{ fontSize: '11.5px', color: '#64748b' }}>Hormat kami,</div>
             <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
-              PT PENTA CODE DIGITAL
+              {issuer?.company_name || 'PT PENTA CODE DIGITAL'}
             </div>
             <div className="sig-space" />
-            <div className="sig-name">Authorized Finance Department</div>
-            <div className="sig-role">Finance & Accounting Lead</div>
+            <div className="sig-name">{issuer?.signer_name || 'Authorized Finance Department'}</div>
+            <div className="sig-role">{issuer?.signer_role || 'Finance & Accounting Lead'}</div>
           </div>
         </section>
 
         {/* Footer Note */}
         <footer className="sheet-footer">
           <div>Dokumen ini sah dan diterbitkan secara digital oleh sistem ERP PT Penta Code Digital.</div>
-          <div>Harap mengirimkan bukti transfer pembayaran ke email: finance@pentacode.id</div>
+          <div>Harap mengirimkan bukti transfer pembayaran ke email: {issuer?.email || 'finance@pentacode.id'}</div>
         </footer>
       </article>
 

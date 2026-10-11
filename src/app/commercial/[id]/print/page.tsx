@@ -35,6 +35,15 @@ interface ProposalDetail {
   notes?: string;
   creator_name?: string;
   created_at: string;
+  issuer_settings?: {
+    company_name: string;
+    tagline: string;
+    address: string;
+    email: string;
+    website: string;
+    signer_name: string;
+    signer_role: string;
+  };
   timeline_config?: {
     total_weeks: number;
     start_date?: string;
@@ -81,6 +90,7 @@ function CommercialProposalPrintViewContent() {
   const [proposal, setProposal] = useState<ProposalDetail | null>(null);
   const [modules, setModules] = useState<ModuleItem[]>([]);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
+  const [issuer, setIssuer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -95,6 +105,9 @@ function CommercialProposalPrintViewContent() {
           setModules(data.modules || []);
           if (Array.isArray(data.version_history)) {
             setVersionHistory(data.version_history);
+          }
+          if (data.issuer_settings) {
+            setIssuer(data.issuer_settings);
           }
         } else {
           setErrorMsg(data.error || 'Gagal memuat proposal');
@@ -229,8 +242,8 @@ function CommercialProposalPrintViewContent() {
               }}
             />
             <div style={{ borderLeft: '2px solid #e2e8f0', paddingLeft: '12px' }}>
-              <div className="brand-title" style={{ fontSize: '13px', letterSpacing: '0.04em', color: '#0f172a' }}>PT PENTA CODE DIGITAL</div>
-              <div className="brand-tagline" style={{ fontSize: '10px', color: '#64748b' }}>Software Development & Digital Solutions • pentacode.id</div>
+              <div className="brand-title" style={{ fontSize: '13px', letterSpacing: '0.04em', color: '#0f172a' }}>{issuer?.company_name || 'PT PENTA CODE DIGITAL'}</div>
+              <div className="brand-tagline" style={{ fontSize: '10px', color: '#64748b' }}>{issuer?.tagline || 'Software Development & Digital Solutions • pentacode.id'}</div>
             </div>
           </div>
 
@@ -519,10 +532,10 @@ function CommercialProposalPrintViewContent() {
         <footer className="signature-section">
           <div className="sig-column">
             <div className="sig-role-caption">Diajukan Oleh:</div>
-            <div className="sig-entity">PT PENTA CODE DIGITAL</div>
+            <div className="sig-entity">{issuer?.company_name || 'PT PENTA CODE DIGITAL'}</div>
             <div className="sig-space" />
-            <div className="sig-person">{proposal.creator_name || 'Business Development'}</div>
-            <div className="sig-title">Authorized Representative</div>
+            <div className="sig-person">{issuer?.signer_name || proposal.creator_name || 'Business Development'}</div>
+            <div className="sig-title">{issuer?.signer_role || 'Authorized Representative'}</div>
           </div>
 
           <div className="sig-column">

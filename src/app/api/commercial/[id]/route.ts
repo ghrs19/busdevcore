@@ -90,9 +90,13 @@ export async function GET(
       ORDER BY cp.version DESC, cp.id DESC
     `, [rootId]);
 
+    const settingsRes = await pool.query('SELECT * FROM company_settings WHERE id = 1 LIMIT 1');
+    const settings = settingsRes.rows[0] || null;
+
     return NextResponse.json({
       success: true,
       proposal,
+      issuer_settings: settings,
       modules: modulesRes.rows,
       version_history: historyRes.rows,
     });

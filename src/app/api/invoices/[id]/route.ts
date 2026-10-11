@@ -58,9 +58,13 @@ export async function GET(
         term_index ASC
     `, [res.rows[0].proposal_id]);
 
+    const settingsRes = await pool.query('SELECT * FROM company_settings WHERE id = 1 LIMIT 1');
+    const settings = settingsRes.rows[0] || null;
+
     return NextResponse.json({
       success: true,
       invoice: res.rows[0],
+      issuer_settings: settings,
       sibling_milestones: siblingsRes.rows,
     });
   } catch (err: unknown) {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { currentUser } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -15,6 +16,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const user = await currentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { name, email, phone, address } = body;
 
@@ -36,6 +42,39 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ success: true, company: res.rows[0] }, { status: 201 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { id, name, email, phone, address } = body;
+
+    if (!id || !name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ success: false, error: 'ID dan Nama perusahaan wajib diisi.' }, { status: 400 });
+    }
+
+    const res = await pool.query(
+      `UPDATE companies 
+       SET name = $1, email = $2, phone = $3, address = $4, updated_at = NOW()
+       WHERE id = $5
+       RETURNING id, name, email, phone, address, created_at, updated_at`,
+      [name.trim(), email?.trim() || null, phone?.trim() || null, address?.trim() || null, id]
+    );
+
+    if (res.rows.length === 0) {
+      return NextResponse.json({ success: false, error: 'Perusahaan tidak ditemukan' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, company: res.rows[0] });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

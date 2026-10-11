@@ -32,7 +32,99 @@ interface WBSTemplate {
 }
 
 export default function MasterDataPage() {
-  const [activeTab, setActiveTab] = useState<'ROLES' | 'TEMPLATES' | 'USERS'>('ROLES');
+  const [activeTab, setActiveTab] = useState<'ROLES' | 'TEMPLATES' | 'USERS' | 'COMPANY_ISSUER' | 'COMPANIES_CLIENT'>('ROLES');
+  // Company Issuer Settings State
+  const [issuerSettings, setIssuerSettings] = useState<any>(null);
+  const [loadingIssuer, setLoadingIssuer] = useState(false);
+  const [savingIssuer, setSavingIssuer] = useState(false);
+
+  // Client Companies State
+  const [clientCompanies, setClientCompanies] = useState<any[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [editingClient, setEditingClient] = useState<any>(null);
+  const [clientForm, setClientForm] = useState({ name: '', email: '', phone: '', address: '' });
+  const [savingClient, setSavingClient] = useState(false);
+
+  const fetchIssuerSettings = async () => {
+    setLoadingIssuer(true);
+    try {
+      const res = await fetch('/api/settings/company');
+      const data = await res.json();
+      if (data.success) setIssuerSettings(data.settings);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingIssuer(false);
+    }
+  };
+
+  const handleSaveIssuer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!issuerSettings) return;
+    setSavingIssuer(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const res = await fetch('/api/settings/company', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(issuerSettings),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccessMsg('Profil & pengaturan kop/tanda tangan perusahaan berhasil disimpan!');
+      } else {
+        setErrorMsg(data.error || 'Gagal menyimpan profil');
+      }
+    } catch {
+      setErrorMsg('Gagal terhubung ke server');
+    } finally {
+      setSavingIssuer(false);
+    }
+  };
+
+  const fetchClientCompanies = async () => {
+    setLoadingClients(true);
+    try {
+      const res = await fetch('/api/companies');
+      const data = await res.json();
+      if (data.success) setClientCompanies(data.companies || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
+  const handleSaveClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingClient(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const method = editingClient ? 'PUT' : 'POST';
+      const body = editingClient ? { id: editingClient.id, ...clientForm } : clientForm;
+      const res = await fetch('/api/companies', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccessMsg(editingClient ? 'Data perusahaan klien berhasil diperbarui!' : 'Perusahaan klien berhasil ditambahkan!');
+        setEditingClient(null);
+        setClientForm({ name: '', email: '', phone: '', address: '' });
+        fetchClientCompanies();
+      } else {
+        setErrorMsg(data.error || 'Gagal menyimpan perusahaan klien');
+      }
+    } catch {
+      setErrorMsg('Gagal terhubung ke server');
+    } finally {
+      setSavingClient(false);
+    }
+  };
+
   const [users, setUsers] = useState<any[]>([]);
   const [userForm, setUserForm] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -333,6 +425,22 @@ export default function MasterDataPage() {
                 style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
               >
                 Master Template WBS ({templates.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('COMPANIES_CLIENT'); fetchClientCompanies(); setErrorMsg(null); setSuccessMsg(null); }}
+                className={activeTab === 'COMPANIES_CLIENT' ? 'btn-primary' : 'btn-ghost'}
+                style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
+              >
+                Perusahaan Klien ({clientCompanies.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('COMPANY_ISSUER'); fetchIssuerSettings(); setErrorMsg(null); setSuccessMsg(null); }}
+                className={activeTab === 'COMPANY_ISSUER' ? 'btn-primary' : 'btn-ghost'}
+                style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
+              >
+                Profil Perusahaan & Tanda Tangan PDF
               </button>
             </div>
           </div>
@@ -699,6 +807,323 @@ export default function MasterDataPage() {
                 ))
               )}
             </div>
+          </div>
+        )}
+
+        {/* TAB 4: PERUSAHAAN KLIEN */}
+        {activeTab === 'COMPANIES_CLIENT' && (
+          <div className="linear-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Master Perusahaan Klien
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                  Kelola nama, kontak, dan alamat resmi perusahaan klien untuk invoice & proposal penawaran.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingClient(null);
+                  setClientForm({ name: '', email: '', phone: '', address: '' });
+                }}
+                className="btn-primary"
+                style={{ fontSize: '12.5px', padding: '6px 14px' }}
+              >
+                + Tambah Klien Baru
+              </button>
+            </div>
+
+            {/* Form Tambah / Edit Klien */}
+            <form onSubmit={handleSaveClient} style={{ background: 'var(--bg-surface)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
+                {editingClient ? `Edit Klien: ${editingClient.name}` : 'Tambah Perusahaan Klien Baru'}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Nama Perusahaan Klien *</label>
+                  <input
+                    type="text"
+                    required
+                    className="linear-input"
+                    placeholder="PT Klien Maju Bersama"
+                    value={clientForm.name}
+                    onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Email Kontak</label>
+                  <input
+                    type="email"
+                    className="linear-input"
+                    placeholder="procurement@klien.com"
+                    value={clientForm.email}
+                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Nomor Telepon</label>
+                  <input
+                    type="text"
+                    className="linear-input"
+                    placeholder="+62 21 555-1234"
+                    value={clientForm.phone}
+                    onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Alamat Resmi (Ditampilkan pada PDF Invoice & Proposal)</label>
+                  <input
+                    type="text"
+                    className="linear-input"
+                    placeholder="Gedung Cyber 2 Lantai 10, Jl. HR Rasuna Said, Jakarta Selatan"
+                    value={clientForm.address}
+                    onChange={(e) => setClientForm({ ...clientForm, address: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                {editingClient && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingClient(null);
+                      setClientForm({ name: '', email: '', phone: '', address: '' });
+                    }}
+                    className="btn-secondary"
+                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                  >
+                    Batal
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={savingClient}
+                  className="btn-primary"
+                  style={{ fontSize: '12px', padding: '6px 16px' }}
+                >
+                  {savingClient ? 'Menyimpan...' : (editingClient ? 'Perbarui Klien' : 'Simpan Klien')}
+                </button>
+              </div>
+            </form>
+
+            {/* Tabel Daftar Perusahaan Klien */}
+            <div style={{ overflowX: 'auto' }}>
+              <table className="pro-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '220px', textAlign: 'left' }}>Nama Perusahaan</th>
+                    <th style={{ textAlign: 'left' }}>Alamat Kantor</th>
+                    <th style={{ width: '160px', textAlign: 'left' }}>Email Kontak</th>
+                    <th style={{ width: '130px', textAlign: 'left' }}>Telepon</th>
+                    <th style={{ width: '90px', textAlign: 'center' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingClients ? (
+                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-tertiary)' }}>Memuat data klien...</td></tr>
+                  ) : clientCompanies.length === 0 ? (
+                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-tertiary)' }}>Belum ada perusahaan klien terdaftar.</td></tr>
+                  ) : (
+                    clientCompanies.map((c) => (
+                      <tr key={c.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</td>
+                        <td style={{ fontSize: '12px', color: c.address ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>
+                          {c.address || '(Belum diset - gunakan tombol Edit)'}
+                        </td>
+                        <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{c.email || '-'}</td>
+                        <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{c.phone || '-'}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingClient(c);
+                              setClientForm({
+                                name: c.name || '',
+                                email: c.email || '',
+                                phone: c.phone || '',
+                                address: c.address || '',
+                              });
+                            }}
+                            className="btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <PencilSquareIcon style={{ width: '13px', height: '13px' }} />
+                            <span>Edit</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: PROFIL PERUSAHAAN & TANDA TANGAN (ISSUER SETTINGS) */}
+        {activeTab === 'COMPANY_ISSUER' && (
+          <div className="linear-card" style={{ padding: '24px' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Pengaturan Profil Perusahaan, Kop Surat, & Tanda Tangan PDF
+              </h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                Konfigurasi informasi resmi pengirim yang otomatis dicetak pada lembar Invoice, Surat Penawaran (Proposal), dan Dokumen Kontrak PDF.
+              </p>
+            </div>
+
+            {loadingIssuer || !issuerSettings ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>Memuat pengaturan profil...</div>
+            ) : (
+              <form onSubmit={handleSaveIssuer}>
+                {/* Bagian 1: Identitas & Alamat Resmi */}
+                <div style={{ marginBottom: '24px', background: 'var(--bg-surface)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '14px' }}>
+                    1. Identitas Badan Usaha & Alamat Pengirim Invoice
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nama Resmi Perusahaan (Badan Usaha)</label>
+                      <input
+                        type="text"
+                        required
+                        className="linear-input"
+                        value={issuerSettings.company_name || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, company_name: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Tagline / Bidang Layanan</label>
+                      <input
+                        type="text"
+                        className="linear-input"
+                        value={issuerSettings.tagline || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, tagline: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Alamat Kantor Resmi (Dicetak di Bagian Ditagihkan Oleh)</label>
+                      <textarea
+                        rows={2}
+                        className="linear-textarea"
+                        value={issuerSettings.address || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, address: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Email Finance / Kontak</label>
+                      <input
+                        type="email"
+                        className="linear-input"
+                        value={issuerSettings.email || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, email: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Website Resmi</label>
+                      <input
+                        type="text"
+                        className="linear-input"
+                        value={issuerSettings.website || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, website: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bagian 2: Akun Rekening Bank Tujuan Transfer */}
+                <div style={{ marginBottom: '24px', background: 'var(--bg-surface)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '14px' }}>
+                    2. Rekening Bank Penerima Pembayaran (Dicetak pada Instruksi Transfer)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nama Bank</label>
+                      <input
+                        type="text"
+                        className="linear-input"
+                        value={issuerSettings.bank_name || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, bank_name: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nomor Rekening</label>
+                      <input
+                        type="text"
+                        className="linear-input font-mono"
+                        value={issuerSettings.bank_account_number || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, bank_account_number: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Atas Nama Pemilik Rekening</label>
+                      <input
+                        type="text"
+                        className="linear-input"
+                        value={issuerSettings.bank_account_name || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, bank_account_name: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bagian 3: Pejabat Penandatangan Dokumen (Signer) */}
+                <div style={{ marginBottom: '24px', background: 'var(--bg-surface)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '14px' }}>
+                    3. Nama & Jabatan Pejabat Penandatangan Dokumen (Signature Block)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nama Lengkap Penandatangan</label>
+                      <input
+                        type="text"
+                        className="linear-input"
+                        placeholder="Contoh: Muhammad Siddiq / Authorized Finance"
+                        value={issuerSettings.signer_name || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, signer_name: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Jabatan / Role Penandatangan</label>
+                      <input
+                        type="text"
+                        className="linear-input"
+                        placeholder="Contoh: Direktur Utama / Finance & Accounting Lead"
+                        value={issuerSettings.signer_role || ''}
+                        onChange={(e) => setIssuerSettings({ ...issuerSettings, signer_role: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="submit"
+                    disabled={savingIssuer}
+                    className="btn-primary"
+                    style={{ fontSize: '13px', padding: '8px 24px' }}
+                  >
+                    {savingIssuer ? 'Menyimpan...' : 'Simpan Seluruh Pengaturan Profil'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
       </main>
