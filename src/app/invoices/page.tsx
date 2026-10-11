@@ -392,22 +392,41 @@ export default function InvoicesTrackerPage() {
                             {sb.label}
                           </span>
                         </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: inv.invoice_number ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                          {inv.invoice_number || '(Draft)'}
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                          <Link
+                            href={`/invoices/${inv.id}`}
+                            style={{
+                              color: inv.invoice_number ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                              textDecoration: 'none',
+                              fontWeight: inv.invoice_number ? 600 : 400,
+                            }}
+                          >
+                            {inv.invoice_number || '(Draft)'}
+                          </Link>
                         </td>
                         <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                           {dueDateStr}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(inv)}
-                            className="btn-secondary"
-                            style={{ padding: '4px 8px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <PencilSquareIcon style={{ width: '13px', height: '13px' }} />
-                            <span>Update</span>
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                            <Link
+                              href={`/invoices/${inv.id}`}
+                              className="btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '11.5px', textDecoration: 'none', color: 'var(--text-primary)' }}
+                              title="Buka Detail Invoice"
+                            >
+                              Detail
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(inv)}
+                              className="btn-secondary"
+                              style={{ padding: '4px 6px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center' }}
+                              title="Update Status Cepat"
+                            >
+                              <PencilSquareIcon style={{ width: '13px', height: '13px' }} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
