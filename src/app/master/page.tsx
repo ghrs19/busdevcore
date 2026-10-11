@@ -32,7 +32,7 @@ interface WBSTemplate {
 }
 
 export default function MasterDataPage() {
-  const [activeTab, setActiveTab] = useState<'ROLES' | 'TEMPLATES' | 'USERS' | 'COMPANY_ISSUER' | 'COMPANIES_CLIENT'>('ROLES');
+  const [activeTab, setActiveTab] = useState<'ROLES' | 'TEMPLATES' | 'USERS' | 'COMPANIES_CLIENT' | 'COMPANY_ISSUER' | 'AI_PROMPT'>('ROLES');
   // Company Issuer Settings State
   const [issuerSettings, setIssuerSettings] = useState<any>(null);
   const [loadingIssuer, setLoadingIssuer] = useState(false);
@@ -428,6 +428,14 @@ export default function MasterDataPage() {
                 style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
               >
                 Profil Perusahaan & Tanda Tangan PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('AI_PROMPT'); fetchIssuerSettings(); setErrorMsg(null); setSuccessMsg(null); }}
+                className={activeTab === 'AI_PROMPT' ? 'btn-primary' : 'btn-ghost'}
+                style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
+              >
+                AI Copilot System Prompt
               </button>
             </div>
           </div>
@@ -950,6 +958,93 @@ export default function MasterDataPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* TAB 6: AI COPILOT SYSTEM PROMPT */}
+        {activeTab === 'AI_PROMPT' && (
+          <div className="linear-card" style={{ padding: '26px' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🤖</span>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Konfigurasi Initial Prompt Busdev AI Copilot
+                </h3>
+              </div>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-tertiary)', marginTop: '6px', lineHeight: 1.5 }}>
+                Atur persona, instruksi dasar, dan arahan respons awal untuk AI Copilot Hermes di sistem Busdevcore.
+                Perubahan prompt ini langsung berlaku secara dinamis pada sesi chat Copilot seluruh pengguna.
+              </p>
+            </div>
+
+            {loadingIssuer || !issuerSettings ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                Memuat konfigurasi AI Prompt...
+              </div>
+            ) : (
+              <form onSubmit={handleSaveIssuer}>
+                <div style={{ marginBottom: '20px', background: 'var(--bg-surface)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <label style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      System Prompt & Instruksi Perilaku AI Copilot:
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      style={{ fontSize: '11.5px', padding: '2px 8px' }}
+                      onClick={() => {
+                        setIssuerSettings({
+                          ...issuerSettings,
+                          ai_system_prompt: `Anda adalah Hermes AI Copilot terintegrasi untuk busdevcore (Sistem ERP Project Costing, Komersial & Penagihan PT Penta Code Digital).
+Tugas Anda:
+1. Membantu tim Business Development menyusun draft WBS, estimasi manhours, dan perhitungan biaya proyek.
+2. Memberikan rekomendasi role tim teknis (PM, WEB_DEV, UI_UX, QC_DOC, DEV_OPS, MOBILE_DEV) dan alokasi jam yang realistis.
+3. Menjelaskan status proposal penawaran, termin pembayaran, dan data invoice klien jika ditanyakan.
+4. Memberikan insight analitik bisnis dan komersial secara profesional, ringkas, dan akurat.
+
+ATURAN KEAMANAN MUTLAK:
+- Anda TIDAK DIPERKENANKAN mengubah, menambah, atau menghapus Master Data (Role Master, Rate Card, User Master, Template WBS).
+- Anda TIDAK DIPERKENANKAN memodifikasi atau menghapus catatan Audit Trail (Audit Logs).
+- Seluruh tindakan berisiko tinggi wajib diarahkan ke pengguna untuk dilakukan secara manual melalui menu antarmuka sistem.`
+                        });
+                      }}
+                    >
+                      Reset ke Template Default
+                    </button>
+                  </div>
+
+                  <textarea
+                    rows={16}
+                    className="linear-textarea"
+                    placeholder="Ketik initial prompt atau panduan untuk AI Copilot..."
+                    value={issuerSettings.ai_system_prompt || ''}
+                    onChange={(e) => setIssuerSettings({ ...issuerSettings, ai_system_prompt: e.target.value })}
+                    style={{
+                      width: '100%',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '12.5px',
+                      lineHeight: '1.6',
+                      padding: '14px',
+                    }}
+                  />
+
+                  <div style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '6px', background: 'rgba(94, 106, 210, 0.08)', border: '1px solid rgba(94, 106, 210, 0.25)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: '#a5b4fc' }}>Catatan Keamanan:</strong> Meskipun prompt dapat disesuaikan, sistem tetap memproteksi database dengan <em>PostgreSQL Trigger Append-Only</em> pada Audit Log dan pembatasan level API controller untuk mencegah manipulasi data sensitif oleh instruksi chat AI.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="submit"
+                    disabled={savingIssuer}
+                    className="btn-primary"
+                    style={{ fontSize: '13px', padding: '9px 26px' }}
+                  >
+                    {savingIssuer ? 'Menyimpan Prompt...' : 'Simpan Perubahan AI System Prompt'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
 

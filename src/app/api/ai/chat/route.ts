@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Fetch live system summary context from PostgreSQL busdevcore (Read-Only)
-    const [companiesRes, projectsRes, estimatesRes, proposalsRes, rolesRes] = await Promise.all([
+    const [companiesRes, projectsRes, estimatesRes, proposalsRes, rolesRes, settingsRes] = await Promise.all([
       pool.query('SELECT id, name, email, phone FROM companies ORDER BY name ASC LIMIT 30'),
       pool.query(`
         SELECT p.id, p.name, c.name as company_name 
@@ -100,6 +100,7 @@ export async function POST(req: Request) {
         ORDER BY cp.id DESC LIMIT 20
       `),
       pool.query('SELECT code, name, default_hourly_rate FROM role_masters WHERE is_active = TRUE ORDER BY id ASC'),
+      pool.query('SELECT ai_system_prompt FROM company_settings WHERE id = 1 LIMIT 1'),
     ]);
 
     const companies = companiesRes.rows.map((c) => `- ${c.name} (Kontak: ${c.email || c.phone || '-'})`).join('\n') || '-';
@@ -112,8 +113,10 @@ export async function POST(req: Request) {
       ? chat_history.slice(-6).map((m: { role: string; content: string }) => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n')
       : '';
 
-    const systemPrompt = `Kamu adalah BusDev AI Assistant, asisten cerdas in-app untuk sistem Busdevcore (Project Costing ERP).
-Tugasmu adalah menjawab pertanyaan pengguna secara ringkas, to-the-point, akurat, dan informatif berdasarkan data riil dari sistem Busdevcore di bawah ini.
+    const customInitialPrompt = settingsRes?.rows?.[0]?.ai_system_prompt?.trim() || `Kamu adalah BusDev AI Assistant, asisten cerdas in-app untuk sistem Busdevcore (Project Costing ERP).
+Tugasmu adalah menjawab pertanyaan pengguna secara ringkas, to-the-point, akurat, dan informatif berdasarkan data riil dari sistem Busdevcore di bawah ini.`;
+
+    const systemPrompt = `${customInitialPrompt}
 
 ATURAN KEAMANAN & BATASAN SISTEM WAJIB (SECURITY POLICY):
 1. MODE READ-ONLY & INFORMASIONAL:

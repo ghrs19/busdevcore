@@ -59,22 +59,7 @@ export default function AuditDashboardPage() {
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <Link
-                href="/commercial"
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--text-tertiary)',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <span>←</span>
-                <span>Daftar Proposal</span>
-              </Link>
-            </div>
+
             <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
               Global Activity Log & Audit Trail
             </h1>

@@ -33,3 +33,7 @@ ALTER TABLE payment_milestone_invoices
   ADD COLUMN IF NOT EXISTS proof_file_name VARCHAR(255),
   ADD COLUMN IF NOT EXISTS proof_file_size INT,
   ADD COLUMN IF NOT EXISTS proof_mime_type VARCHAR(100);
+
+-- AI System Prompt configuration for busdev AI Copilot
+ALTER TABLE company_settings
+  ADD COLUMN IF NOT EXISTS ai_system_prompt TEXT;
