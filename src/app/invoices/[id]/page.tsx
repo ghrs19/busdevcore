@@ -508,21 +508,31 @@ function InvoiceDetailPageInner() {
 
         {/* Sibling Milestones (Rangkaian Termin Proposal) */}
         {siblings.length > 1 && (
-          <div className="linear-card" style={{ padding: '22px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 14px 0' }}>
-              Rangkaian Termin & Jadwal Penagihan Kontrak
-            </h3>
+          <div className="linear-card" style={{ padding: '26px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
+                  Rangkaian Termin & Jadwal Penagihan Kontrak
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                  Alur jadwal penagihan kontrak proposal #{invoice.proposal_number}. Invoice yang sedang aktif ditandai secara khusus.
+                </p>
+              </div>
+              <span className="linear-badge" style={{ fontSize: '11.5px', fontWeight: 600 }}>
+                {siblings.length} Tahap Penagihan
+              </span>
+            </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table className="pro-table">
+            <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '10px' }}>
+              <table className="pro-table" style={{ width: '100%', minWidth: '880px' }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '60px', textAlign: 'center' }}>No</th>
-                    <th style={{ textAlign: 'left' }}>Nama Termin / Uraian</th>
-                    <th style={{ width: '130px', textAlign: 'right' }}>Nominal</th>
-                    <th style={{ width: '150px', textAlign: 'center' }}>Status</th>
-                    <th style={{ width: '130px', textAlign: 'left' }}>No. Invoice</th>
-                    <th style={{ width: '80px', textAlign: 'center' }}>Navigasi</th>
+                    <th style={{ width: '70px', textAlign: 'center', padding: '14px 16px' }}>No</th>
+                    <th style={{ textAlign: 'left', padding: '14px 20px' }}>Tahapan Termin / Milestone</th>
+                    <th style={{ width: '170px', textAlign: 'right', padding: '14px 20px' }}>Nominal (IDR)</th>
+                    <th style={{ width: '180px', textAlign: 'center', padding: '14px 16px' }}>Status Penagihan</th>
+                    <th style={{ width: '170px', textAlign: 'left', padding: '14px 18px' }}>No. Invoice</th>
+                    <th style={{ width: '110px', textAlign: 'center', padding: '14px 16px' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -531,46 +541,99 @@ function InvoiceDetailPageInner() {
                     const sb = getStatusBadge(sib.billing_status);
 
                     return (
-                      <tr key={sib.id} style={{ background: isCurrent ? 'rgba(94, 106, 210, 0.08)' : 'transparent' }}>
-                        <td style={{ textAlign: 'center', fontWeight: isCurrent ? 800 : 500 }}>
+                      <tr
+                        key={sib.id}
+                        style={{
+                          background: isCurrent ? 'rgba(94, 106, 210, 0.1)' : 'transparent',
+                          borderLeft: isCurrent ? '3px solid var(--accent-hover)' : '3px solid transparent',
+                          transition: 'background 0.15s ease',
+                        }}
+                      >
+                        <td style={{ textAlign: 'center', padding: '16px', fontWeight: isCurrent ? 800 : 500, color: isCurrent ? 'var(--accent-hover)' : 'var(--text-tertiary)' }}>
                           {idx + 1}
                         </td>
-                        <td>
-                          <div style={{ fontWeight: isCurrent ? 700 : 500, color: isCurrent ? 'var(--accent-hover)' : 'var(--text-primary)' }}>
-                            {sib.milestone_name} {isCurrent && '(Aktif)'}
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: isCurrent ? 700 : 600, color: isCurrent ? 'var(--text-primary)' : 'var(--text-primary)', fontSize: '13.5px' }}>
+                              {sib.milestone_name}
+                            </span>
+                            {isCurrent && (
+                              <span
+                                className="linear-badge"
+                                style={{
+                                  fontSize: '10.5px',
+                                  fontWeight: 700,
+                                  background: 'rgba(94, 106, 210, 0.25)',
+                                  color: '#a5b4fc',
+                                  border: '1px solid rgba(94, 106, 210, 0.4)',
+                                  padding: '1px 7px',
+                                }}
+                              >
+                                Sedang Dibuka
+                              </span>
+                            )}
                           </div>
+                          {sib.percent > 0 && (
+                            <div style={{ fontSize: '11.5px', color: 'var(--text-tertiary)', marginTop: '3px' }}>
+                              Bobot: {sib.percent}% dari Grand Total Proyek
+                            </div>
+                          )}
                         </td>
-                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                        <td style={{ textAlign: 'right', padding: '16px 20px', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13.5px', color: sib.billing_status === 'paid' ? '#10b981' : 'var(--text-primary)' }}>
                           {formatIDR(sib.amount)}
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td style={{ textAlign: 'center', padding: '16px' }}>
                           <span
                             className="linear-badge"
                             style={{
-                              fontSize: '10.5px',
-                              padding: '2px 6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '3px 10px',
+                              borderRadius: '6px',
                               background: sb.bg,
                               color: sb.text,
                               border: `1px solid ${sb.border}`,
+                              display: 'inline-block',
                             }}
                           >
                             {sb.label}
                           </span>
                         </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: sib.invoice_number ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                          {sib.invoice_number || '-'}
+                        <td style={{ padding: '16px 18px', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                          {sib.invoice_number ? (
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {sib.invoice_number}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+                              (Belum Terbit)
+                            </span>
+                          )}
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td style={{ textAlign: 'center', padding: '16px' }}>
                           {!isCurrent ? (
                             <Link
                               href={`/invoices/${sib.id}`}
                               className="btn-secondary"
-                              style={{ padding: '3px 8px', fontSize: '11px', textDecoration: 'none' }}
+                              style={{
+                                padding: '5px 12px',
+                                fontSize: '11.5px',
+                                textDecoration: 'none',
+                                borderRadius: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                color: 'var(--text-primary)',
+                              }}
+                              title="Buka Halaman Invoice Termin Ini"
                             >
-                              Lihat
+                              <span>Buka</span>
+                              <span>→</span>
                             </Link>
                           ) : (
-                            <span style={{ fontSize: '11px', color: 'var(--accent-hover)', fontWeight: 700 }}>•</span>
+                            <span style={{ fontSize: '12px', color: 'var(--accent-hover)', fontWeight: 700, padding: '4px 8px' }}>
+                              ✓ Aktif
+                            </span>
                           )}
                         </td>
                       </tr>
