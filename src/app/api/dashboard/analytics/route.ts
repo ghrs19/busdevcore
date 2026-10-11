@@ -57,20 +57,36 @@ export async function GET() {
       FROM project_estimates
     `);
 
-    // 4. Role Hours Breakdown (Top Allocated Roles)
-    const roleStatsRes = await pool.query(`
+    // 4. Role Hours Breakdown (Aggregated from legacy columns & role_hours jsonb)
+    const roleHoursRes = await pool.query(`
       SELECT 
-        rm.name as role_name,
-        rm.code as role_code,
-        rm.default_hourly_rate,
-        COUNT(et.id)::int as task_count,
-        COALESCE(SUM(et.hours), 0) as total_allocated_hours
-      FROM role_masters rm
-      LEFT JOIN estimate_tasks et ON rm.id = et.role_id
-      GROUP BY rm.id, rm.name, rm.code, rm.default_hourly_rate
-      ORDER BY total_allocated_hours DESC
-      LIMIT 6
+        COALESCE(SUM(hours_pm), 0) as total_pm,
+        COALESCE(SUM(hours_web_dev), 0) as total_web_dev,
+        COALESCE(SUM(hours_ui_ux), 0) as total_ui_ux,
+        COALESCE(SUM(hours_qc_doc), 0) as total_qc_doc,
+        COALESCE(SUM(hours_dev_ops), 0) as total_dev_ops
+      FROM estimate_tasks
     `);
+
+    const roleMastersRes = await pool.query(`
+      SELECT id, name, code, default_hourly_rate FROM role_masters ORDER BY id ASC
+    `);
+
+    const rh = roleHoursRes.rows[0] || {};
+    const roleHoursMap: Record<string, number> = {
+      'PM': Number(rh.total_pm || 0),
+      'WEB_DEV': Number(rh.total_web_dev || 0),
+      'UI_UX': Number(rh.total_ui_ux || 0),
+      'QC_DOC': Number(rh.total_qc_doc || 0),
+      'DEV_OPS': Number(rh.total_dev_ops || 0),
+    };
+
+    const topRoles = roleMastersRes.rows.map(rm => ({
+      role_name: rm.name,
+      role_code: rm.code,
+      default_hourly_rate: rm.default_hourly_rate,
+      total_allocated_hours: roleHoursMap[rm.code] || 0,
+    })).sort((a, b) => b.total_allocated_hours - a.total_allocated_hours);
 
     // 5. Top Clients by Contract Value
     const topClientsRes = await pool.query(`
@@ -146,7 +162,7 @@ export async function GET() {
           avg_manhours_per_project: Math.round(Number(est.avg_manhours_per_project)),
         },
       },
-      top_roles: roleStatsRes.rows,
+      top_roles: topRoles,
       top_clients: topClientsRes.rows,
       recent_activities: recentAuditRes.rows,
     });
