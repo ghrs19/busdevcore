@@ -223,7 +223,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
           <h2 style={{ color: '#ef4444', marginBottom: '12px', fontSize: '18px' }}>Terjadi Kesalahan</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>{errorMsg || 'Data tidak ditemukan.'}</p>
           <Link href="/" className="btn-secondary" style={{ textDecoration: 'none' }}>
-            ← Kembali ke Historical Estimates
+            Kembali ke Beranda
           </Link>
         </div>
       </div>
@@ -241,22 +241,8 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
         {/* Top Breadcrumb & Actions Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Link
-              href="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: 'var(--text-tertiary)',
-                textDecoration: 'none',
-                fontSize: '13px',
-              }}
-            >
-              ← Historical Estimates
-            </Link>
-            <span style={{ color: 'var(--text-tertiary)' }}>/</span>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-              Dokumen #{estimate.id}
+            <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600 }}>
+              Dokumen Costing #{estimate.id}
             </span>
           </div>
 

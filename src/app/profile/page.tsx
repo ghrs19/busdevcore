@@ -147,21 +147,7 @@ export default function ProfilePage() {
     <div style={{ maxWidth: '1360px', margin: '32px auto', padding: '0 24px' }}>
       {/* Breadcrumb & Navigation */}
       <div style={{ marginBottom: '24px' }}>
-        <Link
-          href="/"
-          className="btn-ghost"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            textDecoration: 'none',
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-            marginBottom: '12px',
-          }}
-        >
-          ← Kembali ke Historical Estimates
-        </Link>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             Pengaturan Akun & Profil

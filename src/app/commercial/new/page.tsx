@@ -567,20 +567,7 @@ function NewCommercialProposalForm() {
       <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px' }}>
         {/* Header Breadcrumb */}
         <div style={{ marginBottom: '24px' }}>
-          <Link
-            href="/commercial"
-            style={{
-              fontSize: '12px',
-              color: 'var(--text-tertiary)',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              marginBottom: '8px',
-            }}
-          >
-            ← Kembali ke Daftar Proposal Penawaran
-          </Link>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h1

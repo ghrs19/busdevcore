@@ -374,20 +374,7 @@ export default function MasterDataPage() {
       <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '32px 24px 80px 24px' }}>
         {/* Header Breadcrumb */}
         <div style={{ marginBottom: '24px' }}>
-          <Link
-            href="/"
-            style={{
-              fontSize: '13px',
-              color: 'var(--text-tertiary)',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              marginBottom: '12px',
-            }}
-          >
-            ← Kembali ke Historical Estimates
-          </Link>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
