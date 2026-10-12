@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requestFingerprint } from '@/lib/estimate-idempotency';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import {
@@ -105,6 +106,12 @@ export async function POST(req: Request) {
     const user = await currentUser();
     if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const body = await req.json();
+    const rawIdempotencyKey = req.headers.get('Idempotency-Key');
+    const idempotencyKey = rawIdempotencyKey?.trim() || null;
+    if (rawIdempotencyKey !== null && (!idempotencyKey || idempotencyKey.length > 255)) {
+      return NextResponse.json({ success: false, error: 'Idempotency-Key tidak valid.' }, { status: 400 });
+    }
+    const fingerprint = idempotencyKey ? requestFingerprint(body) : null;
     const {
       company_id,
       project_id,
@@ -139,7 +146,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Perusahaan tidak ditemukan.' }, { status: 404 });
     }
 
-    // Resolve or create project
+    // Validate project references before claiming key; defer all project creation until claim.
     let resolvedProjectId: number | null = null;
     let resolvedProjectName: string | null = null;
 
@@ -161,32 +168,6 @@ export async function POST(req: Request) {
     }
 
     const onTheFlyName = new_project_name || (!resolvedProjectId && project_name ? project_name : null);
-    if (!resolvedProjectId && onTheFlyName && typeof onTheFlyName === 'string' && onTheFlyName.trim()) {
-      const pInsert = await client.query(
-        'INSERT INTO projects (company_id, name) VALUES ($1, $2) RETURNING id, name',
-        [company_id, onTheFlyName.trim()]
-      );
-      resolvedProjectId = pInsert.rows[0].id;
-      resolvedProjectName = pInsert.rows[0].name;
-    }
-
-    if (!resolvedProjectId) {
-      const pDef = await client.query(
-        'SELECT id, name FROM projects WHERE company_id = $1 ORDER BY id ASC LIMIT 1',
-        [company_id]
-      );
-      if (pDef.rows.length > 0) {
-        resolvedProjectId = pDef.rows[0].id;
-        resolvedProjectName = pDef.rows[0].name;
-      } else {
-        const pNew = await client.query(
-          'INSERT INTO projects (company_id, name, description) VALUES ($1, $2, $3) RETURNING id, name',
-          [company_id, 'General Project', 'Auto-created default project']
-        );
-        resolvedProjectId = pNew.rows[0].id;
-        resolvedProjectName = pNew.rows[0].name;
-      }
-    }
 
     // Verify service type
     const stCheck = await client.query('SELECT id, code, is_active FROM service_types WHERE id = $1', [service_type_id]);
@@ -318,8 +299,68 @@ export async function POST(req: Request) {
       operational: opInput,
     });
 
-    // Save in transaction
+    // Save in transaction. Idempotency claim serializes same-key requests.
     await client.query('BEGIN');
+    if (idempotencyKey && fingerprint) {
+      const claim = await client.query(
+        `INSERT INTO estimate_idempotency_keys (user_id, idempotency_key, request_fingerprint)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, idempotency_key) DO NOTHING
+         RETURNING idempotency_key`,
+        [user.id, idempotencyKey, fingerprint]
+      );
+      if (claim.rows.length === 0) {
+        const existing = await client.query(
+          `SELECT request_fingerprint, response_status, response_body
+           FROM estimate_idempotency_keys WHERE user_id = $1 AND idempotency_key = $2`,
+          [user.id, idempotencyKey]
+        );
+        const record = existing.rows[0];
+        if (record.request_fingerprint !== fingerprint) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ success: false, error: 'Idempotency-Key sudah digunakan dengan payload berbeda.' }, { status: 409 });
+        }
+        if (record.response_body) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(record.response_body, { status: record.response_status || 201 });
+        }
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, error: 'Request dengan Idempotency-Key masih diproses.' }, { status: 409 });
+      }
+    }
+
+    // Claim key before any project creation. Rollback removes project and estimate together.
+    if (!resolvedProjectId) {
+      if (onTheFlyName && typeof onTheFlyName === 'string' && onTheFlyName.trim()) {
+        const pInsert = await client.query(
+          'INSERT INTO projects (company_id, name) VALUES ($1, $2) RETURNING id, name',
+          [company_id, onTheFlyName.trim()]
+        );
+        resolvedProjectId = pInsert.rows[0].id;
+        resolvedProjectName = pInsert.rows[0].name;
+      } else {
+        const pDef = await client.query(
+          'SELECT id, name FROM projects WHERE company_id = $1 ORDER BY id ASC LIMIT 1',
+          [company_id]
+        );
+        if (pDef.rows.length > 0) {
+          resolvedProjectId = pDef.rows[0].id;
+          resolvedProjectName = pDef.rows[0].name;
+        } else {
+          const pNew = await client.query(
+            'INSERT INTO projects (company_id, name, description) VALUES ($1, $2, $3) RETURNING id, name',
+            [company_id, 'General Project', 'Auto-created default project']
+          );
+          resolvedProjectId = pNew.rows[0].id;
+          resolvedProjectName = pNew.rows[0].name;
+        }
+      }
+    }
+
+    // Test-only seam: force rollback after project creation, never active in production.
+    if (process.env.NODE_ENV === 'test' && req.headers.get('X-Test-Failure') === 'after_project') {
+      throw new Error('TEST_FAILURE_AFTER_PROJECT');
+    }
 
     const estInsert = await client.query(
       `INSERT INTO project_estimates 
@@ -390,9 +431,7 @@ export async function POST(req: Request) {
       }
     }
 
-    await client.query('COMMIT');
-
-    return NextResponse.json({
+    const responseBody = {
       success: true,
       estimate: {
         id: estimateId,
@@ -408,7 +447,15 @@ export async function POST(req: Request) {
         ...estInsert.rows[0],
         breakdown: calculated,
       },
-    }, { status: 201 });
+    };
+    if (idempotencyKey && fingerprint) {
+      await client.query(
+        `UPDATE estimate_idempotency_keys SET response_status = $1, response_body = $2::jsonb, estimate_id = $3 WHERE user_id = $4 AND idempotency_key = $5`,
+        [201, JSON.stringify(responseBody), estimateId, user.id, idempotencyKey]
+      );
+    }
+    await client.query('COMMIT');
+    return NextResponse.json(responseBody, { status: 201 });
   } catch (err: unknown) {
     await client.query('ROLLBACK');
     const msg = err instanceof Error ? err.message : 'Unknown error';
