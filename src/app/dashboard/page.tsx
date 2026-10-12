@@ -8,22 +8,48 @@ import {
   BriefcaseIcon,
   ClockIcon,
   SparklesIcon,
-  UserGroupIcon,
-  CheckCircleIcon,
-  DocumentTextIcon,
+
   BuildingOfficeIcon,
   CreditCardIcon,
   ShieldCheckIcon,
-  ExclamationCircleIcon,
+
 } from '@heroicons/react/24/outline';
 
 const formatIDR = (val: number | string) => `Rp ${(Number(val) || 0).toLocaleString('id-ID')}`;
 
+interface DashboardStats {
+  crm: Record<string, number>;
+  cashflow: Record<string, number>;
+  costing: Record<string, number>;
+}
+
+interface TopRole {
+  role_name: string;
+  role_code: string;
+  default_hourly_rate: number | string;
+  total_allocated_hours: number;
+}
+
+interface TopClient {
+  id: number;
+  company_name: string;
+  total_deals: number;
+  total_contract_value: number | string;
+  won_value: number | string;
+}
+
+interface RecentActivity {
+  id: number;
+  user_name: string | null;
+  action: string;
+  created_at: string;
+}
+
 export default function DashboardPage() {
-  const [stats, setStats] = useState<any>(null);
-  const [topRoles, setTopRoles] = useState<any[]>([]);
-  const [topClients, setTopClients] = useState<any[]>([]);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [topRoles, setTopRoles] = useState<TopRole[]>([]);
+  const [topClients, setTopClients] = useState<TopClient[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

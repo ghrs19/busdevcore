@@ -77,7 +77,7 @@ function InvoiceDetailPageInner() {
   const invoiceId = params?.id as string;
 
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
-  const [siblings, setSiblings] = useState<any[]>([]);
+  const [siblings, setSiblings] = useState<InvoiceDetail[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Edit Modal State

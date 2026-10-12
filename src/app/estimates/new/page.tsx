@@ -1,13 +1,12 @@
 'use client';
 import {
   TrashIcon,
-  XMarkIcon,
+
   SparklesIcon,
   ArrowPathIcon,
   PaperClipIcon,
   BoltIcon,
-  Cog6ToothIcon,
-  DocumentDuplicateIcon,
+
 } from '@heroicons/react/24/outline';
 
 
@@ -27,7 +26,7 @@ import {
   type InfrastructureItemInput,
   type InfraBillingType,
   type OperationalItemInput,
-  type CalculatedOperationalItem,
+
 } from '@/lib/costing';
 
 interface Company {
@@ -172,7 +171,7 @@ function NewEstimateForm() {
   ]);
 
   // Dynamic WBS Templates loaded from Master
-  const [dbTemplates, setDbTemplates] = useState<Array<{ id: number; name: string; category: string; description: string | null; payload: any }>>([]);
+  const [dbTemplates, setDbTemplates] = useState<Array<{ id: number; name: string; category: string; description: string | null; payload: unknown }>>([]);
 
   useEffect(() => {
     fetch('/api/templates?active_only=true')
@@ -461,7 +460,7 @@ function NewEstimateForm() {
     } catch {
       setErrorMsg('Gagal memuat metadata database.');
     }
-  }, []);
+  }, [editId]);
 
   // Load projects whenever selected company changes
   const loadProjectsForCompany = useCallback(async (companyId: number) => {
@@ -555,7 +554,7 @@ function NewEstimateForm() {
 
         // 1. Versioning meta
         const hist = Array.isArray(est.version_history) ? est.version_history : [];
-        const maxV = hist.reduce((max: number, item: any) => Math.max(max, Number(item.version) || 1), Number(est.version) || 1);
+        const maxV = hist.reduce((max: number, item: { version?: number }) => Math.max(max, Number(item.version) || 1), Number(est.version) || 1);
 
         setEditingEstimateMeta({
           version: est.version,
@@ -589,7 +588,7 @@ function NewEstimateForm() {
 
         // 4. Categories (supports multi-select)
         if (Array.isArray(est.categories) && est.categories.length > 0) {
-          setSelectedCategoryIds(est.categories.map((c: any) => c.id));
+          setSelectedCategoryIds(est.categories.map((c: Category) => c.id));
         } else if (est.category_id) {
           setSelectedCategoryIds([est.category_id]);
         }
@@ -597,8 +596,8 @@ function NewEstimateForm() {
         // 5. Rates snapshot
         if (est.rate_snapshots && typeof est.rate_snapshots === 'object') {
           const snapshotRates: RoleRateMap = {};
-          Object.entries(est.rate_snapshots).forEach(([code, item]: [string, any]) => {
-            snapshotRates[code] = typeof item === 'object' && item !== null ? Number(item.rate || 0) : Number(item || 0);
+          Object.entries(est.rate_snapshots).forEach(([code, item]) => {
+            snapshotRates[code] = typeof item === 'object' && item !== null ? Number((item as { rate?: number }).rate || 0) : Number(item || 0);
           });
           setRates((prev) => ({ ...prev, ...snapshotRates }));
         }
@@ -606,10 +605,10 @@ function NewEstimateForm() {
         // 6. Development Modules & Tasks
         if (Array.isArray(est.modules) && est.modules.length > 0) {
           setModules(
-            est.modules.map((m: any) => ({
+            est.modules.map((m: ModuleInput) => ({
               name: m.name,
               tasks: Array.isArray(m.tasks)
-                ? m.tasks.map((t: any) => ({
+                ? m.tasks.map((t) => ({
                     name: t.name,
                     hours_pm: Number(t.hours_pm) || 0,
                     hours_web_dev: Number(t.hours_web_dev) || 0,
@@ -630,7 +629,7 @@ function NewEstimateForm() {
           }
           if (Array.isArray(mConf.tasks) && mConf.tasks.length > 0) {
             setMaintenanceTasks(
-              mConf.tasks.map((t: any) => ({
+              mConf.tasks.map((t: MaintenanceTaskInput) => ({
                 name: t.name || 'Maintenance Task',
                 role_hours: t.role_hours || {},
               }))
@@ -667,25 +666,11 @@ function NewEstimateForm() {
   }, [editId]);
 
   // Derived multi-classification
-  const selectedCategories = useMemo(() => {
-    return categories.filter((c) => selectedCategoryIds.includes(c.id));
-  }, [categories, selectedCategoryIds]);
-
-  const isDevelopment = useMemo(() => {
-    return selectedCategories.some((c) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
-  }, [selectedCategories]);
-
-  const isMaintenance = useMemo(() => {
-    return selectedCategories.some((c) => c.code === 'MAINTENANCE');
-  }, [selectedCategories]);
-
-  const isOperational = useMemo(() => {
-    return selectedCategories.some((c) => (c.code || '').toUpperCase() === 'OPERATION');
-  }, [selectedCategories]);
-
-  const isInfrastructure = useMemo(() => {
-    return selectedCategories.some((c) => c.code === 'INFRASTRUCTURE');
-  }, [selectedCategories]);
+  const selectedCategories = categories.filter((c) => selectedCategoryIds.includes(c.id));
+  const isDevelopment = selectedCategories.some((c) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
+  const isMaintenance = selectedCategories.some((c) => c.code === 'MAINTENANCE');
+  const isOperational = selectedCategories.some((c) => (c.code || '').toUpperCase() === 'OPERATION');
+  const isInfrastructure = selectedCategories.some((c) => c.code === 'INFRASTRUCTURE');
 
   // Synchronize WBS Tab with selected categories
   useEffect(() => {
@@ -1028,16 +1013,17 @@ function NewEstimateForm() {
     ]);
   };
 
-  const applyMaintenanceTemplate = (tplPayload: any) => {
+  const applyMaintenanceTemplate = (tplPayload: unknown) => {
+    if (!Array.isArray(tplPayload)) return;
     if (Array.isArray(tplPayload) && tplPayload.length > 0) {
-      setMaintenanceTasks(tplPayload.map(t => ({
+      setMaintenanceTasks(tplPayload.map((t: MaintenanceTaskInput & { custom_rates?: Record<string, number> }) => ({
         name: t.name || 'Maintenance Task',
         role_hours: t.role_hours || {},
       })));
 
       // If template contains specific custom rates (e.g., E-Commerce WEB_DEV rate 35.835)
       const mergedRates: Record<string, number> = {};
-      tplPayload.forEach((t: any) => {
+      tplPayload.forEach((t: MaintenanceTaskInput & { custom_rates?: Record<string, number> }) => {
         if (t.custom_rates && typeof t.custom_rates === 'object') {
           Object.entries(t.custom_rates).forEach(([code, rateVal]) => {
             if (typeof rateVal === 'number' && rateVal > 0) {

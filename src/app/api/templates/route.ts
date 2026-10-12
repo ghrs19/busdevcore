@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
     let query = 'SELECT id, name, category, description, payload, is_active, created_at, updated_at FROM wbs_templates';
     const conditions: string[] = [];
-    const values: any[] = [];
+    const values: string[] = [];
 
     if (category) {
       values.push(category.toUpperCase());

@@ -44,7 +44,7 @@ export async function POST(
     const newTitle = source.title ? `${source.title} (Rev v${nextVersion})` : `Revisi v${nextVersion}`;
 
     // Clean serialization helper
-    const toPgJson = (val: any) => {
+    const toPgJson = (val: unknown) => {
       if (val === null || val === undefined) return null;
       if (typeof val === 'string') {
         try {
@@ -92,9 +92,9 @@ export async function POST(
         user.id
       ]);
       newEstimateId = insertEstRes.rows[0].id;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('ERROR ON INSERT ESTIMATE:', e);
-      throw new Error(`Insert estimate failed: ${e.message}`);
+      throw new Error(`Insert estimate failed: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     // 3. Clone categories
@@ -137,9 +137,9 @@ export async function POST(
           WHERE module_id = $2
           ORDER BY order_index ASC
         `, [newModId, mod.id]);
-      } catch (te: any) {
+      } catch (te: unknown) {
         console.error('ERROR ON CLONE TASKS:', te);
-        throw new Error(`Clone tasks failed: ${te.message}`);
+        throw new Error(`Clone tasks failed: ${te instanceof Error ? te.message : String(te)}`);
       }
     }
 

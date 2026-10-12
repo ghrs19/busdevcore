@@ -12,6 +12,13 @@ import {
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+type TemplateCategory = 'DEVELOPMENT' | 'MAINTENANCE' | 'INFRASTRUCTURE' | 'OPERATION';
+
+interface ClientCompany { id: number; name: string; email: string | null; phone: string | null; address: string | null; }
+interface AppUser { id: number; name: string; email: string; role: string; is_active: boolean; created_at: string; }
+interface UserForm extends Partial<AppUser> { password: string; }
+interface IssuerSettings { [key: string]: string | null | undefined; company_name?: string | null; tagline?: string | null; address?: string | null; email?: string | null; phone?: string | null; }
+
 interface RoleMaster {
   id: number;
   code: string;
@@ -24,9 +31,9 @@ interface RoleMaster {
 interface WBSTemplate {
   id: number;
   name: string;
-  category: string;
+  category: TemplateCategory;
   description: string | null;
-  payload: any;
+  payload: unknown;
   is_active: boolean;
   updated_at: string;
 }
@@ -34,14 +41,14 @@ interface WBSTemplate {
 export default function MasterDataPage() {
   const [activeTab, setActiveTab] = useState<'ROLES' | 'TEMPLATES' | 'USERS' | 'COMPANIES_CLIENT' | 'COMPANY_ISSUER' | 'AI_PROMPT'>('ROLES');
   // Company Issuer Settings State
-  const [issuerSettings, setIssuerSettings] = useState<any>(null);
+  const [issuerSettings, setIssuerSettings] = useState<IssuerSettings | null>(null);
   const [loadingIssuer, setLoadingIssuer] = useState(false);
   const [savingIssuer, setSavingIssuer] = useState(false);
 
   // Client Companies State
-  const [clientCompanies, setClientCompanies] = useState<any[]>([]);
+  const [clientCompanies, setClientCompanies] = useState<ClientCompany[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
-  const [editingClient, setEditingClient] = useState<any>(null);
+  const [editingClient, setEditingClient] = useState<ClientCompany | null>(null);
   const [clientForm, setClientForm] = useState({ name: '', email: '', phone: '', address: '' });
   const [savingClient, setSavingClient] = useState(false);
 
@@ -125,8 +132,8 @@ export default function MasterDataPage() {
     }
   };
 
-  const [users, setUsers] = useState<any[]>([]);
-  const [userForm, setUserForm] = useState<any>(null);
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [userForm, setUserForm] = useState<UserForm | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const fetchUsers = async () => { const [list, me] = await Promise.all([fetch('/api/users'), fetch('/api/auth/me')]); const data = await list.json(); const who = await me.json(); if (list.ok) setUsers(data.users); if (me.ok) setCurrentUserId(who.user.id); };
 
@@ -281,7 +288,7 @@ export default function MasterDataPage() {
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    let parsedPayload: any;
+    let parsedPayload: unknown;
     try {
       parsedPayload = JSON.parse(tplPayloadStr);
     } catch {
@@ -362,7 +369,7 @@ export default function MasterDataPage() {
   const startEditTemplate = (tpl: WBSTemplate) => {
     setEditingTemplate(tpl);
     setTplName(tpl.name);
-    setTplCategory(tpl.category as any);
+    setTplCategory(tpl.category);
     setTplDesc(tpl.description || '');
     setTplPayloadStr(JSON.stringify(tpl.payload, null, 2));
     setIsAddingTemplate(true);
@@ -681,7 +688,7 @@ export default function MasterDataPage() {
                     <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>KATEGORI WBS TARGET *</label>
                     <select
                       value={tplCategory}
-                      onChange={(e) => setTplCategory(e.target.value as any)}
+                      onChange={(e) => setTplCategory(e.target.value as TemplateCategory)}
                       className="linear-input"
                       style={{ width: '100%' }}
                     >

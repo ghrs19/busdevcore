@@ -178,7 +178,7 @@ const formatIDR = (val: number | string) => {
 export default function HistoricalEstimatesPage() {
   const router = useRouter();
   // Executive Dashboard Metrics
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<Record<string, number> | null>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
 
   useEffect(() => {

@@ -217,11 +217,11 @@ export async function PUT(
     } = await import('@/lib/costing');
 
     // 2. Recalculate modules
-    let calculatedDevModules: any[] = [];
+    let calculatedDevModules: ReturnType<typeof calculateModule>[] = [];
     let totalDevHours = 0;
     let totalDevCost = 0;
     if (Array.isArray(modules) && modules.length > 0) {
-      calculatedDevModules = modules.map((m: any, idx: number) => calculateModule(m, calcRates));
+      calculatedDevModules = modules.map((m) => calculateModule(m, calcRates));
       totalDevHours = calculatedDevModules.reduce((acc, m) => acc + m.total_hours, 0);
       totalDevCost = calculatedDevModules.reduce((acc, m) => acc + m.total_cost, 0);
     }
@@ -386,7 +386,7 @@ export async function PUT(
           INSERT INTO estimate_modules (estimate_id, name, order_index, total_hours, total_cost)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING id
-        `, [targetEstimateId, mod.name, Number.isInteger(mod.order_index) ? mod.order_index : mIdx, mod.total_hours, mod.total_cost]);
+        `, [targetEstimateId, mod.name, (modules[mIdx] && Number.isInteger(modules[mIdx].order_index) ? modules[mIdx].order_index : mIdx), mod.total_hours, mod.total_cost]);
 
         const modId = modRes.rows[0].id;
         for (let tIdx = 0; tIdx < mod.tasks.length; tIdx++) {
@@ -400,7 +400,7 @@ export async function PUT(
           `, [
             modId,
             task.name,
-            Number.isInteger(task.order_index) ? task.order_index : tIdx,
+            (modules[mIdx]?.tasks?.[tIdx] && Number.isInteger(modules[mIdx].tasks[tIdx].order_index) ? modules[mIdx].tasks[tIdx].order_index : tIdx),
             task.hours_pm || 0,
             task.hours_web_dev || 0,
             task.hours_ui_ux || 0,

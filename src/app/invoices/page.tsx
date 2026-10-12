@@ -258,7 +258,7 @@ export default function InvoicesTrackerPage() {
             ].map((t) => (
               <button
                 key={t.id}
-                onClick={() => setTypeFilter(t.id as any)}
+                onClick={() => setTypeFilter(t.id as 'all' | 'milestone' | 'recurring_monthly')}
                 className={typeFilter === t.id ? 'btn-primary' : 'btn-secondary'}
                 style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer' }}
               >

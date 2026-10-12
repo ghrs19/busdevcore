@@ -127,7 +127,7 @@ export async function POST(req: Request) {
       timeline_config,
     } = body;
 
-    let effectiveTitle = typeof title === 'string' ? title.trim() : '';
+    const effectiveTitle = typeof title === 'string' ? title.trim() : '';
 
     if (!company_id) {
       return NextResponse.json({ success: false, error: 'Perusahaan wajib dipilih.' }, { status: 400 });

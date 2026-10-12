@@ -137,9 +137,10 @@ function AIChatWidgetContent() {
     const textToSend = (customPrompt || inputMessage).trim();
     if (!textToSend || loading) return;
 
+    const messageId = crypto.randomUUID();
     const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     const userMsg: ChatMessage = {
-      id: String(Date.now()),
+      id: String(messageId),
       role: 'user',
       content: textToSend,
       time: currentTime,
@@ -163,7 +164,7 @@ function AIChatWidgetContent() {
       const data = await res.json();
       if (data.success && data.reply) {
         const assistantMsg: ChatMessage = {
-          id: String(Date.now() + 1),
+          id: `${messageId}-response`,
           role: 'assistant',
           content: data.reply,
           time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -175,7 +176,7 @@ function AIChatWidgetContent() {
     } catch (err: unknown) {
       const errText = err instanceof Error ? err.message : 'Terjadi kendala jaringan';
       const errorMsg: ChatMessage = {
-        id: String(Date.now() + 1),
+        id: `${messageId}-response`,
         role: 'assistant',
         content: `Maaf, saya sedang mengalami kendala: ${errText}`,
         time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),

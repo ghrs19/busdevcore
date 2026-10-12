@@ -61,6 +61,16 @@ interface ProposalDetail {
   }>;
 }
 
+interface IssuerSettings {
+  company_name: string;
+  tagline: string;
+  address: string;
+  email: string;
+  website: string;
+  signer_name: string;
+  signer_role: string;
+}
+
 interface VersionHistoryItem {
   id: number;
   proposal_number: string;
@@ -90,7 +100,7 @@ function CommercialProposalPrintViewContent() {
   const [proposal, setProposal] = useState<ProposalDetail | null>(null);
   const [modules, setModules] = useState<ModuleItem[]>([]);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
-  const [issuer, setIssuer] = useState<any>(null);
+  const [issuer, setIssuer] = useState<IssuerSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 

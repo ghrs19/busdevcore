@@ -431,7 +431,7 @@ function NewCommercialProposalForm() {
   };
 
   // Milestone actions
-  const handleMilestoneChange = (idx: number, field: keyof Milestone, val: any) => {
+  const handleMilestoneChange = (idx: number, field: keyof Milestone, val: string | number) => {
     setMilestones((prev) => {
       const copy = [...prev];
       copy[idx] = { ...copy[idx], [field]: val };
@@ -893,7 +893,7 @@ function NewCommercialProposalForm() {
                   <select
                     className="linear-select"
                     value={discountType}
-                    onChange={(e) => handleDiscountTypeChange(e.target.value as any)}
+                    onChange={(e) => handleDiscountTypeChange(e.target.value as 'PERCENTAGE' | 'NOMINAL')}
                     style={{ width: '110px' }}
                   >
                     <option value="PERCENTAGE">%</option>

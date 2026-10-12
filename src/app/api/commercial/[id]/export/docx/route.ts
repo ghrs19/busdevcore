@@ -111,7 +111,7 @@ export async function GET(
       right: { style: BorderStyle.SINGLE, size: 1, color: 'CBD5E1' },
     };
 
-    const docChildren: any[] = [];
+    const docChildren: (Paragraph | Table)[] = [];
 
     // Header block
     docChildren.push(
@@ -205,9 +205,9 @@ export async function GET(
       }),
     ];
 
-    modules.forEach((m: any, idx: number) => {
+    modules.forEach((m: { name: string; tasks: { name: string }[] }, idx: number) => {
       const taskListParagraphs = Array.isArray(m.tasks) && m.tasks.length > 0
-        ? m.tasks.map((t: any) => new Paragraph({ children: [new TextRun({ text: `• ${t.name}`, size: 18, color: '334155' })] }))
+        ? m.tasks.map((t) => new Paragraph({ children: [new TextRun({ text: `• ${t.name}`, size: 18, color: '334155' })] }))
         : [new Paragraph({ children: [new TextRun({ text: `• Penyelesaian dan pengujian fungsional modul ${m.name}`, size: 18, color: '334155' })] })];
 
       moduleTableRows.push(
@@ -243,7 +243,7 @@ export async function GET(
         }),
       ];
 
-      proposal.timeline_config.milestones.forEach((ms: any, idx: number) => {
+      proposal.timeline_config.milestones.forEach((ms: { phase: string; duration_weeks: number; deliverable: string }, idx: number) => {
         timelineRows.push(
           new TableRow({
             children: [
@@ -348,7 +348,7 @@ export async function GET(
         }),
       ];
 
-      proposal.payment_terms.forEach((pt: any, idx: number) => {
+      proposal.payment_terms.forEach((pt: { milestone_name: string; percent: number; amount: number; trigger_condition?: string }, idx: number) => {
         paymentRows.push(
           new TableRow({
             children: [
@@ -440,7 +440,7 @@ export async function GET(
     const buffer = await Packer.toBuffer(doc);
     const cleanFilename = `Proposal_${proposal.proposal_number.replace(/\//g, '_')}.docx`;
 
-    return new NextResponse(buffer as any, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
