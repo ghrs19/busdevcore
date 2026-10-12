@@ -1,35 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
-import { execFile } from 'child_process';
-import fs from 'fs';
-
-// Helper: Run Hermes CLI
-async function executeHermes(prompt: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const isLocalHermes = fs.existsSync('/opt/hermes/bin/hermes');
-    const bin = isLocalHermes ? '/opt/hermes/bin/hermes' : 'docker';
-    const args = isLocalHermes
-      ? ['-z', prompt]
-      : ['exec', 'busdev', 'hermes', '-z', prompt];
-
-    execFile(
-      bin,
-      args,
-      { maxBuffer: 15 * 1024 * 1024, timeout: 120000 },
-      (error, stdout, stderr) => {
-        if (error) {
-          if (stdout && stdout.trim()) {
-            return resolve(stdout);
-          }
-          const errDetail = stderr || error.message;
-          return reject(new Error(`Hermes execution error: ${errDetail}`));
-        }
-        resolve(stdout);
-      }
-    );
-  });
-}
+import { executeHermes } from '@/lib/hermes-agent.mjs';
 
 // Regex detector untuk percobaan instruksi modifikasi data
 function isProhibitedAction(prompt: string): string | null {
