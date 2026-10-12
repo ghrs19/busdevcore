@@ -51,11 +51,12 @@ export default function DashboardPage() {
   const [topClients, setTopClients] = useState<TopClient[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState('all');
 
   useEffect(() => {
     async function loadAnalytics() {
       try {
-        const res = await fetch('/api/dashboard/analytics');
+        const res = await fetch(`/api/dashboard/analytics?range=${range}`);
         const data = await res.json();
         if (data.success) {
           setStats(data.stats);
@@ -70,7 +71,7 @@ export default function DashboardPage() {
       }
     }
     loadAnalytics();
-  }, []);
+  }, [range]);
 
   if (loading) {
     return (
@@ -109,7 +110,15 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Periode proposal (pipeline){' '}
+              <select aria-label="Periode proposal" value={range} onChange={(event) => setRange(event.target.value)} style={{ padding: '8px', borderRadius: '6px', background: 'var(--bg-canvas)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' }}>
+                <option value="all">Semua waktu</option>
+                <option value="30">30 hari terakhir</option>
+                <option value="90">90 hari terakhir</option>
+              </select>
+            </label>
             <Link
               href="/commercial/new"
               className="btn-secondary"
@@ -369,7 +378,9 @@ export default function DashboardPage() {
                     topClients.map((client) => (
                       <tr key={client.id}>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '13px' }}>
-                          {client.company_name}
+                          <Link href="/master" style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: 'var(--border-subtle)' }} aria-label={`Lihat master data klien ${client.company_name}`}>
+                            {client.company_name}
+                          </Link>
                         </td>
                         <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
                           {client.total_deals}

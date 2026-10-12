@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import pool from '@/lib/db';
 import { getFileStream, getFileStat } from '@/lib/storage';
 import { currentUser } from '@/lib/auth';
 import { Readable } from 'stream';
@@ -15,6 +16,16 @@ export async function GET(
 
     const { path: objectName } = await params;
     const decodedName = decodeURIComponent(objectName);
+    const fileUrl = `/api/files/${encodeURIComponent(decodedName)}`;
+    const authorized = await pool.query(`
+      SELECT 1 FROM payment_milestone_invoices WHERE proof_file_url = $1
+      UNION ALL
+      SELECT 1 FROM contract_documents WHERE file_url = $1
+      LIMIT 1
+    `, [fileUrl]);
+    if (!authorized.rows.length) {
+      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    }
 
     const stat = await getFileStat(decodedName);
     const stream = await getFileStream(decodedName);
@@ -32,6 +43,7 @@ export async function GET(
     headers.set('Content-Type', stat.metaData['content-type'] || 'application/octet-stream');
     headers.set('Content-Length', String(stat.size));
     headers.set('Cache-Control', 'private, max-age=3600');
+    headers.set('X-Content-Type-Options', 'nosniff');
 
     return new Response(webStream, { headers });
   } catch (err: unknown) {

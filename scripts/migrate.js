@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const { runMigrations } = require('./migration-runner');
 
 let databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -16,15 +17,10 @@ if (!databaseUrl) {
 
 async function runMigration() {
   const pool = new Pool({ connectionString: databaseUrl });
+  const client = await pool.connect();
   try {
     const migrationsDir = path.join(__dirname, '../src/db/migrations');
-    const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
-    for (const file of files) {
-      const sqlPath = path.join(migrationsDir, file);
-      const sql = fs.readFileSync(sqlPath, 'utf-8');
-      console.log('Running migration from', file);
-      await pool.query(sql);
-    }
+    await runMigrations(client, migrationsDir, { baseline: process.argv.includes('--baseline') });
     console.log('Migrations executed successfully!');
 
     // Verify tables
@@ -59,6 +55,7 @@ async function runMigration() {
     console.error('Migration failed:', err);
     process.exit(1);
   } finally {
+    client.release();
     await pool.end();
   }
 }

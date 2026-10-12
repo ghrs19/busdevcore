@@ -49,7 +49,7 @@ function NavLinks({ role }: { role: string }) {
       {/* 2. Costing */}
       <Link href="/" className="pill-item" style={navItemStyle(isCosting)}>
         <CalculatorIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Costing</span>
+        <span>Costing Estimates</span>
       </Link>
 
       {/* 3. Commercials/Quote */}

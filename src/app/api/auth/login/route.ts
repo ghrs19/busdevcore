@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { hashPassword, signSession, verifyPassword, sessionCookie } from '@/lib/auth';
-
-async function ensureAdmin() {
-  const count = await pool.query('SELECT COUNT(*)::int AS count FROM users');
-  if (count.rows[0].count === 0) await pool.query('INSERT INTO users(name,email,password_hash) VALUES($1,$2,$3)', ['Admin', 'admin@gherdev.com', hashPassword('admin123')]);
-}
+import { signSession, verifyPassword, sessionCookie } from '@/lib/auth';
 export async function POST(request: Request) {
   try {
-    await ensureAdmin();
     const body = await request.json();
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     const password = typeof body.password === 'string' ? body.password : '';

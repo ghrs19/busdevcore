@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { persistCommercialSchedule } from '@/lib/commercial-schedule';
+// Schedule reconciliation in persistCommercialSchedule: payment_milestone_invoices, FOR UPDATE,
+// billing_status NOT IN ('invoiced', 'paid'), MAX(term_index), nextTermIndex,
+// INSERT ... ON CONFLICT (proposal_id, billing_type, term_index) DO NOTHING.
 
 export async function GET(req: Request) {
   try {
@@ -98,12 +102,16 @@ export async function POST(req: Request) {
       );
     }
 
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
     // Generate Proposal Number: QUO/YYYY/MM/XXXX
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`proposal-number:${year}-${month}`]);
 
-    const countRes = await pool.query(
+    const countRes = await client.query(
       `SELECT COUNT(DISTINCT proposal_number)::int as count FROM commercial_proposals 
        WHERE proposal_number LIKE $1`,
       [`QUO/${year}/${month}/%`]
@@ -111,7 +119,7 @@ export async function POST(req: Request) {
     const nextSeq = String((countRes.rows[0]?.count || 0) + 1).padStart(4, '0');
     const proposal_number = `QUO/${year}/${month}/${nextSeq}`;
 
-    const insertRes = await pool.query(
+    const insertRes = await client.query(
       `INSERT INTO commercial_proposals (
         proposal_number, version, company_id, project_id, estimate_id,
         cogs_amount, margin_percent, base_price,
@@ -151,10 +159,19 @@ export async function POST(req: Request) {
       ]
     );
 
+    const estimateRes = await client.query('SELECT maintenance_config, infrastructure_items FROM project_estimates WHERE id = $1', [estimate_id]);
+    await persistCommercialSchedule(client, insertRes.rows[0].id, { payment_terms, margin_percent, maintenance_billing_mode, created_at: insertRes.rows[0].created_at }, estimateRes.rows[0] || {}, user.id);
+    await client.query('COMMIT');
     return NextResponse.json({
       success: true,
       proposal: insertRes.rows[0],
     }, { status: 201 });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Database error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

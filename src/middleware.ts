@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthSecret } from './lib/auth-secret';
 
-const secret = process.env.AUTH_SECRET || process.env.DATABASE_URL || 'busdevcore-local-session-secret-change-me';
+const secret = getAuthSecret();
 
 async function parseValidSession(token?: string): Promise<{ id: number; role: string } | null> {
   if (!token) return null;

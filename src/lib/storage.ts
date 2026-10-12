@@ -1,24 +1,26 @@
 import * as Minio from 'minio';
 
-const minioClient = new Minio.Client({
-  endPoint: process.env.MINIO_ENDPOINT || '172.17.0.1',
-  port: parseInt(process.env.MINIO_PORT || '9000', 10),
-  useSSL: process.env.MINIO_USE_SSL === 'true',
-  accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-  secretKey: process.env.MINIO_SECRET_KEY || 'miniopassword123',
-});
+function requiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing required storage configuration: ${name}`);
+  return value;
+}
 
-const BUCKET_NAME = process.env.MINIO_BUCKET || 'busdevcore-attachments';
+function getStorage() {
+  const client = new Minio.Client({
+    endPoint: requiredEnv('MINIO_ENDPOINT'),
+    port: parseInt(process.env.MINIO_PORT || '9000', 10),
+    useSSL: process.env.MINIO_USE_SSL === 'true',
+    accessKey: requiredEnv('MINIO_ACCESS_KEY'),
+    secretKey: requiredEnv('MINIO_SECRET_KEY'),
+  });
+  return { client, bucket: requiredEnv('MINIO_BUCKET') };
+}
 
 export async function ensureBucket() {
-  try {
-    const exists = await minioClient.bucketExists(BUCKET_NAME);
-    if (!exists) {
-      await minioClient.makeBucket(BUCKET_NAME, 'us-east-1');
-    }
-  } catch (err) {
-    console.error('Error ensuring bucket:', err);
-  }
+  const { client, bucket } = getStorage();
+  const exists = await client.bucketExists(bucket);
+  if (!exists) await client.makeBucket(bucket, 'us-east-1');
 }
 
 export async function uploadFile(
@@ -27,23 +29,25 @@ export async function uploadFile(
   size: number,
   contentType: string
 ): Promise<string> {
+  const { client, bucket } = getStorage();
   await ensureBucket();
-  await minioClient.putObject(BUCKET_NAME, objectName, buffer, size, {
+  await client.putObject(bucket, objectName, buffer, size, {
     'Content-Type': contentType,
   });
   return `/api/files/${encodeURIComponent(objectName)}`;
 }
 
 export async function getFileStream(objectName: string) {
-  return await minioClient.getObject(BUCKET_NAME, objectName);
+  const { client, bucket } = getStorage();
+  return await client.getObject(bucket, objectName);
 }
 
 export async function getFileStat(objectName: string) {
-  return await minioClient.statObject(BUCKET_NAME, objectName);
+  const { client, bucket } = getStorage();
+  return await client.statObject(bucket, objectName);
 }
 
 export async function deleteFile(objectName: string) {
-  await minioClient.removeObject(BUCKET_NAME, objectName);
+  const { client, bucket } = getStorage();
+  await client.removeObject(bucket, objectName);
 }
-
-export default minioClient;

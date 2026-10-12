@@ -12,10 +12,13 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const statusFilter = searchParams.get('status');
     const typeFilter = searchParams.get('type'); // 'all', 'milestone', 'recurring_monthly'
+    const search = searchParams.get('search')?.trim();
 
     let query = `
       SELECT 
         pmi.*,
+        CASE WHEN pmi.billing_status = 'invoiced' AND pmi.due_date < CURRENT_DATE THEN 'overdue' ELSE pmi.billing_status END AS effective_status,
+
         cp.proposal_number,
         cp.version as proposal_version,
         c.name as company_name,
@@ -29,8 +32,17 @@ export async function GET(req: Request) {
     const params: unknown[] = [];
 
     if (statusFilter && statusFilter !== 'all') {
-      params.push(statusFilter);
-      query += ` AND pmi.billing_status = $${params.length} `;
+      if (statusFilter === 'overdue') {
+        query += ` AND pmi.billing_status = 'invoiced' AND pmi.due_date < CURRENT_DATE `;
+      } else {
+        params.push(statusFilter);
+        query += ` AND pmi.billing_status = $${params.length} `;
+      }
+    }
+
+    if (search) {
+      params.push(`%${search}%`);
+      query += ` AND (c.name ILIKE $${params.length} OR p.name ILIKE $${params.length}) `;
     }
 
     if (typeFilter && typeFilter !== 'all') {

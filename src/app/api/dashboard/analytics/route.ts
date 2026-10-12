@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { getDashboardRange } from '../analytics-range.mjs';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await currentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const range = getDashboardRange(new URL(request.url).searchParams.get('range'));
+    const fromDate = range ? new Date(Date.now() - range.days * 86400000).toISOString() : null;
     // 1. Pipeline & Won Summary (Unique latest proposals)
     const pipelineRes = await pool.query(`
       SELECT 
@@ -27,8 +30,8 @@ export async function GET() {
         SELECT MAX(cp2.version) 
         FROM commercial_proposals cp2 
         WHERE cp2.proposal_number = commercial_proposals.proposal_number
-      )
-    `);
+      ) AND ($1::timestamptz IS NULL OR updated_at >= $1)
+    `, [fromDate]);
 
     // 2. Cashflow & Billing Health
     const cashflowRes = await pool.query(`

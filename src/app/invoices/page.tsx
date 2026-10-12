@@ -27,6 +27,7 @@ interface InvoiceItem {
   amount: number | string;
   trigger_condition: string;
   billing_status: string;
+  effective_status?: string;
   invoice_number?: string;
   invoice_date?: string;
   due_date?: string;
@@ -74,6 +75,7 @@ export default function InvoicesTrackerPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'milestone' | 'recurring_monthly'>('all');
+  const [search, setSearch] = useState('');
 
   // Edit Modal State
   const [editingItem, setEditingItem] = useState<InvoiceItem | null>(null);
@@ -91,12 +93,13 @@ export default function InvoicesTrackerPage() {
 
   useEffect(() => {
     loadInvoices();
-  }, [statusFilter, typeFilter]);
+  }, [statusFilter, typeFilter, search]);
 
   async function loadInvoices() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/invoices?status=${statusFilter}&type=${typeFilter}`);
+      const params = new URLSearchParams({ status: statusFilter, type: typeFilter, search });
+      const res = await fetch(`/api/invoices?${params}`);
       const data = await res.json();
       if (data.success) {
         setInvoices(data.invoices || []);
@@ -289,6 +292,16 @@ export default function InvoicesTrackerPage() {
           </div>
         </div>
 
+        <input
+          type="search"
+          aria-label="Cari klien atau proyek"
+          placeholder="Cari klien atau proyek..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="linear-input"
+          style={{ width: '100%', marginBottom: '14px' }}
+        />
+
         {/* Invoices List Table */}
         <div className="linear-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
@@ -321,7 +334,7 @@ export default function InvoicesTrackerPage() {
                   </tr>
                 ) : (
                   invoices.map((inv) => {
-                    const sb = getStatusBadge(inv.billing_status);
+                    const sb = getStatusBadge(inv.effective_status || inv.billing_status);
                     const dueDateStr = inv.due_date
                       ? new Date(inv.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                       : '-';

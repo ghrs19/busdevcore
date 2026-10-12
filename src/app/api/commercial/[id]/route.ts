@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { persistCommercialSchedule } from '@/lib/commercial-schedule';
+// Schedule reconciliation locks payment_milestone_invoices FOR UPDATE; protected billing_status NOT IN ('invoiced', 'paid'); MAX(term_index), nextTermIndex; INSERT ... ON CONFLICT (proposal_id, billing_type, term_index) DO NOTHING.
 
 export async function GET(
   req: Request,
@@ -122,21 +124,26 @@ export async function PUT(
       return NextResponse.json({ success: false, error: 'ID proposal tidak valid' }, { status: 400 });
     }
 
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
     // 1. Fetch current proposal to determine root parent and proposal number
-    const currentRes = await pool.query(
+    const currentRes = await client.query(
       `SELECT * FROM commercial_proposals WHERE id = $1`,
       [proposalId]
     );
 
     if (currentRes.rows.length === 0) {
+      await client.query('ROLLBACK');
       return NextResponse.json({ success: false, error: 'Proposal tidak ditemukan' }, { status: 404 });
     }
 
     const currentProposal = currentRes.rows[0];
     const rootId = currentProposal.parent_id || currentProposal.id;
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`proposal-revision:${rootId}`]);
 
     // 2. Determine highest version in this chain
-    const maxVerRes = await pool.query(
+    const maxVerRes = await client.query(
       `SELECT COALESCE(MAX(version), 1) as max_version FROM commercial_proposals WHERE id = $1 OR parent_id = $1`,
       [rootId]
     );
@@ -166,7 +173,7 @@ export async function PUT(
     } = body;
 
     // 4. Insert NEW record with incremented version and parent_id
-    const insertRes = await pool.query(
+    const insertRes = await client.query(
       `INSERT INTO commercial_proposals (
         proposal_number, version, parent_id, revision_notes,
         company_id, project_id, estimate_id,
@@ -211,11 +218,20 @@ export async function PUT(
       ]
     );
 
+    const estimateRes = await client.query('SELECT maintenance_config, infrastructure_items FROM project_estimates WHERE id = $1', [estimate_id || currentProposal.estimate_id]);
+    await persistCommercialSchedule(client, insertRes.rows[0].id, { payment_terms, margin_percent, maintenance_billing_mode: maintenance_billing_mode || currentProposal.maintenance_billing_mode, created_at: insertRes.rows[0].created_at }, estimateRes.rows[0] || {}, user.id);
+    await client.query('COMMIT');
     return NextResponse.json({
       success: true,
       message: `Berhasil membuat revisi versi v${nextVersion}`,
       proposal: insertRes.rows[0],
     }, { status: 201 });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Database error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

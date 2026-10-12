@@ -35,23 +35,8 @@ export async function GET(
     const terms = Array.isArray(proposal.payment_terms) ? proposal.payment_terms : [];
     const billingMode = proposal.maintenance_billing_mode || 'ALL_IN_PROJECT';
 
-    // 2. Sync Milestone Fase 1 (Development / All-in Contract)
-    for (let i = 0; i < terms.length; i++) {
-      const term = terms[i];
-      const termIdx = i + 1;
-      await pool.query(`
-        INSERT INTO payment_milestone_invoices (
-          proposal_id, billing_type, phase, term_index, milestone_name, percent, amount, trigger_condition
-        ) VALUES ($1, 'milestone', 'DEVELOPMENT', $2, $3, $4, $5, $6)
-        ON CONFLICT (proposal_id, billing_type, term_index) DO UPDATE
-        SET milestone_name = EXCLUDED.milestone_name,
-            percent = EXCLUDED.percent,
-            amount = EXCLUDED.amount,
-            trigger_condition = EXCLUDED.trigger_condition
-      `, [proposalId, termIdx, term.milestone_name, term.percent, term.amount, term.trigger_condition]);
-    }
-
-    // 3. Sync Recurring Fase 2 (Hanya jika mode = MONTHLY_RETAINER)
+    // GET stays read-only; schedule reconciliation belongs to an explicit write path.
+    // 2. Calculate recurring schedule metadata for the response.
     const mntConfig = proposal.maintenance_config || {};
     let durationMonths = parseInt(mntConfig.duration_months || 0, 10);
     const monthlyMaintenanceCost = parseFloat(mntConfig.monthly_cost || 0);
@@ -81,44 +66,6 @@ export async function GET(
       const baseDate = new Date(proposal.created_at || new Date());
       baseDate.setMonth(baseDate.getMonth() + 2); // Mulai bulan ke-2 setelah dev
 
-      for (let m = 1; m <= durationMonths; m++) {
-        const schedDate = new Date(baseDate);
-        schedDate.setMonth(baseDate.getMonth() + (m - 1));
-        schedDate.setDate(5);
-
-        const monthName = schedDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
-        const milestoneTitle = `Retainer Bulan ${m} (${monthName}) - Mnt & Cloud`;
-        const coverage = `01 - ${new Date(schedDate.getFullYear(), schedDate.getMonth() + 1, 0).getDate()} ${monthName}`;
-        const condition = `Jasa Pemeliharaan Sistem & Alokasi Cloud Hosting (${monthName})`;
-
-        await pool.query(`
-          INSERT INTO payment_milestone_invoices (
-            proposal_id, billing_type, phase, term_index, period_month, coverage_period,
-            milestone_name, percent, amount, trigger_condition, due_date
-          ) VALUES ($1, 'recurring_monthly', 'POST_LAUNCH_RETAINER', $2, $3, $4, $5, 0, $6, $7, $8)
-          ON CONFLICT (proposal_id, billing_type, term_index) DO UPDATE
-          SET milestone_name = EXCLUDED.milestone_name,
-              period_month = EXCLUDED.period_month,
-              coverage_period = EXCLUDED.coverage_period,
-              amount = EXCLUDED.amount,
-              trigger_condition = EXCLUDED.trigger_condition
-        `, [
-          proposalId,
-          m,
-          m,
-          coverage,
-          milestoneTitle,
-          totalMonthlyBilled,
-          condition,
-          schedDate.toISOString().split('T')[0]
-        ]);
-      }
-    } else if (billingMode === 'ALL_IN_PROJECT') {
-      // Hapus draft recurring jika mode ALL_IN_PROJECT (karena sudah masuk termin milestone)
-      await pool.query(`
-        DELETE FROM payment_milestone_invoices 
-        WHERE proposal_id = $1 AND billing_type = 'recurring_monthly'
-      `, [proposalId]);
     }
 
     // 4. Fetch all schedule records
@@ -192,11 +139,9 @@ export async function PATCH(
         paid_amount = $6,
         proof_reference = $7,
         notes = $8,
-        proof_file_url = COALESCE($9, proof_file_url),
-        proof_file_name = COALESCE($10, proof_file_name),
-        updated_by_user_id = $11,
+        updated_by_user_id = $9,
         updated_at = NOW()
-      WHERE id = $12 AND proposal_id = $13
+      WHERE id = $10 AND proposal_id = $11
       RETURNING *
     `, [
       billing_status || null,
@@ -207,8 +152,6 @@ export async function PATCH(
       Number(paid_amount) || 0,
       proof_reference || null,
       notes || null,
-      body.proof_file_url || null,
-      body.proof_file_name || null,
       user.id,
       milestone_id,
       proposalId,
