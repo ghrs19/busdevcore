@@ -2,17 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import {
-  BanknotesIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationCircleIcon,
-  PencilSquareIcon,
-  BuildingOfficeIcon,
-  ArrowPathIcon,
-  SparklesIcon,
-  CalendarDaysIcon,
-} from '@heroicons/react/24/outline';
+import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
 interface InvoiceItem {
   id: number;
@@ -39,6 +29,27 @@ interface InvoiceItem {
   proposal_version: number;
   company_name: string;
   project_name: string;
+}
+
+interface ProjectInvoiceGroup {
+  company_id: number;
+  company_name: string;
+  project_id: number;
+  project_name: string;
+  invoice_count: number;
+  paid_count: number;
+  paid_amount: number | string;
+  invoiced_count: number;
+  invoiced_amount: number | string;
+  overdue_count: number;
+  overdue_amount: number | string;
+  unbilled_count: number;
+  unbilled_amount: number | string;
+  milestone_count: number;
+  milestone_amount: number | string;
+  recurring_count: number;
+  recurring_amount: number | string;
+  invoices: InvoiceItem[];
 }
 
 interface SummaryData {
@@ -70,7 +81,8 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function InvoicesTrackerPage() {
-  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
+  const [invoices, setInvoices] = useState<ProjectInvoiceGroup[]>([]);
+  const [expandedProjects, setExpandedProjects] = useState<number[]>([]);
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -302,191 +314,50 @@ export default function InvoicesTrackerPage() {
           style={{ width: '100%', marginBottom: '14px' }}
         />
 
-        {/* Invoices List Table */}
+        {/* Project-level invoice summary */}
         <div className="linear-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <table className="pro-table" style={{ width: '100%', minWidth: '1180px' }}>
-              <thead>
-                <tr>
-                  <th style={{ width: '150px', textAlign: 'left', padding: '16px 20px' }}>No. Dokumen</th>
-                  <th style={{ minWidth: '220px', textAlign: 'left', padding: '16px 20px' }}>Klien & Proyek</th>
-                  <th style={{ width: '130px', textAlign: 'center', padding: '16px 14px' }}>Model</th>
-                  <th style={{ minWidth: '260px', textAlign: 'left', padding: '16px 20px' }}>Uraian Milestone / Termin</th>
-                  <th style={{ width: '160px', textAlign: 'right', padding: '16px 20px' }}>Nominal (IDR)</th>
-                  <th style={{ width: '160px', textAlign: 'center', padding: '16px 14px' }}>Status Penagihan</th>
-                  <th style={{ width: '170px', textAlign: 'left', padding: '16px 16px' }}>No. Invoice Resmi</th>
-                  <th style={{ width: '130px', textAlign: 'left', padding: '16px 16px' }}>Jatuh Tempo</th>
-                  <th style={{ width: '120px', textAlign: 'center', padding: '16px 16px' }}>Aksi</th>
-                </tr>
-              </thead>
+            <table className="pro-table" style={{ width: '100%', minWidth: '1120px' }}>
+              <thead><tr>
+                <th style={{ textAlign: 'left', padding: '16px 20px' }}>Klien & Proyek</th>
+                <th style={{ textAlign: 'center', padding: '16px' }}>Model</th>
+                <th style={{ textAlign: 'center', padding: '16px' }}>Paid</th>
+                <th style={{ textAlign: 'right', padding: '16px' }}>Nilai Paid</th>
+                <th style={{ textAlign: 'center', padding: '16px' }}>Invoiced</th>
+                <th style={{ textAlign: 'right', padding: '16px' }}>Nilai Invoiced</th>
+                <th style={{ textAlign: 'center', padding: '16px' }}>Overdue</th>
+                <th style={{ textAlign: 'right', padding: '16px' }}>Nilai Overdue</th>
+                <th style={{ textAlign: 'center', padding: '16px' }}>Unbilled</th>
+                <th style={{ textAlign: 'right', padding: '16px' }}>Nilai Unbilled</th>
+              </tr></thead>
               <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
-                      Memuat jadwal penagihan hibrida...
-                    </td>
-                  </tr>
-                ) : invoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
-                      Tidak ada data penagihan dengan kriteria ini.
-                    </td>
-                  </tr>
-                ) : (
-                  invoices.map((inv) => {
-                    const sb = getStatusBadge(inv.effective_status || inv.billing_status);
-                    const dueDateStr = inv.due_date
-                      ? new Date(inv.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : '-';
-                    const isRecurring = inv.billing_type === 'recurring_monthly';
-
-                    return (
-                      <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                        <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
-                          <Link
-                            href={`/commercial/${inv.proposal_id}`}
-                            style={{
-                              color: '#a5b4fc',
-                              fontWeight: 700,
-                              textDecoration: 'none',
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '13px',
-                              display: 'inline-block',
-                            }}
-                            title="Buka Dokumen Proposal Asal"
-                          >
-                            {inv.proposal_number}
-                          </Link>
-                          <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                            Versi {inv.proposal_version}
-                          </div>
-                        </td>
-
-                        <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
-                          <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '13.5px', letterSpacing: '-0.01em' }}>
-                            {inv.company_name}
-                          </div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '3px', lineHeight: 1.4 }}>
-                            {inv.project_name}
-                          </div>
-                        </td>
-
-                        <td style={{ padding: '18px 14px', textAlign: 'center', verticalAlign: 'top' }}>
-                          <span
-                            className="linear-badge"
-                            style={{
-                              fontSize: '10.5px',
-                              fontWeight: 700,
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                              background: isRecurring ? 'rgba(168, 85, 247, 0.12)' : 'rgba(56, 189, 248, 0.12)',
-                              color: isRecurring ? '#c084fc' : '#38bdf8',
-                              border: `1px solid ${isRecurring ? 'rgba(168, 85, 247, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
-                            }}
-                          >
-                            {isRecurring ? 'Retainer' : 'Milestone'}
-                          </span>
-                        </td>
-
-                        <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '13px' }}>
-                            {inv.milestone_name}
-                            {inv.percent > 0 && (
-                              <span style={{ color: 'var(--text-tertiary)', fontWeight: 500, marginLeft: '6px', fontSize: '12px' }}>
-                                ({inv.percent}%)
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '11.5px', color: 'var(--text-tertiary)', marginTop: '4px', lineHeight: 1.45 }}>
-                            {inv.coverage_period ? `Cakupan: ${inv.coverage_period}` : (inv.trigger_condition || '-')}
-                          </div>
-                        </td>
-
-                        <td style={{ padding: '18px 20px', textAlign: 'right', verticalAlign: 'top' }}>
-                          <div
-                            className="font-mono-numbers"
-                            style={{
-                              fontWeight: 800,
-                              fontSize: '14.5px',
-                              color: isRecurring ? '#c084fc' : '#10b981',
-                              letterSpacing: '0.02em',
-                            }}
-                          >
-                            {formatIDR(inv.amount)}
-                          </div>
-                        </td>
-
-                        <td style={{ padding: '18px 14px', textAlign: 'center', verticalAlign: 'top' }}>
-                          <span
-                            className="linear-badge"
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              background: sb.bg,
-                              color: sb.text,
-                              border: `1px solid ${sb.border}`,
-                              display: 'inline-block',
-                            }}
-                          >
-                            {sb.label}
-                          </span>
-                        </td>
-
-                        <td style={{ padding: '18px 16px', verticalAlign: 'top' }}>
-                          {inv.invoice_number ? (
-                            <Link
-                              href={`/invoices/${inv.id}`}
-                              style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: '12.5px',
-                                color: 'var(--text-primary)',
-                                textDecoration: 'none',
-                                fontWeight: 700,
-                              }}
-                              title="Buka Detail Invoice"
-                            >
-                              {inv.invoice_number}
-                            </Link>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                              (Belum Terbit)
-                            </span>
-                          )}
-                        </td>
-
-                        <td style={{ padding: '18px 16px', verticalAlign: 'top' }}>
-                          <div style={{ fontSize: '12.5px', color: inv.due_date ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontWeight: inv.due_date ? 500 : 400 }}>
-                            {dueDateStr}
-                          </div>
-                        </td>
-
-                        <td style={{ padding: '18px 16px', textAlign: 'center', verticalAlign: 'top' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                            <Link
-                              href={`/invoices/${inv.id}`}
-                              className="btn-secondary"
-                              style={{ padding: '5px 10px', fontSize: '12px', textDecoration: 'none', borderRadius: '6px', color: 'var(--text-primary)' }}
-                              title="Buka Detail & Cetak Invoice"
-                            >
-                              Detail
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(inv)}
-                              className="btn-secondary"
-                              style={{ padding: '5px 8px', fontSize: '12px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center' }}
-                              title="Update Status Cepat"
-                            >
-                              <PencilSquareIcon style={{ width: '14px', height: '14px' }} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
+                {loading ? <tr><td colSpan={10} style={{ textAlign: 'center', padding: 40 }}>Memuat data invoice per proyek...</td></tr>
+                  : invoices.length === 0 ? <tr><td colSpan={10} style={{ textAlign: 'center', padding: 40 }}>Tidak ada proyek dengan kriteria ini.</td></tr>
+                  : invoices.map(project => <React.Fragment key={`${project.company_id}-${project.project_id}`}>
+                    <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: '16px 20px' }}>
+                        <button type="button" aria-expanded={expandedProjects.includes(project.project_id)} aria-controls={`project-invoices-${project.project_id}`}
+                          onClick={() => setExpandedProjects(prev => prev.includes(project.project_id) ? prev.filter(id => id !== project.project_id) : [...prev, project.project_id])}
+                          style={{ display: 'block', textAlign: 'left', background: 'none', border: 0, color: 'inherit', cursor: 'pointer', padding: 0 }}>
+                          <strong>{project.company_name}</strong><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{project.project_name}</div><small>{project.invoice_count} invoice • klik untuk rincian</small>
+                        </button>
+                      </td>
+                      <td style={{ padding: 16, textAlign: 'center' }}><div>Milestone: {project.milestone_count}</div><small>{formatIDR(project.milestone_amount)}</small><div>Retainer: {project.recurring_count}</div><small>{formatIDR(project.recurring_amount)}</small></td>
+                      <td style={{ padding: 16, textAlign: 'center' }}>{project.paid_count}</td><td style={{ padding: 16, textAlign: 'right' }}>{formatIDR(project.paid_amount)}</td>
+                      <td style={{ padding: 16, textAlign: 'center' }}>{project.invoiced_count}</td><td style={{ padding: 16, textAlign: 'right' }}>{formatIDR(project.invoiced_amount)}</td>
+                      <td style={{ padding: 16, textAlign: 'center' }}>{project.overdue_count}</td><td style={{ padding: 16, textAlign: 'right' }}>{formatIDR(project.overdue_amount)}</td>
+                      <td style={{ padding: 16, textAlign: 'center' }}>{project.unbilled_count}</td><td style={{ padding: 16, textAlign: 'right' }}>{formatIDR(project.unbilled_amount)}</td>
+                    </tr>
+                    <tr id={`project-invoices-${project.project_id}`} hidden={!expandedProjects.includes(project.project_id)}><td colSpan={10} style={{ padding: 0 }}>
+                      <table className="pro-table" style={{ width: '100%' }}><thead><tr><th>Proposal / Termin</th><th>Model</th><th>Status</th><th>Nominal</th><th>No. Invoice</th><th>Jatuh Tempo</th><th>Aksi</th></tr></thead>
+                        <tbody>{project.invoices.map(inv => { const badge = getStatusBadge(inv.effective_status || inv.billing_status); return <tr key={inv.id}>
+                          <td><Link href={`/commercial/${inv.proposal_id}`}>{inv.proposal_number} v{inv.proposal_version}</Link><div>{inv.milestone_name}</div></td>
+                          <td>{inv.billing_type === 'recurring_monthly' ? 'Retainer' : 'Milestone'}</td><td><span style={{ color: badge.text }}>{badge.label}</span></td>
+                          <td>{formatIDR(inv.amount)}</td><td>{inv.invoice_number ? <Link href={`/invoices/${inv.id}`}>{inv.invoice_number}</Link> : 'Belum terbit'}</td><td>{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID') : '-'}</td>
+                          <td><Link href={`/invoices/${inv.id}`} className="btn-secondary">Detail</Link><button type="button" onClick={e => { e.stopPropagation(); openEditModal(inv); }} className="btn-secondary" title="Update status"><PencilSquareIcon style={{ width: 14, height: 14 }} /></button></td>
+                        </tr>; })}</tbody></table>
+                    </td></tr>
+                  </React.Fragment>)}
               </tbody>
             </table>
           </div>
