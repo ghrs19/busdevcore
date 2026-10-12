@@ -22,6 +22,7 @@ import {
   calculateBillingSummary,
   type RoleRateMap,
   type ModuleInput,
+  type TaskInput,
   type MaintenanceTaskInput,
   type InfrastructureItemInput,
   type InfraBillingType,
@@ -861,6 +862,78 @@ function NewEstimateForm() {
         notes: '',
       },
     ]);
+  };
+
+  const applyDevelopmentTemplate = (name: string, payload: unknown) => {
+    if (!Array.isArray(payload)) return;
+    const isTask = (item: unknown): item is TaskInput => {
+      if (!item || typeof item !== 'object' || typeof (item as TaskInput).name !== 'string' || !(item as TaskInput).name.trim()) return false;
+      const task = item as TaskInput;
+      const hours = task.role_hours;
+      if (hours !== undefined && (!hours || typeof hours !== 'object' || Array.isArray(hours)
+        || !Object.values(hours).every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0))) return false;
+      return ['hours_pm', 'hours_web_dev', 'hours_ui_ux', 'hours_qc_doc', 'hours_dev_ops']
+        .every(key => task[key as keyof TaskInput] === undefined || (typeof task[key as keyof TaskInput] === 'number' && Number.isFinite(task[key as keyof TaskInput]) && (task[key as keyof TaskInput] as number) >= 0));
+    };
+    if (!payload.length || !payload.every(isTask)) { setErrorMsg('Template Development kosong atau formatnya tidak valid.'); return; }
+    const tasks = (payload as TaskInput[]).map(item => ({
+      name: item.name,
+      role_hours: {
+        ...(item.role_hours || {}),
+        ...(item.hours_pm !== undefined && { PM: item.hours_pm }),
+        ...(item.hours_web_dev !== undefined && { WEB_DEV: item.hours_web_dev }),
+        ...(item.hours_ui_ux !== undefined && { UI_UX: item.hours_ui_ux }),
+        ...(item.hours_qc_doc !== undefined && { QC_DOC: item.hours_qc_doc }),
+        ...(item.hours_dev_ops !== undefined && { DEV_OPS: item.hours_dev_ops }),
+      },
+    }));
+    if (!tasks.length) { setErrorMsg('Template Development kosong atau formatnya tidak valid.'); return; }
+    if (modules.some(module => module.tasks.length > 0) && !window.confirm('Template akan mengganti seluruh modul Development saat ini. Lanjutkan?')) return;
+    setModules([{ name, tasks }]);
+    setErrorMsg(null);
+  };
+
+  const applyOperationalTemplate = (payload: unknown) => {
+    if (!Array.isArray(payload)) return;
+    const isItem = (item: unknown): item is OperationalItemInput => {
+      if (!item || typeof item !== 'object') return false;
+      const x = item as OperationalItemInput;
+      const cost = x.unit_cost_per_day ?? x.unit_cost;
+      return typeof x.name === 'string' && !!x.name.trim()
+        && typeof x.people_count === 'number' && Number.isFinite(x.people_count) && x.people_count > 0
+        && typeof x.days_count === 'number' && Number.isFinite(x.days_count) && x.days_count > 0
+        && typeof cost === 'number' && Number.isFinite(cost) && cost >= 0
+        && (x.notes === undefined || typeof x.notes === 'string');
+    };
+    if (!payload.length || !payload.every(isItem)) { setErrorMsg('Template Operation kosong atau formatnya tidak valid.'); return; }
+    const items = (payload as OperationalItemInput[]).map(item => ({
+      name: item.name, people_count: item.people_count, days_count: item.days_count,
+      unit_cost_per_day: item.unit_cost_per_day ?? item.unit_cost ?? 0, notes: item.notes || '',
+    }));
+    if (!items.length) { setErrorMsg('Template Operation kosong atau formatnya tidak valid.'); return; }
+    if (operationalItems.length > 0 && !window.confirm('Template akan mengganti seluruh item Operation saat ini. Lanjutkan?')) return;
+    setOperationalItems(items);
+    setErrorMsg(null);
+  };
+
+  const applyInfrastructureTemplate = (payload: unknown) => {
+    if (!Array.isArray(payload)) return;
+    const billingTypes = new Set<InfraBillingType>(['ONE_TIME', 'MONTHLY', 'YEARLY']);
+    const isItem = (item: unknown): item is InfrastructureItemInput => {
+      if (!item || typeof item !== 'object') return false;
+      const x = item as InfrastructureItemInput;
+      return typeof x.name === 'string' && !!x.name.trim() && billingTypes.has(x.billing_type)
+        && typeof x.quantity === 'number' && Number.isFinite(x.quantity) && x.quantity > 0
+        && typeof x.unit_cost === 'number' && Number.isFinite(x.unit_cost) && x.unit_cost >= 0
+        && (x.period_count === undefined || (typeof x.period_count === 'number' && Number.isInteger(x.period_count) && x.period_count > 0))
+        && (x.notes === undefined || typeof x.notes === 'string');
+    };
+    if (!payload.length || !payload.every(isItem)) { setErrorMsg('Template Infrastructure kosong atau formatnya tidak valid.'); return; }
+    const items = (payload as InfrastructureItemInput[]).map(item => ({ ...item, period_count: item.period_count ?? 1, notes: item.notes || '' }));
+    if (!items.length) { setErrorMsg('Template Infrastructure kosong atau formatnya tidak valid.'); return; }
+    if (infraItems.length > 0 && !window.confirm('Template akan mengganti seluruh item Infrastructure saat ini. Lanjutkan?')) return;
+    setInfraItems(items);
+    setErrorMsg(null);
   };
 
   const removeInfraItem = (index: number) => {
@@ -2540,14 +2613,16 @@ function NewEstimateForm() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={addModule}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px' }}
-                  >
-                    + Tambah Modul Dev
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {dbTemplates.filter(t => t.category === 'DEVELOPMENT').map(t => (
+                      <button key={t.id} type="button" onClick={() => applyDevelopmentTemplate(t.name, t.payload)} className="btn-secondary" style={{ fontSize: '11px' }} title={t.description || t.name}>
+                        {t.name}
+                      </button>
+                    ))}
+                    <button type="button" onClick={addModule} className="btn-secondary" style={{ fontSize: '12px' }}>
+                      + Tambah Modul Dev
+                    </button>
+                  </div>
                 </div>
 
             {modules.map((mod, mIdx) => {
@@ -2975,14 +3050,16 @@ function NewEstimateForm() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={addOperationalItem}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px' }}
-                  >
-                    + Tambah Item Operasional
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {dbTemplates.filter(t => t.category === 'OPERATION').map(t => (
+                      <button key={t.id} type="button" onClick={() => applyOperationalTemplate(t.payload)} className="btn-secondary" style={{ fontSize: '11px' }} title={t.description || t.name}>
+                        {t.name}
+                      </button>
+                    ))}
+                    <button type="button" onClick={addOperationalItem} className="btn-secondary" style={{ fontSize: '12px' }}>
+                      + Tambah Item Operasional
+                    </button>
+                  </div>
                 </div>
 
                 {/* Operational Items Excel Table */}
@@ -3139,14 +3216,16 @@ function NewEstimateForm() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={addInfraItem}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px' }}
-                  >
-                    + Tambah Item Infra
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {dbTemplates.filter(t => t.category === 'INFRASTRUCTURE').map(t => (
+                      <button key={t.id} type="button" onClick={() => applyInfrastructureTemplate(t.payload)} className="btn-secondary" style={{ fontSize: '11px' }} title={t.description || t.name}>
+                        {t.name}
+                      </button>
+                    ))}
+                    <button type="button" onClick={addInfraItem} className="btn-secondary" style={{ fontSize: '12px' }}>
+                      + Tambah Item Infra
+                    </button>
+                  </div>
                 </div>
 
                 {/* Infrastructure Items Table */}
