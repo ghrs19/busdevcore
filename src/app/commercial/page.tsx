@@ -107,26 +107,26 @@ export default function CommercialProposalsListPage() {
         }
       />
 
-      <DataGrid
-        title={
-          <div className="pill-group" role="tablist" aria-label="Filter status proposal">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={statusFilter === tab.id}
-                onClick={() => setStatusFilter(tab.id)}
-                className={`pill-item${statusFilter === tab.id ? ' active' : ''}`}
-              >
-                {tab.label}
-                <span className="font-mono-numbers text-[11px] text-fg-3">{counts[tab.id] || 0}</span>
-              </button>
-            ))}
+      <div className="linear-card overflow-hidden">
+        <div className="commercial-toolbar">
+          <div className="commercial-status-scroll no-scrollbar">
+            <div className="pill-group commercial-status-pills" role="tablist" aria-label="Filter status proposal">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === tab.id}
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={`pill-item${statusFilter === tab.id ? ' active' : ''}`}
+                >
+                  {tab.label}
+                  <span className="font-mono-numbers text-[11px] text-fg-3">{counts[tab.id] || 0}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        }
-        actions={
-          <div className="relative w-[min(320px,100%)]">
+          <div className="commercial-search relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-3" aria-hidden />
             <input
               type="search"
@@ -143,9 +143,9 @@ export default function CommercialProposalsListPage() {
               </button>
             )}
           </div>
-        }
-      >
-        <table className="pro-table" style={{ minWidth: 980 }}>
+        </div>
+        <DataGrid densityToggle={false}>
+          <table className="pro-table" style={{ minWidth: 980 }}>
           <thead>
             <tr>
               <th style={{ width: 190 }}>No. dokumen</th>
@@ -212,8 +212,9 @@ export default function CommercialProposalsListPage() {
               })
             )}
           </tbody>
-        </table>
-      </DataGrid>
+          </table>
+        </DataGrid>
+      </div>
     </Page>
   );
 }
