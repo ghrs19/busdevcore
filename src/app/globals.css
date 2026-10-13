@@ -339,7 +339,7 @@
   .density-toggle-option svg { color: inherit; }
 
   /* Icon-only controls retain square geometry, not pill geometry. */
-  .btn-icon { width: 36px; min-width: 36px; height: 36px; flex: 0 0 36px; aspect-ratio: 1; padding: 0 !important; border-radius: 50% !important; }
+  .btn-icon { display: inline-grid !important; place-items: center !important; width: 36px !important; min-width: 36px !important; max-width: 36px !important; height: 36px !important; min-height: 36px !important; max-height: 36px !important; flex: 0 0 36px !important; aspect-ratio: 1 / 1; padding: 0 !important; border: 0 !important; border-radius: 50% !important; box-shadow: none !important; transform: none !important; }
 
   /* Segmented control / tabs */
   .pill-group {

@@ -451,13 +451,13 @@ export default function MasterDataPage() {
         {errorMsg && (
           <div role="alert" className="mb-5 flex items-start justify-between gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)] bg-[var(--color-danger-bg)] px-4 py-3 text-[13px] text-bad">
             <span className="flex items-start gap-2.5"><TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />{errorMsg}</span>
-            <button type="button" onClick={() => setErrorMsg(null)} aria-label="Tutup pesan" className="grid size-5 shrink-0 place-items-center rounded hover:bg-[var(--row-hover)]"><X className="size-3.5" aria-hidden /></button>
+            <button type="button" onClick={() => setErrorMsg(null)} aria-label="Tutup pesan" className="btn-icon shrink-0 rounded-full hover:bg-[var(--row-hover)]"><X className="size-3.5" aria-hidden /></button>
           </div>
         )}
         {successMsg && (
           <div role="status" className="mb-5 flex items-start justify-between gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-success)_30%,transparent)] bg-[var(--color-success-bg)] px-4 py-3 text-[13px] text-ok">
             <span className="flex items-start gap-2.5"><CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden />{successMsg}</span>
-            <button type="button" onClick={() => setSuccessMsg(null)} aria-label="Tutup pesan" className="grid size-5 shrink-0 place-items-center rounded hover:bg-[var(--row-hover)]"><X className="size-3.5" aria-hidden /></button>
+            <button type="button" onClick={() => setSuccessMsg(null)} aria-label="Tutup pesan" className="btn-icon shrink-0 rounded-full hover:bg-[var(--row-hover)]"><X className="size-3.5" aria-hidden /></button>
           </div>
         )}
 
@@ -660,8 +660,7 @@ export default function MasterDataPage() {
                                 setNewRoleRate(r.default_hourly_rate);
                                 setIsAddingRole(false);
                               }}
-                              className="btn-secondary"
-                              style={{ width: '30px', height: '30px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                              className="btn-secondary btn-icon"
                               title="Edit Role & Tarif"
                             >
                               <SquarePen style={{ width: "15px", height: "15px" }} />
@@ -669,8 +668,7 @@ export default function MasterDataPage() {
                             <button
                               type="button"
                               onClick={() => handleDeleteRole(r)}
-                              className="btn-secondary"
-                              style={{ width: '30px', height: '30px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-danger)' }}
+                              className="btn-secondary btn-icon"
                               title="Hapus Role"
                             >
                               <Trash2 style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
@@ -829,8 +827,7 @@ export default function MasterDataPage() {
                           <button
                             type="button"
                             onClick={() => startEditTemplate(tpl)}
-                            className="btn-secondary"
-                            style={{ width: '28px', height: '28px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                            className="btn-secondary btn-icon"
                             title="Edit Template"
                           >
                             <SquarePen style={{ width: "15px", height: "15px" }} />
@@ -838,8 +835,7 @@ export default function MasterDataPage() {
                           <button
                             type="button"
                             onClick={() => handleDeleteTemplate(tpl)}
-                            className="btn-secondary"
-                            style={{ width: '28px', height: '28px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-danger)' }}
+                            className="btn-secondary btn-icon"
                             title="Hapus Template"
                           >
                             <Trash2 style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />

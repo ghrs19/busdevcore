@@ -2122,10 +2122,10 @@ function NewEstimateForm() {
                     </div>
                     <button
                       type="button"
-                      className="btn-ghost"
+                      className="btn-ghost btn-icon"
                       onClick={() => removePerson(key)}
                       title="Hapus orang dari costing"
-                      style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--text-tertiary)' }}
+                      style={{ color: 'var(--text-tertiary)' }}
                       onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-danger)')}
                       onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
                     >

@@ -289,7 +289,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
             <Link href={`/estimates/new?edit_id=${estimate.id}`} className="btn-primary" title="Edit / buat revisi estimasi ini">
               <SquarePen className="size-4" aria-hidden /> Revisi
             </Link>
-            <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="btn-secondary" style={{ width: 34, padding: 0, color: 'var(--color-danger)' }} title="Hapus estimasi" aria-label="Hapus estimasi">
+            <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="btn-secondary btn-icon" style={{ color: 'var(--color-danger)' }} title="Hapus estimasi" aria-label="Hapus estimasi">
               <Trash2 className="size-4" aria-hidden />
             </button>
           </div>
