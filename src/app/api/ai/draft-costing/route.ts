@@ -157,19 +157,21 @@ interface RawDraftStructure {
 }
 
 // Helper: Parse spreadsheets (.xlsx, .xls, .csv)
-function parseSpreadsheet(buffer: Buffer, filename: string): string {
+async function parseSpreadsheet(buffer: Buffer, filename: string): Promise<string> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const XLSX = require('xlsx');
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    
     let text = `[Spreadsheet: ${filename}]\n`;
-    for (const sheetName of workbook.SheetNames) {
-      const sheet = workbook.Sheets[sheetName];
-      const csv = XLSX.utils.sheet_to_csv(sheet);
-      if (csv && csv.trim()) {
-        text += `--- Sheet: ${sheetName} ---\n${csv}\n\n`;
-      }
-    }
+    workbook.eachSheet((sheet: any) => {
+      text += `--- Sheet: ${sheet.name} ---\n`;
+      sheet.eachRow((row: any, rowNumber: number) => {
+        const values = row.values.slice(1); // Skip index 0 (Excel row metadata)
+        text += values.map((v: any) => v ?? '').join(',') + '\n';
+      });
+      text += '\n';
+    });
     return text;
   } catch (err: unknown) {
     return `[Spreadsheet: ${filename} (Gagal parsing: ${err instanceof Error ? err.message : String(err)})]\n`;
@@ -612,7 +614,7 @@ export async function POST(req: Request) {
       const lowerName = file.name.toLowerCase();
 
       if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls') || lowerName.endsWith('.csv')) {
-        parsedDocumentTexts.push(parseSpreadsheet(buffer, file.name));
+        parsedDocumentTexts.push(await parseSpreadsheet(buffer, file.name));
       } else if (lowerName.endsWith('.pdf')) {
         const text = await parsePdf(buffer, file.name);
         parsedDocumentTexts.push(text);

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { normalizeRoleSnapshot } from '@/lib/costing';
 
 export async function GET(
@@ -69,9 +69,10 @@ export async function GET(
     }
 
     // Initialize Workbook
-    const wb = XLSX.utils.book_new();
+    const wb = new ExcelJS.Workbook();
 
     // 1. SHEET: SUMMARY & RATES
+    const wsSummary = wb.addWorksheet('Summary & Rates');
     const ratesData: (string | number)[][] = [
       ['INTERNAL PROJECT COSTING SHEET', ''],
       ['STATUS', 'CONFIDENTIAL - FOR INTERNAL TEAM USE ONLY'],
@@ -101,12 +102,11 @@ export async function GET(
         ratesData.push([code, val.name, val.rate]);
       });
     }
-
-    const wsSummary = XLSX.utils.aoa_to_sheet(ratesData);
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary & Rates');
+    wsSummary.addRows(ratesData);
 
     // 2. SHEET: WBS DEVELOPMENT (If has modules or DEV category)
     if (modules.length > 0 || catCodes.includes('DEV') || catCodes.includes('DEVELOPMENT')) {
+      const wsDev = wb.addWorksheet('WBS Development');
       const devData: (string | number)[][] = [
         ['WBS DEVELOPMENT - MODUL & MANHOURS BREAKDOWN'],
         ['Modul', 'Task', 'PM (Jam)', 'Web Dev (Jam)', 'UI-UX (Jam)', 'QC-Doc (Jam)', 'DevOps (Jam)', 'Total Jam', 'Subtotal Biaya (IDR)']
@@ -133,13 +133,12 @@ export async function GET(
         ]);
         devData.push(['', '', '', '', '', '', '', '', '']);
       });
-
-      const wsDev = XLSX.utils.aoa_to_sheet(devData);
-      XLSX.utils.book_append_sheet(wb, wsDev, 'WBS Development');
+      wsDev.addRows(devData);
     }
 
     // 3. SHEET: WBS MAINTENANCE (If has maintenance)
     if (est.maintenance_config || catCodes.includes('MAINTENANCE')) {
+      const wsMaint = wb.addWorksheet('WBS Maintenance');
       const mConf = est.maintenance_config || {};
       const maintTasks = Array.isArray(mConf.tasks) ? mConf.tasks : [];
       const maintData: (string | number)[][] = [
@@ -160,13 +159,12 @@ export async function GET(
           Number(t.monthly_cost || 0)
         ]);
       });
-
-      const wsMaint = XLSX.utils.aoa_to_sheet(maintData);
-      XLSX.utils.book_append_sheet(wb, wsMaint, 'WBS Maintenance');
+      wsMaint.addRows(maintData);
     }
 
     // 4. SHEET: WBS INFRASTRUCTURE (If has infrastructure)
     if (Array.isArray(est.infrastructure_items) && est.infrastructure_items.length > 0) {
+      const wsInfra = wb.addWorksheet('WBS Infrastructure');
       const infraData: (string | number)[][] = [
         ['WBS INFRASTRUCTURE - HARDWARE & CLOUD ITEMS'],
         ['Nama Item / Komponen', 'Billing Type', 'Qty', 'Durasi (Bln/Thn)', 'Biaya Satuan (IDR)', 'Subtotal (IDR)', 'Catatan / Provider']
@@ -187,13 +185,12 @@ export async function GET(
           item.notes || '-'
         ]);
       });
-
-      const wsInfra = XLSX.utils.aoa_to_sheet(infraData);
-      XLSX.utils.book_append_sheet(wb, wsInfra, 'WBS Infrastructure');
+      wsInfra.addRows(infraData);
     }
 
     // 5. SHEET: WBS OPERATIONAL (If has operational)
     if (Array.isArray(est.operational_items) && est.operational_items.length > 0) {
+      const wsOp = wb.addWorksheet('WBS Operational');
       const opData: (string | number)[][] = [
         ['WBS OPERATIONAL - BIAYA PERJALANAN & AKOMODASI'],
         ['Nama Item Operasional', 'Jumlah Orang (Pax)', 'Jumlah Hari', 'Rate/Hari/Pax (IDR)', 'Subtotal Biaya (IDR)', 'Catatan / Lokasi']
@@ -213,13 +210,11 @@ export async function GET(
           item.notes || '-'
         ]);
       });
-
-      const wsOp = XLSX.utils.aoa_to_sheet(opData);
-      XLSX.utils.book_append_sheet(wb, wsOp, 'WBS Operational');
+      wsOp.addRows(opData);
     }
 
     // Generate Buffer
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await wb.xlsx.writeBuffer();
     const filename = `Internal_Costing_${est.id}_v${est.version || 1}_${est.company_name.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`;
 
     return new NextResponse(buffer, {
