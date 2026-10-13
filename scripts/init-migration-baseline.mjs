@@ -59,10 +59,9 @@ async function initBaseline() {
     // Create schema_migrations table
     await client.query(`
       CREATE TABLE schema_migrations (
-        id SERIAL PRIMARY KEY,
-        filename VARCHAR(255) NOT NULL UNIQUE,
-        checksum VARCHAR(64) NOT NULL,
-        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        version TEXT PRIMARY KEY,
+        checksum TEXT NOT NULL,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
     console.log('✓ Created schema_migrations table');
@@ -81,7 +80,7 @@ async function initBaseline() {
       const hash = checksum(content);
       
       await client.query(
-        'INSERT INTO schema_migrations (filename, checksum) VALUES ($1, $2)',
+        'INSERT INTO schema_migrations (version, checksum) VALUES ($1, $2)',
         [filename, hash]
       );
       
