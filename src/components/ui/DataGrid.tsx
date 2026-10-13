@@ -84,13 +84,13 @@ export default function DataGrid({
           <div className="flex flex-wrap items-center gap-2">
             {actions}
             {densityToggle && (
-              <div className="inline-flex items-center rounded-full border-2 border-line bg-surface-2 p-0.5 text-[12px] leading-none text-fg-3" role="group" aria-label="Kepadatan tabel">
+              <div className="density-toggle" role="group" aria-label="Kepadatan tabel">
                 <button
                   type="button"
                   onClick={() => changeDensity('comfortable')}
                   aria-pressed={density === 'comfortable'}
                   title="Nyaman"
-                  className={cn('inline-flex h-8 items-center gap-1.5 rounded-full px-3 transition-colors duration-200 ease-in-out hover:text-brand-fg focus-visible:text-brand-fg', density === 'comfortable' && 'bg-surface text-brand-fg')}
+                  className={cn('density-toggle-option density-toggle-left', density === 'comfortable' && 'is-active')}
                 >
                   <Rows3 className="size-4 shrink-0" aria-hidden />
                   <span>Nyaman</span>
@@ -100,7 +100,7 @@ export default function DataGrid({
                   onClick={() => changeDensity('compact')}
                   aria-pressed={density === 'compact'}
                   title="Ringkas"
-                  className={cn('inline-flex h-8 items-center gap-1.5 rounded-full px-3 transition-colors duration-200 ease-in-out hover:text-brand-fg focus-visible:text-brand-fg', density === 'compact' && 'bg-surface text-brand-fg')}
+                  className={cn('density-toggle-option density-toggle-right', density === 'compact' && 'is-active')}
                 >
                   <Rows4 className="size-4 shrink-0" aria-hidden />
                   <span>Ringkas</span>

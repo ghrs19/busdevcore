@@ -331,6 +331,28 @@
   .btn-blue-pill:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
   .btn-blue-pill:disabled { opacity: .55; cursor: not-allowed; }
 
+  /* Flat two-option capsule toggle, matching the supplied reference. */
+  .density-toggle {
+    display: inline-flex; align-items: center;
+    background: #e5e7eb; color: #6b7280;
+    border: 2px solid #e5e7eb; border-radius: 9999px;
+    font-size: 12px; line-height: 1;
+  }
+  .density-toggle-option {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 34px; padding: 0 14px;
+    border: 0; background: transparent; color: inherit;
+    font: inherit; cursor: pointer;
+    transition: color .3s ease, background-color .3s ease;
+  }
+  .density-toggle-left { border-radius: 9999px 0 0 9999px; }
+  .density-toggle-right { border-radius: 0 9999px 9999px 0; }
+  .density-toggle-option:hover, .density-toggle-option:focus-visible { color: #63b3ed; }
+  .density-toggle-option.is-active {
+    background: #fff; color: #63b3ed; border-radius: 9999px;
+  }
+  .density-toggle-option:focus-visible { outline: 2px solid #63b3ed; outline-offset: 1px; }
+
   /* Icon-only controls retain square geometry, not pill geometry. */
   .btn-icon { width: 36px; min-width: 36px; padding: 0 !important; border-radius: 50% !important; }
 
