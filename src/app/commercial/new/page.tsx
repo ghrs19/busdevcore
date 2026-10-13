@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Page } from '@/components/ui/Page';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   CATEGORY_ORDER,
@@ -546,8 +547,7 @@ function NewCommercialProposalForm() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '120px' }}>
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px' }}>
+    <Page className="pb-[120px]">
         {/* Header Breadcrumb */}
         <div style={{ marginBottom: '24px' }}>
 
@@ -1620,8 +1620,7 @@ function NewCommercialProposalForm() {
             </div>
           </div>
         </form>
-      </main>
-    </div>
+    </Page>
   );
 }
 

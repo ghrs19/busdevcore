@@ -8,6 +8,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CATEGORY_ORDER, CATEGORY_LABELS } from '@/lib/commercial-pricing';
 import Link from 'next/link';
+import { ArrowLeft, Check } from 'lucide-react';
+import { Page } from '@/components/ui/Page';
+import { StatCard } from '@/components/ui/Cards';
+import { cn } from '@/lib/cn';
 
 interface ProposalDetail {
   id: number;
@@ -317,288 +321,111 @@ function CommercialProposalDetailContent() {
   const isWon = proposal.deal_status === 'won';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '90px' }}>
-      <main style={{ maxWidth: 'var(--page-max)', margin: '0 auto', padding: '24px 20px' }}>
-        {/* Top Breadcrumb & Action Header */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <Link
-              href="/commercial"
-              style={{
-                fontSize: '12px',
-                color: 'var(--text-tertiary)',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span>←</span>
-              <span>Daftar Proposal Penawaran</span>
+    <Page wide className="pb-24">
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-2 text-[12px] text-fg-3">
+          <Link href="/commercial" className="inline-flex items-center gap-1.5 no-underline hover:text-fg">
+            <ArrowLeft className="size-3.5" aria-hidden /> Proposal
+          </Link>
+          <span aria-hidden>/</span>
+          <span className="font-mono text-fg-2">{proposal.proposal_number}</span>
+        </nav>
+
+        {/* Header */}
+        <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-line pb-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="font-mono text-[22px] font-semibold tracking-[-0.02em] text-fg">{proposal.proposal_number}</h1>
+              <span className={cn('badge font-mono-numbers', (proposal.version || 1) > 1 ? 'badge-accent' : 'badge-neutral')}>v{proposal.version || 1}</span>
+              <span className="badge" style={{ background: statusBadge.bg, color: statusBadge.text, borderColor: statusBadge.border }}>
+                <span className="badge-dot" /> {statusBadge.label}
+              </span>
+            </div>
+            <p className="mt-2 text-[13px] text-fg-3">
+              <span className="text-fg-2">{proposal.company_name}</span> · {proposal.project_name}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href={`/api/commercial/${proposal.id}/export/docx`} download className="btn-secondary" title="Unduh dokumen Word (.docx)">
+              <Download className="size-4" aria-hidden /> Word
+            </a>
+            <Link href={`/commercial/${proposal.id}/print`} target="_blank" className="btn-secondary" title="Buka lembar cetak / PDF A4 klien">
+              <Printer className="size-4" aria-hidden /> Cetak PDF
             </Link>
-            <span style={{ color: 'var(--border-hover)', fontSize: '12px' }}>/</span>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-              {proposal.proposal_number}
-            </span>
+            <Link href={`/commercial/new?edit_id=${proposal.id}`} className="btn-primary" title="Edit proposal ini dan simpan sebagai versi terbaru">
+              <SquarePen className="size-4" aria-hidden /> Revisi (v{(proposal.version || 1) + 1})
+            </Link>
           </div>
+        </header>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '16px',
-              paddingBottom: '20px',
-              borderBottom: '1px solid var(--border-subtle)',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-                  {proposal.proposal_number}
-                </h1>
-                <span
-                  className="linear-badge font-mono-numbers"
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    background: (proposal.version || 1) > 1 ? 'rgb(var(--accent-rgb) / 0.25)' : 'rgb(var(--ink-rgb) / 0.08)',
-                    color: (proposal.version || 1) > 1 ? 'var(--accent-text)' : 'var(--text-secondary)',
-                  }}
-                >
-                  Versi v{proposal.version || 1}
-                </span>
-
-                {/* Status Badge */}
-                <span
-                  className="linear-badge"
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '3px 10px',
-                    background: statusBadge.bg,
-                    color: statusBadge.text,
-                    border: `1px solid ${statusBadge.border}`,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  {statusBadge.label}
-                </span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                Klien: <strong style={{ color: 'var(--text-secondary)' }}>{proposal.company_name}</strong> • Proyek: <strong style={{ color: 'var(--text-secondary)' }}>{proposal.project_name}</strong>
-              </p>
-            </div>
-
-            {/* Action Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <a
-                href={`/api/commercial/${proposal.id}/export/docx`}
-                download
-                className="btn-secondary"
-                style={{
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: 'var(--color-info)',
-                  borderColor: 'rgb(var(--info-rgb) / 0.35)',
-                  padding: '7px 14px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                }}
-                title="Download Dokumen Format Word (.docx)"
-              >
-                <Download style={{ width: "15px", height: "15px" }} />
-                <span>Download Word (.docx)</span>
-              </a>
-
-              <Link
-                href={`/commercial/${proposal.id}/print`}
-                target="_blank"
-                className="btn-secondary"
-                style={{
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                }}
-                title="Buka Lembar Cetak / Export PDF A4 Klien"
-              >
-                <Printer style={{ width: "15px", height: "15px" }} />
-                <span>Cetak / PDF</span>
-              </Link>
-
-              <Link
-                href={`/commercial/new?edit_id=${proposal.id}`}
-                className="btn-primary"
-                style={{
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 16px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                }}
-                title="Edit proposal ini dan simpan sebagai versi terbaru"
-              >
-                <SquarePen style={{ width: "15px", height: "15px" }} />
-                <span>Edit & Buat Revisi (v{(proposal.version || 1) + 1})</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* CRM Pipeline Lifecycle Interactive Stepper */}
-        <div
-          className="linear-card"
-          style={{
-            padding: '16px 20px',
-            marginBottom: '24px',
-            background: 'rgb(var(--ink-rgb) / 0.02)',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              CRM Lifecycle Pipeline Stage
-            </div>
+        {/* Pipeline stepper */}
+        <section aria-label="Tahap pipeline" className="linear-card mb-5 p-4 sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-fg-3">Tahap pipeline</div>
             {proposal.deal_status === 'lost' && proposal.lost_reason && (
-              <div style={{ fontSize: '12px', color: 'var(--color-danger)' }}>
-                Alasan Kalah: <strong>{proposal.lost_reason}</strong>
+              <div className="text-[12px] text-bad">
+                Alasan kalah: <strong>{proposal.lost_reason}</strong>
               </div>
             )}
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Ubah status deal">
             {[
-              { id: 'draft', label: '1. Draft' },
-              { id: 'sent', label: '2. Sent to Client' },
-              { id: 'negotiation', label: '3. Negotiation' },
-              { id: 'won', label: '4. Won (Deal)' },
+              { id: 'draft', label: 'Draft' },
+              { id: 'sent', label: 'Terkirim' },
+              { id: 'negotiation', label: 'Negosiasi' },
+              { id: 'won', label: 'Won' },
               { id: 'lost', label: 'Lost' },
-            ].map((st) => {
+            ].map((st, idx) => {
               const isCurrent = (proposal.deal_status || 'draft') === st.id;
-              const isWonBtn = st.id === 'won';
-              const isLostBtn = st.id === 'lost';
-
+              const tone = st.id === 'won' ? 'ok' : st.id === 'lost' ? 'bad' : 'brand';
               return (
                 <button
                   key={st.id}
+                  type="button"
                   disabled={changingStatus}
+                  aria-pressed={isCurrent}
                   onClick={() => handleStatusChange(st.id)}
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    border: isCurrent
-                      ? isWonBtn
-                        ? '1px solid var(--color-success)'
-                        : isLostBtn
-                        ? '1px solid var(--color-danger)'
-                        : '1px solid var(--accent-hover)'
-                      : '1px solid var(--border-subtle)',
-                    background: isCurrent
-                      ? isWonBtn
-                        ? 'rgb(var(--success-rgb) / 0.2)'
-                        : isLostBtn
-                        ? 'rgb(var(--danger-rgb) / 0.2)'
-                        : 'rgb(var(--accent-rgb) / 0.25)'
-                      : 'rgb(var(--ink-rgb) / 0.03)',
-                    color: isCurrent
-                      ? isWonBtn
-                        ? 'var(--color-success)'
-                        : isLostBtn
-                        ? 'var(--color-danger)'
-                        : 'var(--accent-text)'
-                      : 'var(--text-tertiary)',
-                  }}
+                  className={cn(
+                    'inline-flex h-9 items-center gap-2 rounded-lg border px-3.5 text-[12.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                    !isCurrent && 'border-line bg-surface-2 text-fg-3 hover:border-line-strong hover:text-fg',
+                    isCurrent && tone === 'ok' && 'border-[color-mix(in_srgb,var(--color-success)_45%,transparent)] bg-[var(--color-success-bg)] text-ok',
+                    isCurrent && tone === 'bad' && 'border-[color-mix(in_srgb,var(--color-danger)_45%,transparent)] bg-[var(--color-danger-bg)] text-bad',
+                    isCurrent && tone === 'brand' && 'border-[color-mix(in_srgb,var(--accent-primary)_55%,transparent)] bg-[var(--accent-light)] text-brand-fg',
+                  )}
                 >
-                  {st.label} {isCurrent && '✓'}
+                  {isCurrent ? <Check className="size-3.5" aria-hidden /> : <span className="font-mono-numbers text-[11px] opacity-60">{idx + 1}</span>}
+                  {st.label}
                 </button>
               );
             })}
           </div>
-        </div>
+        </section>
 
-        {/* 1. Executive Summary & Financial Highlights Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-            gap: '14px',
-            marginBottom: '24px',
-          }}
-        >
-          {/* Card: Total Penawaran */}
-          <div
-            className="linear-card"
-            style={{
-              padding: '18px',
-              border: '1px solid rgb(var(--success-rgb) / 0.3)',
-              background: 'linear-gradient(180deg, rgb(var(--success-rgb) / 0.08) 0%, rgb(var(--success-rgb) / 0.02) 100%)',
-            }}
-          >
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-success)', fontWeight: 700 }}>
-              Total Penawaran Klien (Quotation)
-            </div>
-            <div className="font-mono-numbers" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-success)', marginTop: '6px' }}>
-              {formatIDR(proposal.grand_total)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Nett penawaran resmi ({proposal.is_tax_enabled ? 'Inc. PPN 11%' : 'Tanpa PPN'})
-            </div>
-          </div>
+        {/* Financial highlights */}
+        <section aria-label="Ringkasan finansial" className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Total penawaran klien"
+            icon={CreditCard}
+            tone="ok"
+            value={formatIDR(proposal.grand_total)}
+            hint={`Nett resmi · ${proposal.is_tax_enabled ? 'inc. PPN 11%' : 'tanpa PPN'}`}
+          />
+          <StatCard label="Biaya modal (COGS)" icon={Box} tone="note" value={formatIDR(proposal.cogs_amount)} hint={`Baseline: ${proposal.estimate_title}`} />
+          <StatCard
+            label="Target margin & gross profit"
+            icon={Zap}
+            tone="brand"
+            value={<>+{proposal.margin_percent}%</>}
+            hint={`${formatIDR(grossProfit)} · riil +${grossProfitPercent}% dari subtotal`}
+          />
+          <StatCard
+            label="Base price & diskon"
+            icon={FileText}
+            value={formatIDR(proposal.base_price)}
+            hint={<span className={discountAmount > 0 ? 'text-warn' : ''}>{discountAmount > 0 ? `Diskon -${formatIDR(discountAmount)}` : 'Tanpa potongan diskon'}</span>}
+          />
+        </section>
 
-          {/* Card: Modal COGS */}
-          <div className="linear-card" style={{ padding: '18px' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-              Total Biaya Modal (COGS)
-            </div>
-            <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-info)', marginTop: '6px' }}>
-              {formatIDR(proposal.cogs_amount)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Baseline: {proposal.estimate_title}
-            </div>
-          </div>
-
-          {/* Card: Profit Margin & Gross Profit */}
-          <div className="linear-card" style={{ padding: '18px' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-              Target Margin & Gross Profit
-            </div>
-            <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent-hover)', marginTop: '6px' }}>
-              +{proposal.margin_percent}% <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>({formatIDR(grossProfit)})</span>
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Margin riil: +{grossProfitPercent}% dari subtotal
-            </div>
-          </div>
-
-          {/* Card: Harga Dasar & Diskon */}
-          <div className="linear-card" style={{ padding: '18px' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-              Base Price & Diskon
-            </div>
-            <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
-              {formatIDR(proposal.base_price)}
-            </div>
-            <div style={{ fontSize: '11px', color: discountAmount > 0 ? 'var(--color-warning)' : 'var(--text-tertiary)', marginTop: '4px' }}>
-              {discountAmount > 0 ? `Diskon: -${formatIDR(discountAmount)}` : 'Tanpa potongan diskon'}
-            </div>
-          </div>
-        </div>
 
         {/* Harga per Kategori (internal: COGS, margin, harga dasar) */}
         {proposal.category_pricing && Object.keys(proposal.category_pricing).length > 0 && (
@@ -1365,8 +1192,7 @@ function CommercialProposalDetailContent() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </Page>
   );
 }
 

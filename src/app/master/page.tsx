@@ -1,7 +1,9 @@
 'use client';
 
 
-import { Copy, SquarePen, Trash2, Users, X } from 'lucide-react';
+import { Bot, Building2, Briefcase, CircleCheck, Copy, FileStack, HardHat, SquarePen, Trash2, TriangleAlert, UserCog, Users, X, Contact, type LucideIcon } from 'lucide-react';
+import { Page, PageHeader } from '@/components/ui/Page';
+import { cn } from '@/lib/cn';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -401,90 +403,61 @@ export default function MasterDataPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)' }}>
-      
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '32px 24px 80px 24px' }}>
-        {/* Header Breadcrumb */}
-        <div style={{ marginBottom: '24px' }}>
+    <Page>
+        <PageHeader
+          eyebrow="Pengaturan"
+          title="Master Data ERP"
+          description="Kelola tarif role, worker, template WBS, klien, pengguna, profil penerbit dokumen, dan prompt AI Copilot."
+        />
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-            <div>
-              <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                Master Data ERP
-              </h1>
-              <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                Kelola master rate manhour tim IT dan katalog template WBS costing siap pakai
-              </p>
-            </div>
-
-            {/* Segmented Tab */}
-            <div
-              style={{
-                display: 'flex',
-                background: 'rgb(var(--ink-rgb) / 0.04)',
-                padding: '4px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                gap: '4px',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => { setActiveTab('ROLES'); setErrorMsg(null); setSuccessMsg(null); }}
-                className={activeTab === 'ROLES' ? 'btn-primary' : 'btn-ghost'}
-                style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
-              >
-                Master Roles & Rates ({roles.length})
-              </button>
-              <button type="button" onClick={() => { setActiveTab('WORKERS'); fetchWorkers(); setErrorMsg(null); setSuccessMsg(null); }} className={activeTab === 'WORKERS' ? 'btn-primary' : 'btn-ghost'} style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}>Master Worker ({workers.length})</button>
-              <button type="button" onClick={() => { setActiveTab('USERS'); fetchUsers(); }} className={activeTab === 'USERS' ? 'btn-primary' : 'btn-ghost'} style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}>Manajemen User ({users.length})</button>
-              <button
-                type="button"
-                onClick={() => { setActiveTab('TEMPLATES'); setErrorMsg(null); setSuccessMsg(null); }}
-                className={activeTab === 'TEMPLATES' ? 'btn-primary' : 'btn-ghost'}
-                style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
-              >
-                Master Template WBS ({templates.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => { setActiveTab('COMPANIES_CLIENT'); fetchClientCompanies(); setErrorMsg(null); setSuccessMsg(null); }}
-                className={activeTab === 'COMPANIES_CLIENT' ? 'btn-primary' : 'btn-ghost'}
-                style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
-              >
-                Perusahaan Klien ({clientCompanies.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => { setActiveTab('COMPANY_ISSUER'); fetchIssuerSettings(); setErrorMsg(null); setSuccessMsg(null); }}
-                className={activeTab === 'COMPANY_ISSUER' ? 'btn-primary' : 'btn-ghost'}
-                style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
-              >
-                Profil Perusahaan & Tanda Tangan PDF
-              </button>
-              <button
-                type="button"
-                onClick={() => { setActiveTab('AI_PROMPT'); fetchIssuerSettings(); setErrorMsg(null); setSuccessMsg(null); }}
-                className={activeTab === 'AI_PROMPT' ? 'btn-primary' : 'btn-ghost'}
-                style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}
-              >
-                AI Copilot System Prompt
-              </button>
-            </div>
+        {/* Tabs */}
+        <div className="no-scrollbar -mx-1 mb-6 overflow-x-auto px-1">
+          <div role="tablist" aria-label="Bagian master data" className="flex w-max min-w-full gap-1 border-b border-line">
+            {([
+              { id: 'ROLES', label: 'Roles & Rates', icon: Briefcase, count: roles.length, on: () => {} },
+              { id: 'WORKERS', label: 'Worker', icon: HardHat, count: workers.length, on: () => fetchWorkers() },
+              { id: 'USERS', label: 'User', icon: UserCog, count: users.length, on: () => fetchUsers() },
+              { id: 'TEMPLATES', label: 'Template WBS', icon: FileStack, count: templates.length, on: () => {} },
+              { id: 'COMPANIES_CLIENT', label: 'Perusahaan klien', icon: Building2, count: clientCompanies.length, on: () => fetchClientCompanies() },
+              { id: 'COMPANY_ISSUER', label: 'Profil & tanda tangan PDF', icon: Contact, count: undefined, on: () => fetchIssuerSettings() },
+              { id: 'AI_PROMPT', label: 'AI Copilot prompt', icon: Bot, count: undefined, on: () => fetchIssuerSettings() },
+            ] as { id: typeof activeTab; label: string; icon: LucideIcon; count?: number; on: () => void }[]).map((tab) => {
+              const active = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => { setActiveTab(tab.id); tab.on(); setErrorMsg(null); setSuccessMsg(null); }}
+                  className={cn(
+                    '-mb-px inline-flex h-10 shrink-0 items-center gap-2 border-b-2 px-3.5 text-[13px] font-medium transition-colors',
+                    active ? 'border-[var(--accent-primary)] text-fg' : 'border-transparent text-fg-3 hover:text-fg',
+                  )}
+                >
+                  <Icon className={cn('size-4', active ? 'text-brand-fg' : 'text-fg-3')} aria-hidden />
+                  {tab.label}
+                  {tab.count !== undefined && (
+                    <span className={cn('font-mono-numbers rounded-full px-1.5 text-[11px]', active ? 'bg-[var(--accent-light)] text-brand-fg' : 'bg-surface-2 text-fg-3')}>{tab.count}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Notifications */}
         {errorMsg && (
-          <div style={{ padding: '12px 16px', marginBottom: '20px', borderRadius: '8px', background: 'rgb(var(--danger-rgb) / 0.1)', border: '1px solid rgb(var(--danger-rgb) / 0.3)', color: 'var(--color-danger)', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>{errorMsg}</span>
-            <button onClick={() => setErrorMsg(null)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}>✕</button>
+          <div role="alert" className="mb-5 flex items-start justify-between gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)] bg-[var(--color-danger-bg)] px-4 py-3 text-[13px] text-bad">
+            <span className="flex items-start gap-2.5"><TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />{errorMsg}</span>
+            <button type="button" onClick={() => setErrorMsg(null)} aria-label="Tutup pesan" className="grid size-5 shrink-0 place-items-center rounded hover:bg-[var(--row-hover)]"><X className="size-3.5" aria-hidden /></button>
           </div>
         )}
         {successMsg && (
-          <div style={{ padding: '12px 16px', marginBottom: '20px', borderRadius: '8px', background: 'rgb(var(--success-rgb) / 0.1)', border: '1px solid rgb(var(--success-rgb) / 0.3)', color: 'var(--color-success)', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>{successMsg}</span>
-            <button onClick={() => setSuccessMsg(null)} style={{ background: 'none', border: 'none', color: 'var(--color-success)', cursor: 'pointer' }}>✕</button>
+          <div role="status" className="mb-5 flex items-start justify-between gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-success)_30%,transparent)] bg-[var(--color-success-bg)] px-4 py-3 text-[13px] text-ok">
+            <span className="flex items-start gap-2.5"><CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden />{successMsg}</span>
+            <button type="button" onClick={() => setSuccessMsg(null)} aria-label="Tutup pesan" className="grid size-5 shrink-0 place-items-center rounded hover:bg-[var(--row-hover)]"><X className="size-3.5" aria-hidden /></button>
           </div>
         )}
 
@@ -1294,7 +1267,6 @@ ATURAN KEAMANAN MUTLAK:
             )}
           </div>
         )}
-      </main>
-    </div>
+    </Page>
   );
 }

@@ -4,6 +4,7 @@
 import { ArrowLeftRight, Banknote, Briefcase, Check, Clock3, Sparkles, SquarePen, Trash2, TrendingUp, TriangleAlert, X } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { Page } from '@/components/ui/Page';
 import { useRouter } from 'next/navigation';
 
 interface Company {
@@ -464,8 +465,7 @@ export default function HistoricalEstimatesPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '60px' }}>
-      <main style={{ maxWidth: 'var(--page-max)', margin: '0 auto', padding: '24px' }}>
+    <Page wide className="pb-[60px]">
         {/* Header with Title & Action */}
         <div
           style={{
@@ -1133,7 +1133,6 @@ export default function HistoricalEstimatesPage() {
             </button>
           </div>
         )}
-      </main>
-    </div>
+    </Page>
   );
 }

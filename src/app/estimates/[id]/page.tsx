@@ -4,6 +4,7 @@
 import { Clock3, FileDown, Printer, SquarePen, Trash2 } from 'lucide-react';
 import React, { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
+import { Page } from '@/components/ui/Page';
 import { useRouter } from 'next/navigation';
 import { compareVersions } from '@/lib/version-diff';
 import { snapshotLabels } from '@/lib/rate-snapshot';
@@ -234,8 +235,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: 'var(--page-max)', margin: '0 auto', padding: '24px' }}>
+    <Page wide className="pb-[80px]">
         
         {/* Top Breadcrumb & Actions Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
@@ -1094,8 +1094,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </Page>
   );
 }
 

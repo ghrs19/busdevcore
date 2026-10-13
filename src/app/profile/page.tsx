@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Page } from '@/components/ui/Page';
 import { useRouter } from 'next/navigation';
 
 interface UserProfile {
@@ -137,14 +138,14 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '1360px', margin: '40px auto', padding: '0 20px', color: 'var(--text-secondary)' }}>
+      <Page className="text-fg-2">
         Memuat data profil...
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div style={{ maxWidth: '1360px', margin: '32px auto', padding: '0 24px' }}>
+    <Page>
       {/* Breadcrumb & Navigation */}
       <div style={{ marginBottom: '24px' }}>
 
@@ -392,6 +393,6 @@ export default function ProfilePage() {
           </form>
         </div>
       </div>
-    </div>
+    </Page>
   );
 }

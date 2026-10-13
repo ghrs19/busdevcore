@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from 'react';
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Page } from '@/components/ui/Page';
 
 interface InvoiceDetail {
   id: number;
@@ -199,8 +200,7 @@ function InvoiceDetailPageInner() {
   const isRecurring = invoice.billing_type === 'recurring_monthly';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: 'var(--page-max)', margin: '0 auto', padding: '24px 20px' }}>
+    <Page wide className="pb-[80px]">
         {/* Navigation Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <Link
@@ -791,8 +791,7 @@ function InvoiceDetailPageInner() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </Page>
   );
 }
 

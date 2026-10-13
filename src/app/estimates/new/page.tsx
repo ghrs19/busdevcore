@@ -4,6 +4,7 @@
 import { Paperclip, RefreshCw, Sparkles, Trash2, Zap } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { Page } from '@/components/ui/Page';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   calculateModule,
@@ -1239,8 +1240,7 @@ function NewEstimateForm() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '120px' }}>
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px' }}>
+    <Page className="pb-[120px]">
         {/* Navigation & Header */}
         <div style={{ marginBottom: '24px' }}>
 
@@ -3435,8 +3435,7 @@ function NewEstimateForm() {
           </div>
         )}
 
-      </main>
-    </div>
+    </Page>
   );
 }
 
