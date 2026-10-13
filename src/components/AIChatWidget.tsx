@@ -212,7 +212,6 @@ function AIChatWidgetContent() {
               background: 'var(--bg-elevated)',
               border: '1px solid var(--border-hover)',
               borderRadius: '14px',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.25), 0 0 20px rgb(var(--accent-rgb) / 0.25)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -236,12 +235,11 @@ function AIChatWidgetContent() {
                     width: '28px',
                     height: '28px',
                     borderRadius: '8px',
-                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-text) 100%)',
+                    background: 'var(--accent-primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
-                    boxShadow: '0 0 10px rgb(var(--accent-rgb) / 0.4)',
                   }}
                 >
                   <Zap style={{ width: '16px', height: '16px' }} />
@@ -260,21 +258,11 @@ function AIChatWidgetContent() {
               {/* Close Button */}
               <button
                 onClick={() => setIsOpen(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '4px',
-                  transition: 'color 0.1s ease',
-                }}
+                className="btn-ghost btn-icon btn-sm"
                 title="Tutup Chat"
+                aria-label="Tutup chat"
               >
-                <X style={{ width: '18px', height: '18px' }} />
+                <X className="size-4" aria-hidden />
               </button>
             </div>
 
@@ -302,7 +290,7 @@ function AIChatWidgetContent() {
                     whiteSpace: 'nowrap',
                     fontSize: '11px',
                     padding: '3px 8px',
-                    borderRadius: '12px',
+                    borderRadius: '999px',
                     background: 'var(--row-hover)',
                     border: '1px solid var(--border-subtle)',
                     color: 'var(--text-secondary)',
@@ -344,14 +332,13 @@ function AIChatWidgetContent() {
                         padding: '10px 14px',
                         borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                         background: isUser
-                          ? 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%)'
+                          ? 'var(--accent-primary)'
                           : 'var(--row-hover)',
                         border: isUser ? 'none' : '1px solid var(--border-subtle)',
                         color: isUser ? '#ffffff' : 'var(--text-primary)',
                         fontSize: '12.5px',
                         lineHeight: '1.5',
                         whiteSpace: 'pre-wrap',
-                        boxShadow: isUser ? '0 2px 8px rgb(var(--accent-rgb) / 0.2)' : 'none',
                       }}
                     >
                       {m.content}
@@ -411,18 +398,8 @@ function AIChatWidgetContent() {
               <button
                 type="submit"
                 disabled={!inputMessage.trim() || loading}
-                className="btn-primary"
-                style={{
-                  padding: '8px 14px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  borderRadius: '8px',
-                  cursor: !inputMessage.trim() || loading ? 'not-allowed' : 'pointer',
-                  opacity: !inputMessage.trim() || loading ? 0.6 : 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
+                className="btn-primary btn-sm"
+                style={{ borderRadius: '8px', opacity: !inputMessage.trim() || loading ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
                 <span>Kirim</span>
                 <Send style={{ width: '13px', height: '13px' }} />
@@ -442,10 +419,7 @@ function AIChatWidgetContent() {
             borderRadius: '50%',
             background: isOpen
               ? 'rgb(var(--ink-rgb) / 0.1)'
-              : 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-text) 100%)',
-            boxShadow: isOpen
-              ? '0 4px 12px rgba(0,0,0,0.4)'
-              : '0 8px 24px rgb(var(--accent-rgb) / 0.4), 0 0 12px rgb(var(--accent-rgb) / 0.3)',
+              : 'var(--accent-primary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

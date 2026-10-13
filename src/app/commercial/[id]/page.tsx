@@ -386,7 +386,7 @@ function CommercialProposalDetailContent() {
                   aria-pressed={isCurrent}
                   onClick={() => handleStatusChange(st.id)}
                   className={cn(
-                    'inline-flex h-9 items-center gap-2 rounded-lg border px-3.5 text-[12.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                    'inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-[12.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',
                     !isCurrent && 'border-line bg-surface-2 text-fg-3 hover:border-line-strong hover:text-fg',
                     isCurrent && tone === 'ok' && 'border-[color-mix(in_srgb,var(--color-success)_45%,transparent)] bg-[var(--color-success-bg)] text-ok',
                     isCurrent && tone === 'bad' && 'border-[color-mix(in_srgb,var(--color-danger)_45%,transparent)] bg-[var(--color-danger-bg)] text-bad',
@@ -619,8 +619,8 @@ function CommercialProposalDetailContent() {
                     </span>
                     <Link
                       href="/invoices"
-                      className="btn-secondary"
-                      style={{ padding: '3px 8px', fontSize: '11px', textDecoration: 'none', color: 'var(--color-info)' }}
+                      className="btn-secondary btn-sm"
+                      style={{ textDecoration: 'none', color: 'var(--color-info)' }}
                       title="Buka Invoice & Payment Tracker"
                     >
                       Buka Tracker Invoice →
@@ -757,13 +757,7 @@ function CommercialProposalDetailContent() {
                 <button
                   disabled={generatingDocs}
                   onClick={() => handleGenerateDocuments('GENERATE_ALL')}
-                  className="btn-primary"
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  className="btn-primary btn-sm"
                 >
                   {generatingDocs ? 'Memproses...' : 'Generate SPK & Seluruh BAST Termin'}
                 </button>
@@ -792,8 +786,7 @@ function CommercialProposalDetailContent() {
                 <button
                   disabled={generatingDocs}
                   onClick={() => handleGenerateDocuments('GENERATE_ALL')}
-                  className="btn-secondary"
-                  style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                  className="btn-secondary btn-sm"
                 >
                   Generate Sekarang
                 </button>
@@ -856,16 +849,8 @@ function CommercialProposalDetailContent() {
                               <a
                                 href={`/api/contract-documents/${doc.id}/docx`}
                                 download
-                                className="btn-secondary"
-                                style={{
-                                  padding: '4px 10px',
-                                  fontSize: '11px',
-                                  textDecoration: 'none',
-                                  color: 'var(--color-info)',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                }}
+                                className="btn-secondary btn-sm"
+                                style={{ textDecoration: 'none', color: 'var(--color-info)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                 title="Download Draf Word Resmi"
                               >
                                 <Download style={{ width: "14px", height: "14px" }} />
@@ -878,18 +863,8 @@ function CommercialProposalDetailContent() {
                                   href={doc.file_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="btn-secondary"
-                                  style={{
-                                    padding: '4px 10px',
-                                    fontSize: '11px',
-                                    textDecoration: 'none',
-                                    color: 'var(--color-success)',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    border: '1px solid rgb(var(--success-rgb) / 0.4)',
-                                    background: 'rgb(var(--success-rgb) / 0.08)',
-                                  }}
+                                  className="btn-secondary btn-sm"
+                                  style={{ textDecoration: 'none', color: 'var(--color-success)', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid rgb(var(--success-rgb) / 0.4)', background: 'rgb(var(--success-rgb) / 0.08)' }}
                                   title={`Buka file tersimpan: ${doc.file_name || 'Dokumen Bertanda Tangan'}`}
                                 >
                                   <Paperclip style={{ width: '13px', height: '13px' }} />
@@ -1014,8 +989,8 @@ function CommercialProposalDetailContent() {
                           ) : (
                             <Link
                               href={`/commercial/${vh.id}`}
-                              className="btn-secondary"
-                              style={{ padding: '5px 12px', fontSize: '12px', textDecoration: 'none' }}
+                              className="btn-secondary btn-sm"
+                              style={{ textDecoration: 'none' }}
                             >
                               Buka Versi
                             </Link>
@@ -1135,7 +1110,6 @@ function CommercialProposalDetailContent() {
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 9999,
-              backdropFilter: 'blur(4px)',
             }}
           >
             <div
@@ -1168,8 +1142,7 @@ function CommercialProposalDetailContent() {
                 <button
                   type="button"
                   onClick={() => setShowLostModal(false)}
-                  className="btn-secondary"
-                  style={{ padding: '6px 14px', fontSize: '12px' }}
+                  className="btn-secondary btn-sm"
                 >
                   Batal
                 </button>
@@ -1177,14 +1150,7 @@ function CommercialProposalDetailContent() {
                   type="button"
                   disabled={!lostReasonInput.trim() || changingStatus}
                   onClick={() => handleStatusChange('lost', lostReasonInput)}
-                  className="btn-primary"
-                  style={{
-                    padding: '6px 16px',
-                    fontSize: '12px',
-                    background: 'var(--color-danger)',
-                    borderColor: 'var(--color-danger)',
-                    cursor: !lostReasonInput.trim() ? 'not-allowed' : 'pointer',
-                  }}
+                  className="btn-danger btn-sm"
                 >
                   Konfirmasi Status Lost
                 </button>

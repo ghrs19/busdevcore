@@ -17,7 +17,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState('');
-  
+
   // Password change state
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -280,12 +280,6 @@ export default function ProfilePage() {
               type="submit"
               disabled={savingProfile}
               className="btn-primary"
-              style={{
-                padding: '8px 18px',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: savingProfile ? 'not-allowed' : 'pointer',
-              }}
             >
               {savingProfile ? 'Menyimpan...' : 'Simpan Nama Profil'}
             </button>
@@ -381,12 +375,6 @@ export default function ProfilePage() {
               type="submit"
               disabled={savingPassword}
               className="btn-primary"
-              style={{
-                padding: '8px 18px',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: savingPassword ? 'not-allowed' : 'pointer',
-              }}
             >
               {savingPassword ? 'Memperbarui...' : 'Perbarui Password'}
             </button>

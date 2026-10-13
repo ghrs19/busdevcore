@@ -146,13 +146,13 @@ export default function LoginPage() {
                 onClick={() => setShow((v) => !v)}
                 aria-label={show ? 'Sembunyikan password' : 'Tampilkan password'}
                 aria-pressed={show}
-                className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-fg-3 transition-colors hover:bg-[var(--row-hover)] hover:text-fg"
+                className="btn-ghost btn-icon btn-sm absolute right-1.5 inset-y-0 my-auto"
               >
                 {show ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
               </button>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full" style={{ minHeight: 44, fontSize: 14 }}>
+            <button type="submit" disabled={loading} className="btn-primary btn-lg w-full" >
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" aria-hidden /> Memeriksa…

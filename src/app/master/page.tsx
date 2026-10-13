@@ -474,7 +474,7 @@ export default function MasterDataPage() {
                 </p>
               </div>
               {!workerForm && (
-                <button type="button" className="btn-primary" style={{ fontSize: 12 }} onClick={() => setWorkerForm({ name: '', hourly_rate: '', is_active: true })}>+ Tambah Worker</button>
+                <button type="button" className="btn-primary btn-sm"  onClick={() => setWorkerForm({ name: '', hourly_rate: '', is_active: true })}>+ Tambah Worker</button>
               )}
             </div>
             {workerForm && (
@@ -537,8 +537,7 @@ export default function MasterDataPage() {
                     setNewRoleName('');
                     setNewRoleRate('');
                   }}
-                  className="btn-primary"
-                  style={{ fontSize: '12px' }}
+                  className="btn-primary btn-sm"
                 >
                   + Tambah Role Baru
                 </button>
@@ -594,12 +593,11 @@ export default function MasterDataPage() {
                   <button
                     type="button"
                     onClick={() => { setIsAddingRole(false); setEditingRole(null); }}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px' }}
+                    className="btn-secondary btn-sm"
                   >
                     Batal
                   </button>
-                  <button type="submit" className="btn-primary" style={{ fontSize: '12px' }}>
+                  <button type="submit" className="btn-primary btn-sm" >
                     {editingRole ? 'Simpan Perubahan' : 'Tambahkan Role'}
                   </button>
                 </div>
@@ -707,8 +705,7 @@ export default function MasterDataPage() {
                     setTplDesc('');
                     setTplPayloadStr('[\n  {\n    "name": "Dev Ops (Manhour)",\n    "role_hours": {\n      "DEV_OPS": 1\n    }\n  }\n]');
                   }}
-                  className="btn-primary"
-                  style={{ fontSize: '12px' }}
+                  className="btn-primary btn-sm"
                 >
                   + Tambah Template WBS
                 </button>
@@ -781,12 +778,11 @@ export default function MasterDataPage() {
                   <button
                     type="button"
                     onClick={() => { setIsAddingTemplate(false); setEditingTemplate(null); }}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px' }}
+                    className="btn-secondary btn-sm"
                   >
                     Batal
                   </button>
-                  <button type="submit" className="btn-primary" style={{ fontSize: '12px' }}>
+                  <button type="submit" className="btn-primary btn-sm" >
                     {editingTemplate ? 'Simpan Perubahan' : 'Simpan Template'}
                   </button>
                 </div>
@@ -878,8 +874,7 @@ export default function MasterDataPage() {
                   setEditingClient(null);
                   setClientForm({ name: '', email: '', phone: '', address: '' });
                 }}
-                className="btn-primary"
-                style={{ fontSize: '12.5px', padding: '6px 14px' }}
+                className="btn-primary btn-sm"
               >
                 + Tambah Klien Baru
               </button>
@@ -945,8 +940,7 @@ export default function MasterDataPage() {
                       setEditingClient(null);
                       setClientForm({ name: '', email: '', phone: '', address: '' });
                     }}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                    className="btn-secondary btn-sm"
                   >
                     Batal
                   </button>
@@ -954,8 +948,7 @@ export default function MasterDataPage() {
                 <button
                   type="submit"
                   disabled={savingClient}
-                  className="btn-primary"
-                  style={{ fontSize: '12px', padding: '6px 16px' }}
+                  className="btn-primary btn-sm"
                 >
                   {savingClient ? 'Menyimpan...' : (editingClient ? 'Perbarui Klien' : 'Simpan Klien')}
                 </button>
@@ -1000,8 +993,8 @@ export default function MasterDataPage() {
                                 address: c.address || '',
                               });
                             }}
-                            className="btn-secondary"
-                            style={{ padding: '4px 8px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            className="btn-secondary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                           >
                             <SquarePen style={{ width: '13px', height: '13px' }} />
                             <span>Edit</span>
@@ -1045,8 +1038,7 @@ export default function MasterDataPage() {
                     </label>
                     <button
                       type="button"
-                      className="btn-ghost"
-                      style={{ fontSize: '11.5px', padding: '2px 8px' }}
+                      className="btn-ghost btn-sm"
                       onClick={() => {
                         setIssuerSettings({
                           ...issuerSettings,
@@ -1056,7 +1048,6 @@ Tugas Anda:
 2. Memberikan rekomendasi role tim teknis (PM, WEB_DEV, UI_UX, QC_DOCS, DEVOPS, FULL_DEV, MOB_DEV) dan alokasi jam yang realistis.
 3. Menjelaskan status proposal penawaran, termin pembayaran, dan data invoice klien jika ditanyakan.
 4. Memberikan insight analitik bisnis dan komersial secara profesional, ringkas, dan akurat.
-
 ATURAN KEAMANAN MUTLAK:
 - Anda TIDAK DIPERKENANKAN mengubah, menambah, atau menghapus Master Data (Role Master, Rate Card, User Master, Template WBS).
 - Anda TIDAK DIPERKENANKAN memodifikasi atau menghapus catatan Audit Trail (Audit Logs).
@@ -1092,8 +1083,7 @@ ATURAN KEAMANAN MUTLAK:
                   <button
                     type="submit"
                     disabled={savingIssuer}
-                    className="btn-primary"
-                    style={{ fontSize: '13px', padding: '9px 26px' }}
+                    className="btn-primary btn-lg"
                   >
                     {savingIssuer ? 'Menyimpan Prompt...' : 'Simpan Perubahan AI System Prompt'}
                   </button>
@@ -1254,7 +1244,6 @@ ATURAN KEAMANAN MUTLAK:
                     type="submit"
                     disabled={savingIssuer}
                     className="btn-primary"
-                    style={{ fontSize: '13px', padding: '8px 24px' }}
                   >
                     {savingIssuer ? 'Menyimpan...' : 'Simpan Seluruh Pengaturan Profil'}
                   </button>

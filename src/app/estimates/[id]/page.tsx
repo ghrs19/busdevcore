@@ -236,7 +236,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
 
   return (
     <Page wide className="pb-[80px]">
-        
+
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-2 text-[12px] text-fg-3">
           <Link href="/" className="inline-flex items-center gap-1.5 no-underline hover:text-fg">
@@ -354,7 +354,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
           ];
           return (
             <div className="no-scrollbar -mx-1 mb-6 overflow-x-auto px-1">
-              <div role="tablist" aria-label="Bagian costing" className="flex w-max min-w-full gap-1 border-b border-line">
+              <div role="tablist" aria-label="Bagian costing" className="flex w-max min-w-full gap-1">
                 {tabs.map((tab) => {
                   const active = activeTab === tab.id;
                   const Icon = tab.icon;
@@ -366,14 +366,14 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       aria-selected={active}
                       onClick={() => setActiveTab(tab.id)}
                       className={cn(
-                        '-mb-px inline-flex h-10 shrink-0 items-center gap-2 border-b-2 px-3.5 text-[13px] font-medium transition-colors',
-                        active ? 'border-[var(--accent-primary)] text-fg' : 'border-transparent text-fg-3 hover:text-fg',
+                        'inline-flex h-10 shrink-0 items-center gap-2 border-0 px-3.5 text-[13px] font-medium transition-colors',
+                        active ? 'bg-brand text-white' : 'text-fg-3 hover:text-fg',
                       )}
                     >
-                      {Icon && <Icon className={cn('size-4', active ? 'text-brand-fg' : 'text-fg-3')} aria-hidden />}
+                      {Icon && <Icon className={cn('size-4', active ? 'text-white' : 'text-fg-3')} aria-hidden />}
                       {tab.label}
                       {tab.count !== undefined && (
-                        <span className={cn('font-mono-numbers rounded-full px-1.5 text-[11px]', active ? 'bg-[var(--accent-light)] text-brand-fg' : 'bg-surface-2 text-fg-3')}>{tab.count}</span>
+                        <span className={cn('font-mono-numbers rounded-full px-1.5 text-[11px]', active ? 'text-white' : 'bg-surface-2 text-fg-3')}>{tab.count}</span>
                       )}
                     </button>
                   );
@@ -758,8 +758,8 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           ) : (
                             <Link
                               href={`/estimates/${verItem.id}`}
-                              className="btn-secondary"
-                              style={{ fontSize: '11px', padding: '3px 8px', textDecoration: 'none', color: 'var(--color-info)', borderColor: 'rgb(var(--info-rgb) / 0.3)' }}
+                              className="btn-secondary btn-sm"
+                              style={{ textDecoration: 'none', color: 'var(--color-info)', borderColor: 'rgb(var(--info-rgb) / 0.3)' }}
                             >
                               Buka Versi Ini
                             </Link>
@@ -818,7 +818,6 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               right: 0,
               bottom: 0,
               backgroundColor: 'rgb(8 10 14 / 0.62)',
-              backdropFilter: 'blur(6px)',
               zIndex: 200,
               display: 'flex',
               alignItems: 'center',
@@ -837,7 +836,6 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 padding: '24px',
                 backgroundColor: 'var(--bg-panel)',
                 border: '1px solid rgb(var(--danger-rgb) / 0.3)',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.25)',
               }}
               onClick={(e) => e.stopPropagation()}
             >

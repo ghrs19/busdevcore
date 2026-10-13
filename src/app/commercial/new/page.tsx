@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { X } from 'lucide-react';
 import { Page } from '@/components/ui/Page';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -1114,8 +1115,8 @@ function NewCommercialProposalForm() {
               <button
                 type="button"
                 onClick={addMilestone}
-                className="btn-secondary"
-                style={{ fontSize: '12px', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                className="btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <span>+</span>
                 <span>Tambah Milestone</span>
@@ -1226,22 +1227,13 @@ function NewCommercialProposalForm() {
                         <button
                           type="button"
                           onClick={() => removeMilestone(idx)}
-                          className="btn-ghost"
-                          style={{
-                            color: 'var(--color-danger)',
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
+                          className="btn-danger-ghost btn-icon btn-sm"
+
                           disabled={milestones.length <= 1}
                           title="Hapus Milestone"
                         >
-                          ×
-                        </button>
+<X className="size-3.5" aria-hidden />
+</button>
                       </td>
                     </tr>
                   ))}
@@ -1280,16 +1272,16 @@ function NewCommercialProposalForm() {
                 <button
                   type="button"
                   onClick={() => setMaintenanceBillingMode('ALL_IN_PROJECT')}
-                  className={maintenanceBillingMode === 'ALL_IN_PROJECT' ? 'btn-primary' : 'btn-secondary'}
-                  style={{ fontSize: '11.5px', padding: '6px 12px', borderRadius: '6px' }}
+                  className={maintenanceBillingMode === 'ALL_IN_PROJECT' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+
                 >
                   ✓ Dibayar Sekaligus (All-in di Termin Proyek)
                 </button>
                 <button
                   type="button"
                   onClick={() => setMaintenanceBillingMode('MONTHLY_RETAINER')}
-                  className={maintenanceBillingMode === 'MONTHLY_RETAINER' ? 'btn-primary' : 'btn-secondary'}
-                  style={{ fontSize: '11.5px', padding: '6px 12px', borderRadius: '6px' }}
+                  className={maintenanceBillingMode === 'MONTHLY_RETAINER' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+
                 >
                   Ditagih Terpisah per Bulan (Post-Launch Retainer)
                 </button>
@@ -1329,32 +1321,29 @@ function NewCommercialProposalForm() {
                 <button
                   type="button"
                   onClick={() => applyPaymentPreset('3_TERMS')}
-                  className="btn-secondary"
-                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                  className="btn-secondary btn-sm"
                 >
                   30% / 50% / 20%
                 </button>
                 <button
                   type="button"
                   onClick={() => applyPaymentPreset('2_TERMS')}
-                  className="btn-secondary"
-                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                  className="btn-secondary btn-sm"
                 >
                   50% / 50%
                 </button>
                 <button
                   type="button"
                   onClick={() => applyPaymentPreset('FULL')}
-                  className="btn-secondary"
-                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                  className="btn-secondary btn-sm"
                 >
                   100% Full
                 </button>
                 <button
                   type="button"
                   onClick={addTerm}
-                  className="btn-secondary"
-                  style={{ fontSize: '11px', padding: '4px 10px', marginLeft: '6px' }}
+                  className="btn-secondary btn-sm"
+                  style={{ marginLeft: '6px' }}
                 >
                   + Tambah Baris
                 </button>
@@ -1478,22 +1467,13 @@ function NewCommercialProposalForm() {
                         <button
                           type="button"
                           onClick={() => removeTerm(idx)}
-                          className="btn-ghost"
-                          style={{
-                            color: 'var(--color-danger)',
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
+                          className="btn-danger-ghost btn-icon btn-sm"
+
                           disabled={paymentTerms.length <= 1}
                           title="Hapus Termin"
                         >
-                          ×
-                        </button>
+<X className="size-3.5" aria-hidden />
+</button>
                       </td>
                     </tr>
                   ))}
@@ -1552,10 +1532,8 @@ function NewCommercialProposalForm() {
               right: 0,
               zIndex: 40,
               background: 'var(--bg-panel)',
-              backdropFilter: 'blur(16px)',
               borderTop: '1px solid var(--border-subtle)',
               padding: '14px 24px',
-              boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.12)',
             }}
           >
             <div
@@ -1600,15 +1578,15 @@ function NewCommercialProposalForm() {
                 <Link
                   href="/commercial"
                   className="btn-secondary"
-                  style={{ textDecoration: 'none', padding: '8px 16px' }}
+                  style={{ textDecoration: 'none' }}
                 >
                   Batal
                 </Link>
                 <button
                   type="submit"
                   disabled={isSubmitting || !selectedEstimateId}
-                  className="btn-primary"
-                  style={{ minWidth: '240px', padding: '10px 24px', fontSize: '13px' }}
+                  className="btn-primary btn-lg"
+                  style={{ minWidth: '240px' }}
                 >
                   {isSubmitting
                     ? 'Menyimpan Revisi...'

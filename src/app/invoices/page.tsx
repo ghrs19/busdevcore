@@ -229,7 +229,7 @@ export default function InvoicesTrackerPage() {
             style={{ paddingLeft: 36, paddingRight: search ? 34 : 12 }}
           />
           {search && (
-            <button type="button" onClick={() => setSearch('')} aria-label="Hapus pencarian" className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-fg-3 hover:bg-[var(--row-hover)] hover:text-fg">
+            <button type="button" onClick={() => setSearch('')} aria-label="Hapus pencarian" className="btn-ghost btn-icon btn-sm absolute right-1.5 inset-y-0 my-auto">
               <X className="size-3.5" aria-hidden />
             </button>
           )}
@@ -344,8 +344,8 @@ export default function InvoicesTrackerPage() {
                                 <td className="whitespace-nowrap">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
                                 <td>
                                   <div className="flex items-center justify-end gap-1.5">
-                                    <Link href={`/invoices/${inv.id}`} className="btn-secondary" style={{ minHeight: 30, padding: '0 10px' }}>Detail</Link>
-                                    <button type="button" onClick={() => openEditModal(inv)} className="btn-secondary" title="Update status" aria-label={`Update status ${inv.milestone_name}`} style={{ minHeight: 30, width: 30, padding: 0 }}>
+                                    <Link href={`/invoices/${inv.id}`} className="btn-secondary btn-sm" >Detail</Link>
+                                    <button type="button" onClick={() => openEditModal(inv)} className="btn-secondary btn-icon btn-sm" title="Update status" aria-label={`Update status ${inv.milestone_name}`}>
                                       <SquarePen className="size-3.5" aria-hidden />
                                     </button>
                                   </div>
@@ -378,7 +378,6 @@ export default function InvoicesTrackerPage() {
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 9999,
-              backdropFilter: 'blur(4px)',
             }}
           >
             <div
@@ -504,16 +503,14 @@ export default function InvoicesTrackerPage() {
                   <button
                     type="button"
                     onClick={() => setEditingItem(null)}
-                    className="btn-secondary"
-                    style={{ padding: '6px 14px' }}
+                    className="btn-secondary btn-sm"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="btn-primary"
-                    style={{ padding: '6px 16px' }}
+                    className="btn-primary btn-sm"
                   >
                     {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                   </button>

@@ -101,7 +101,6 @@ function UserMenu({ email, role }: { email: string; role: string }) {
         <div
           role="menu"
           className="absolute right-0 top-[calc(100%+8px)] z-50 w-60 overflow-hidden rounded-xl border border-line bg-surface-3 p-1.5"
-          style={{ boxShadow: 'var(--shadow-pop)' }}
         >
           <div className="border-b border-line px-2.5 pb-2.5 pt-1.5">
             <div className="truncate text-[13px] font-medium text-fg">{email}</div>

@@ -1,7 +1,7 @@
 'use client';
 
 
-import { Paperclip, RefreshCw, Sparkles, Trash2, Zap } from 'lucide-react';
+import { Paperclip, RefreshCw, Sparkles, Trash2, X, Zap } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { Page } from '@/components/ui/Page';
@@ -1283,7 +1283,7 @@ function NewEstimateForm() {
                 )}
               </h1>
               <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                {editId 
+                {editId
                   ? `Mengedit dari snapshot v${editingEstimateMeta?.version || 1}. Saat disimpan akan tercatat sebagai versi terbaru v${((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}.`
                   : 'Formulir pembuatan kalkulasi WBS, modul, dan manhours costing proyek IT Development & Maintenance'}
               </p>
@@ -1294,7 +1294,7 @@ function NewEstimateForm() {
                 type="button"
                 onClick={handleResetForm}
                 className="btn-secondary"
-                style={{ color: 'var(--color-danger)', borderColor: 'rgb(var(--danger-rgb) / 0.3)' }}
+                style={{ borderColor: 'rgb(var(--danger-rgb) / 0.3)', color: 'var(--color-danger)' }}
                 title="Kosongkan seluruh isian form dan mulai dari awal"
               >
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Trash2 style={{ width: "15px", height: "15px" }} /><span>Reset Form</span></span>
@@ -1324,11 +1324,10 @@ function NewEstimateForm() {
             <button
               type="button"
               onClick={() => setErrorMsg(null)}
-              className="btn-ghost"
-              style={{ color: 'var(--color-danger)', padding: 0 }}
+              className="btn-danger-ghost btn-icon btn-sm"
             >
-              ✕
-            </button>
+<X className="size-3.5" aria-hidden />
+</button>
           </div>
         )}
 
@@ -1351,11 +1350,11 @@ function NewEstimateForm() {
             <button
               type="button"
               onClick={() => setSuccessMsg(null)}
-              className="btn-ghost"
-              style={{ color: 'var(--color-success)', padding: 0 }}
+              className="btn-ghost btn-icon btn-sm"
+
             >
-              ✕
-            </button>
+<X className="size-3.5" aria-hidden />
+</button>
           </div>
         )}
 
@@ -1377,9 +1376,9 @@ function NewEstimateForm() {
             {aiChatHistory.length > 0 && (
               <button
                 type="button"
-                className="btn-ghost"
+                className="btn-ghost btn-sm"
                 onClick={() => { setAiChatHistory([]); setAiSummary(''); }}
-                style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}
+                style={{ color: 'var(--text-tertiary)' }}
                 title="Bersihkan riwayat percakapan AI"
               >
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><RefreshCw style={{ width: "14px", height: "14px" }} /><span>Reset Chat AI</span></span>
@@ -1525,14 +1524,14 @@ function NewEstimateForm() {
                       <img src={URL.createObjectURL(file)} alt="" style={{ width: 20, height: 20, objectFit: 'cover', borderRadius: '3px' }} />
                     )}
                     <b>{file.name.split('.').pop()?.toUpperCase()}</b> {file.name} ({(file.size / 1024).toFixed(1)} KB)
-                    <button
+                    <button className="btn-ghost btn-icon btn-sm"
                       type="button"
                       aria-label={`Hapus ${file.name}`}
                       onClick={() => setAiFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '0 2px' }}
+
                     >
-                      ×
-                    </button>
+<X className="size-3.5" aria-hidden />
+</button>
                   </span>
                 ))}
               </div>
@@ -1546,7 +1545,6 @@ function NewEstimateForm() {
               className="btn-primary"
               onClick={generateAIDraft}
               disabled={aiLoading}
-              style={{ fontSize: '13px' }}
             >
               {aiLoading ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -1621,8 +1619,8 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setIsRegisteringCompany(!isRegisteringCompany)}
-                    className="btn-ghost"
-                    style={{ fontSize: '11px', color: 'var(--accent-hover)', padding: '0 4px' }}
+                    className="btn-ghost btn-sm"
+                    style={{ color: 'var(--accent-hover)' }}
                   >
                     {isRegisteringCompany ? 'Tutup Form' : '+ Daftarkan Perusahaan'}
                   </button>
@@ -1657,8 +1655,8 @@ function NewEstimateForm() {
                     <button
                       type="button"
                       onClick={() => setIsCreatingProject(!isCreatingProject)}
-                      className="btn-ghost"
-                      style={{ fontSize: '11px', color: 'var(--accent-hover)', padding: '0 4px' }}
+                      className="btn-ghost btn-sm"
+                      style={{ color: 'var(--accent-hover)' }}
                     >
                       {isCreatingProject ? 'Tutup Form' : '+ Buat Project Baru'}
                     </button>
@@ -2030,19 +2028,18 @@ function NewEstimateForm() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="btn-secondary btn-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     addPerson();
                   }}
-                  style={{ fontSize: '12px', padding: '6px 12px' }}
                 >
                   + Tambah Orang
                 </button>
                 <button
                   type="button"
-                  className="btn-ghost"
-                  style={{ fontSize: '12px', color: 'var(--accent-hover)' }}
+                  className="btn-ghost btn-sm"
+                  style={{ color: 'var(--accent-hover)' }}
                 >
                   {isRateExpanded ? 'Sembunyikan ▲' : 'Buka & Sesuaikan ▼'}
                 </button>
@@ -2191,8 +2188,7 @@ function NewEstimateForm() {
                 <button
                   type="button"
                   onClick={() => setWbsTab('ALL')}
-                  className={wbsTab === 'ALL' ? 'btn-primary' : 'btn-secondary'}
-                  style={{ fontSize: '12px', padding: '6px 14px' }}
+                  className={wbsTab === 'ALL' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
                 >
                   Tampilkan Semua WBS
                 </button>
@@ -2200,8 +2196,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setWbsTab('DEV')}
-                    className={wbsTab === 'DEV' ? 'btn-primary' : 'btn-secondary'}
-                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                    className={wbsTab === 'DEV' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
                   >
                     Development WBS ({formatIDR(calculation.total_cost)})
                   </button>
@@ -2210,8 +2205,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setWbsTab('MAINTENANCE')}
-                    className={wbsTab === 'MAINTENANCE' ? 'btn-primary' : 'btn-secondary'}
-                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                    className={wbsTab === 'MAINTENANCE' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
                   >
                     Maintenance WBS ({formatIDR(maintCalculation ? maintCalculation.monthly_cost : 0)}/bln)
                   </button>
@@ -2220,8 +2214,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setWbsTab('INFRASTRUCTURE')}
-                    className={wbsTab === 'INFRASTRUCTURE' ? 'btn-primary' : 'btn-secondary'}
-                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                    className={wbsTab === 'INFRASTRUCTURE' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
                   >
                     Infrastructure Items ({formatIDR(infraCalculation ? infraCalculation.grand_total : 0)})
                   </button>
@@ -2230,8 +2223,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setWbsTab('OPERATION')}
-                    className={wbsTab === 'OPERATION' ? 'btn-primary' : 'btn-secondary'}
-                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                    className={wbsTab === 'OPERATION' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
                   >
                     Operation Items ({formatIDR(opCalculation ? opCalculation.grand_total : 0)})
                   </button>
@@ -2278,11 +2270,11 @@ function NewEstimateForm() {
 
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {dbTemplates.filter(t => t.category === 'DEVELOPMENT').map(t => (
-                      <button key={t.id} type="button" onClick={() => applyDevelopmentTemplate(t.name, t.payload)} className="btn-secondary" style={{ fontSize: '11px' }} title={t.description || t.name}>
+                      <button key={t.id} type="button" onClick={() => applyDevelopmentTemplate(t.name, t.payload)} className="btn-secondary btn-sm"  title={t.description || t.name}>
                         {t.name}
                       </button>
                     ))}
-                    <button type="button" onClick={addModule} className="btn-secondary" style={{ fontSize: '12px' }}>
+                    <button type="button" onClick={addModule} className="btn-secondary btn-sm" >
                       + Tambah Modul Dev
                     </button>
                   </div>
@@ -2354,8 +2346,7 @@ function NewEstimateForm() {
                       <button
                         type="button"
                         onClick={() => removeModule(mIdx)}
-                        className="btn-ghost"
-                        style={{ color: 'var(--color-danger)', fontSize: '12px' }}
+                        className="btn-danger-ghost btn-sm"
                         title="Hapus Modul"
                       >
                         Hapus Modul
@@ -2423,12 +2414,12 @@ function NewEstimateForm() {
                                 <button
                                   type="button"
                                   onClick={() => removeTask(mIdx, tIdx)}
-                                  className="btn-ghost"
-                                  style={{ color: 'var(--text-tertiary)', fontSize: '12px', padding: '4px', width: '100%', height: '100%' }}
+                                  className="btn-ghost btn-icon btn-sm"
+
                                   title="Hapus Task"
                                 >
-                                  ✕
-                                </button>
+<X className="size-3.5" aria-hidden />
+</button>
                               </td>
                             </tr>
                           );
@@ -2441,8 +2432,8 @@ function NewEstimateForm() {
                     <button
                       type="button"
                       onClick={() => addTask(mIdx)}
-                      className="btn-ghost"
-                      style={{ fontSize: '12px', color: 'var(--accent-hover)' }}
+                      className="btn-ghost btn-sm"
+                      style={{ color: 'var(--accent-hover)' }}
                     >
                       + Tambah Task di Modul Ini
                     </button>
@@ -2513,8 +2504,7 @@ function NewEstimateForm() {
                             key={m}
                             type="button"
                             onClick={() => setMaintenanceDurationMonths(m)}
-                            className={maintenanceDurationMonths === m ? 'btn-primary' : 'btn-secondary'}
-                            style={{ fontSize: '11px', padding: '2px 6px' }}
+                            className={maintenanceDurationMonths === m ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
                           >
                             {m}bln
                           </button>
@@ -2532,12 +2522,12 @@ function NewEstimateForm() {
                           const isBasic = t.name.toLowerCase().includes('basic');
                           const label = isMobile
                             ? (isBasic ? 'Mobile Basic' : 'Mobile Expert')
-                            : isEcom 
+                            : isEcom
                               ? (isBasic ? 'E-Com Basic' : 'E-Com Expert')
                               : (isBasic ? 'Web Basic' : 'Web Expert');
                           const color = isMobile
                             ? (isBasic ? 'var(--color-success)' : 'var(--color-info)')
-                            : isEcom 
+                            : isEcom
                               ? (isBasic ? 'var(--color-warning)' : 'var(--color-violet)')
                               : (isBasic ? 'var(--color-info)' : 'var(--color-violet)');
 
@@ -2546,14 +2536,8 @@ function NewEstimateForm() {
                               key={t.id}
                               type="button"
                               onClick={() => applyMaintenanceTemplate(t.payload)}
-                              className="btn-secondary"
-                              style={{
-                                padding: '3px 8px',
-                                fontSize: '11px',
-                                minHeight: 'auto',
-                                borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
-                                color: color,
-                              }}
+                              className="btn-secondary btn-sm"
+                              style={{ borderColor: `color-mix(in srgb, ${color} 40%, transparent)`, color: color }}
                               title={t.description || t.name}
                             >
                               {label}
@@ -2637,12 +2621,12 @@ function NewEstimateForm() {
                               <button
                                 type="button"
                                 onClick={() => removeMaintenanceTask(tIdx)}
-                                className="btn-ghost"
-                                style={{ color: 'var(--color-danger)', padding: '4px', fontSize: '12px', width: '100%', height: '100%' }}
+                                className="btn-danger-ghost btn-icon btn-sm"
+
                                 title="Hapus Task Maintenance"
                               >
-                                ✕
-                              </button>
+<X className="size-3.5" aria-hidden />
+</button>
                             </td>
                           </tr>
                         );
@@ -2655,8 +2639,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={addMaintenanceTask}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px' }}
+                    className="btn-secondary btn-sm"
                   >
                     + Tambah Task Maintenance
                   </button>
@@ -2709,11 +2692,11 @@ function NewEstimateForm() {
 
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {dbTemplates.filter(t => t.category === 'OPERATION').map(t => (
-                      <button key={t.id} type="button" onClick={() => applyOperationalTemplate(t.payload)} className="btn-secondary" style={{ fontSize: '11px' }} title={t.description || t.name}>
+                      <button key={t.id} type="button" onClick={() => applyOperationalTemplate(t.payload)} className="btn-secondary btn-sm"  title={t.description || t.name}>
                         {t.name}
                       </button>
                     ))}
-                    <button type="button" onClick={addOperationalItem} className="btn-secondary" style={{ fontSize: '12px' }}>
+                    <button type="button" onClick={addOperationalItem} className="btn-secondary btn-sm" >
                       + Tambah Item Operasional
                     </button>
                   </div>
@@ -2806,12 +2789,12 @@ function NewEstimateForm() {
                                 <button
                                   type="button"
                                   onClick={() => removeOperationalItem(oIdx)}
-                                  className="btn-ghost"
-                                  style={{ color: 'var(--color-danger)', padding: '4px', fontSize: '12px', width: '100%', height: '100%' }}
+                                  className="btn-danger-ghost btn-icon btn-sm"
+
                                   title="Hapus Item Operasional"
                                 >
-                                  ✕
-                                </button>
+<X className="size-3.5" aria-hidden />
+</button>
                               </td>
                             </tr>
                           );
@@ -2875,11 +2858,11 @@ function NewEstimateForm() {
 
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {dbTemplates.filter(t => t.category === 'INFRASTRUCTURE').map(t => (
-                      <button key={t.id} type="button" onClick={() => applyInfrastructureTemplate(t.payload)} className="btn-secondary" style={{ fontSize: '11px' }} title={t.description || t.name}>
+                      <button key={t.id} type="button" onClick={() => applyInfrastructureTemplate(t.payload)} className="btn-secondary btn-sm"  title={t.description || t.name}>
                         {t.name}
                       </button>
                     ))}
-                    <button type="button" onClick={addInfraItem} className="btn-secondary" style={{ fontSize: '12px' }}>
+                    <button type="button" onClick={addInfraItem} className="btn-secondary btn-sm" >
                       + Tambah Item Infra
                     </button>
                   </div>
@@ -2983,12 +2966,12 @@ function NewEstimateForm() {
                               <button
                                 type="button"
                                 onClick={() => removeInfraItem(iIdx)}
-                                className="btn-ghost"
-                                style={{ color: 'var(--color-danger)', padding: '4px', fontSize: '12px', width: '100%', height: '100%' }}
+                                className="btn-danger-ghost btn-icon btn-sm"
+
                                 title="Hapus Item Infra"
                               >
-                                ✕
-                              </button>
+<X className="size-3.5" aria-hidden />
+</button>
                             </td>
                           </tr>
                         );
@@ -3029,8 +3012,8 @@ function NewEstimateForm() {
                     ]
                   }));
                 }}
-                className="btn-secondary"
-                style={{ fontSize: '12px', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                className="btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <span>+</span>
                 <span>Tambah Tahapan</span>
@@ -3171,22 +3154,13 @@ function NewEstimateForm() {
                               milestones: prev.milestones.filter((_, i) => i !== idx)
                             }));
                           }}
-                          className="btn-ghost"
-                          style={{
-                            color: 'var(--color-danger)',
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
+                          className="btn-danger-ghost btn-icon btn-sm"
+
                           disabled={timelineConfig.milestones.length <= 1}
                           title="Hapus Tahapan"
                         >
-                          ✕
-                        </button>
+<X className="size-3.5" aria-hidden />
+</button>
                       </td>
                     </tr>
                   ))}
@@ -3204,10 +3178,8 @@ function NewEstimateForm() {
               right: 0,
               zIndex: 40,
               background: 'var(--bg-panel)',
-              backdropFilter: 'blur(16px)',
               borderTop: '1px solid var(--border-subtle)',
               padding: '14px 24px',
-              boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.12)',
             }}
           >
             <div
@@ -3306,7 +3278,6 @@ function NewEstimateForm() {
               right: 0,
               bottom: 0,
               backgroundColor: 'rgb(8 10 14 / 0.62)',
-              backdropFilter: 'blur(4px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -3326,7 +3297,6 @@ function NewEstimateForm() {
                 background: 'var(--bg-elevated)',
                 border: '1px solid rgb(var(--accent-rgb) / 0.35)',
                 borderRadius: '12px',
-                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25), 0 0 20px rgb(var(--accent-rgb) / 0.15)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -3363,11 +3333,11 @@ function NewEstimateForm() {
                 <button
                   type="button"
                   onClick={() => !isLoading && setIsRevisionModalOpen(false)}
-                  className="btn-ghost"
-                  style={{ color: 'var(--text-tertiary)', padding: '4px 8px', fontSize: '14px' }}
+                  className="btn-ghost btn-icon btn-sm"
+
                 >
-                  ✕
-                </button>
+<X className="size-3.5" aria-hidden />
+</button>
               </div>
 
               <div style={{ marginBottom: '20px' }}>
@@ -3413,7 +3383,6 @@ function NewEstimateForm() {
                   className="btn-secondary"
                   disabled={isLoading}
                   onClick={() => setIsRevisionModalOpen(false)}
-                  style={{ fontSize: '13px', padding: '8px 16px' }}
                 >
                   Batal
                 </button>
@@ -3422,11 +3391,6 @@ function NewEstimateForm() {
                   onClick={() => executeSubmit(revisionReason)}
                   disabled={isLoading || !revisionReason.trim()}
                   className="btn-primary"
-                  style={{
-                    fontSize: '13px',
-                    padding: '8px 20px',
-                    fontWeight: 600,
-                  }}
                 >
                   {isLoading ? 'Menyimpan Revisi...' : `Simpan Revisi v${((editingEstimateMeta?.max_version ?? editingEstimateMeta?.version) || 1) + 1}`}
                 </button>

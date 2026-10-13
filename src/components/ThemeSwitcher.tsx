@@ -35,7 +35,7 @@ export default function ThemeSwitcher() {
       onClick={toggleTheme}
       aria-label={label}
       title={label}
-      className="inline-grid size-9 shrink-0 place-items-center rounded-lg border border-line bg-surface-2 text-fg-3 transition-colors hover:border-line-strong hover:text-fg"
+      className="btn-ghost btn-icon"
     >
       <Icon className="size-4" strokeWidth={1.8} aria-hidden />
     </button>

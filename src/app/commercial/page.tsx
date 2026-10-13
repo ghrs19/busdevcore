@@ -138,7 +138,7 @@ export default function CommercialProposalsListPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             {searchTerm && (
-              <button type="button" onClick={() => setSearchTerm('')} aria-label="Hapus pencarian" className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-fg-3 hover:bg-[var(--row-hover)] hover:text-fg">
+              <button type="button" onClick={() => setSearchTerm('')} aria-label="Hapus pencarian" className="btn-ghost btn-icon btn-sm absolute right-1.5 inset-y-0 my-auto">
                 <X className="size-3.5" aria-hidden />
               </button>
             )}
@@ -196,13 +196,13 @@ export default function CommercialProposalsListPage() {
                     <td className="whitespace-nowrap text-[12.5px]">{dateFormatted}</td>
                     <td>
                       <div className="flex items-center justify-end gap-1.5">
-                        <Link href={`/commercial/${p.id}`} className="btn-secondary" title="Buka halaman detail proposal" style={{ minHeight: 30, padding: '0 10px' }}>
+                        <Link href={`/commercial/${p.id}`} className="btn-secondary btn-sm" title="Buka halaman detail proposal" >
                           <FileText className="size-3.5" aria-hidden /> Detail
                         </Link>
-                        <Link href={`/commercial/${p.id}/print`} target="_blank" className="btn-secondary" title="Cetak dokumen PDF A4 klien" aria-label="Cetak PDF" style={{ minHeight: 30, width: 30, padding: 0 }}>
+                        <Link href={`/commercial/${p.id}/print`} target="_blank" className="btn-secondary btn-icon btn-sm" title="Cetak dokumen PDF A4 klien" aria-label="Cetak PDF">
                           <Printer className="size-3.5" aria-hidden />
                         </Link>
-                        <a href={`/api/commercial/${p.id}/export/docx`} download className="btn-secondary" title="Unduh format Word (.docx)" aria-label="Unduh DOCX" style={{ minHeight: 30, width: 30, padding: 0 }}>
+                        <a href={`/api/commercial/${p.id}/export/docx`} download className="btn-secondary btn-icon btn-sm" title="Unduh format Word (.docx)" aria-label="Unduh DOCX">
                           <Download className="size-3.5" aria-hidden />
                         </a>
                       </div>

@@ -297,7 +297,7 @@ function InvoiceDetailPageInner() {
               {invoice.proof_reference && <InfoRow label="Ref. transfer bank"><span className="font-mono text-fg">{invoice.proof_reference}</span></InfoRow>}
               <InfoRow label="Bukti bayar">
                 {invoice.proof_file_url ? (
-                  <a href={invoice.proof_file_url} target="_blank" rel="noreferrer" className="btn-secondary" style={{ minHeight: 30, padding: '0 10px' }} title={`Lihat file: ${invoice.proof_file_name || 'Bukti transfer'}`}>
+                  <a href={invoice.proof_file_url} target="_blank" rel="noreferrer" className="btn-secondary btn-sm"  title={`Lihat file: ${invoice.proof_file_name || 'Bukti transfer'}`}>
                     <Paperclip className="size-3.5" aria-hidden /> Lihat bukti
                   </a>
                 ) : (
@@ -388,7 +388,7 @@ function InvoiceDetailPageInner() {
                             <Check className="size-3.5" aria-hidden /> Aktif
                           </span>
                         ) : (
-                          <Link href={`/invoices/${sib.id}`} className="btn-secondary" style={{ minHeight: 30, padding: '0 10px' }} title="Buka invoice termin ini">
+                          <Link href={`/invoices/${sib.id}`} className="btn-secondary btn-sm"  title="Buka invoice termin ini">
                             Buka <ArrowRight className="size-3.5" aria-hidden />
                           </Link>
                         )}
@@ -415,7 +415,6 @@ function InvoiceDetailPageInner() {
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 9999,
-              backdropFilter: 'blur(4px)',
             }}
           >
             <div
@@ -541,16 +540,14 @@ function InvoiceDetailPageInner() {
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="btn-secondary"
-                    style={{ padding: '6px 14px' }}
+                    className="btn-secondary btn-sm"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="btn-primary"
-                    style={{ padding: '6px 16px' }}
+                    className="btn-primary btn-sm"
                   >
                     {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                   </button>

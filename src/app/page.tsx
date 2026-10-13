@@ -557,8 +557,7 @@ export default function HistoricalEstimatesPage() {
               <button
                 type="button"
                 onClick={resetFilters}
-                className="btn-secondary"
-                style={{ fontSize: '11px', padding: '7px 12px' }}
+                className="btn-secondary btn-sm"
               >
                 Reset Filter
               </button>
@@ -780,26 +779,12 @@ export default function HistoricalEstimatesPage() {
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           <a
                             href={`/estimates/new?edit_id=${est.id}`}
-                            className="btn-secondary"
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              minWidth: '32px',
-                              padding: 0,
-                              fontSize: '13px',
-                              textDecoration: 'none',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'var(--color-info)',
-                              borderColor: 'rgb(var(--info-rgb) / 0.3)',
-                              borderRadius: '6px',
-                              boxSizing: 'border-box',
-                            }}
+                            className="btn-secondary btn-icon btn-sm"
                             title="Edit / Buat Revisi Estimasi ini"
+                            aria-label="Edit estimasi"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <SquarePen style={{ width: "15px", height: "15px" }} />
+                            <SquarePen className="size-3.5" aria-hidden />
                           </a>
                           <button
                             type="button"
@@ -808,25 +793,12 @@ export default function HistoricalEstimatesPage() {
                               setDeleteTarget(est);
                               setDeleteError(null);
                             }}
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              minWidth: '32px',
-                              padding: 0,
-                              fontSize: '13px',
-                              background: 'rgb(var(--danger-rgb) / 0.1)',
-                              border: '1px solid rgb(var(--danger-rgb) / 0.3)',
-                              color: 'var(--color-danger)',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxSizing: 'border-box',
-                            }}
+                            className="btn-secondary btn-icon btn-sm"
+                            style={{ color: 'var(--color-danger)' }}
                             title="Hapus Estimasi"
+                            aria-label="Hapus estimasi"
                           >
-                            <Trash2 style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
+                            <Trash2 className="size-3.5" aria-hidden />
                           </button>
                         </div>
                       </td>
@@ -848,7 +820,6 @@ export default function HistoricalEstimatesPage() {
               right: 0,
               bottom: 0,
               backgroundColor: 'rgb(8 10 14 / 0.62)',
-              backdropFilter: 'blur(6px)',
               zIndex: 200,
               display: 'flex',
               alignItems: 'center',
@@ -870,7 +841,6 @@ export default function HistoricalEstimatesPage() {
                 padding: '24px',
                 background: 'var(--bg-elevated)',
                 border: '1px solid var(--border-subtle)',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -887,16 +857,16 @@ export default function HistoricalEstimatesPage() {
                 </h3>
                 <button
                   type="button"
-                  className="btn-ghost"
+                  className="btn-ghost btn-icon btn-sm"
                   onClick={() => {
                     setDeleteTarget(null);
                     setDeleteError(null);
                   }}
                   disabled={isDeleting}
-                  style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}
+
                 >
-                  ✕
-                </button>
+<X className="size-3.5" aria-hidden />
+</button>
               </div>
 
               {deleteError ? (
@@ -987,7 +957,6 @@ export default function HistoricalEstimatesPage() {
               right: 0,
               bottom: 0,
               backgroundColor: 'rgb(8 10 14 / 0.62)',
-              backdropFilter: 'blur(4px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1006,7 +975,6 @@ export default function HistoricalEstimatesPage() {
                 padding: '24px',
                 background: 'var(--bg-elevated)',
                 border: '1px solid rgb(var(--info-rgb) / 0.3)',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.25)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1066,7 +1034,6 @@ export default function HistoricalEstimatesPage() {
                   className="btn-secondary"
                   disabled={isForking}
                   onClick={() => setForkTarget(null)}
-                  style={{ fontSize: '13px', padding: '8px 16px' }}
                 >
                   Batal
                 </button>
@@ -1107,7 +1074,6 @@ export default function HistoricalEstimatesPage() {
               borderRadius: '8px',
               backgroundColor: 'var(--color-success)',
               color: '#ffffff',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
@@ -1116,21 +1082,14 @@ export default function HistoricalEstimatesPage() {
             }}
           >
             <span>✓ {toastMessage}</span>
-            <button
+            <button className="btn-ghost btn-icon btn-sm"
               type="button"
+              aria-label="Tutup notifikasi"
               onClick={() => setToastMessage(null)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#ffffff',
-                cursor: 'pointer',
-                fontSize: '14px',
-                padding: '0 2px',
-                lineHeight: 1,
-              }}
+              style={{ color: '#ffffff' }}
             >
-              ✕
-            </button>
+<X className="size-3.5" aria-hidden />
+</button>
           </div>
         )}
     </Page>
