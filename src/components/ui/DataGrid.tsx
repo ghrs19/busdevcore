@@ -84,7 +84,7 @@ export default function DataGrid({
           <div className="flex flex-wrap items-center gap-2">
             {actions}
             {densityToggle && (
-              <div className="inline-flex rounded-full border border-line bg-surface-2 p-0.5" role="group" aria-label="Kepadatan tabel">
+              <div className="inline-flex items-center gap-1" role="group" aria-label="Kepadatan tabel">
                 <button
                   type="button"
                   onClick={() => changeDensity('comfortable')}
