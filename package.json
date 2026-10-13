@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3001",
     "lint": "eslint",
-    "test": "node --test src/lib/hermes-agent.test.mjs src/app/api/dashboard/analytics-range.test.mjs src/lib/costing.test.ts src/lib/auth-security.test.ts scripts/gaps.test.mjs scripts/version-diff.test.mjs scripts/migration-runner.test.mjs src/app/api/invoices/route.test.mjs src/app/api/files/route.security.test.mjs src/app/api/invoices/upload.security.test.mjs src/lib/storage.security.test.mjs src/app/api/commercial/[id]/milestones/route.test.mjs src/app/api/commercial/schedule-write.test.mjs src/lib/commercial-schedule.test.mjs src/lib/bounded-request.test.mjs",
+    "test": "node --test src/lib/hermes-agent.test.mjs src/app/api/ai/chat/route.test.mjs src/app/api/dashboard/analytics-range.test.mjs src/lib/costing.test.ts src/lib/auth-security.test.ts scripts/gaps.test.mjs scripts/version-diff.test.mjs scripts/migration-runner.test.mjs src/app/api/invoices/route.test.mjs src/app/api/files/route.security.test.mjs src/app/api/invoices/upload.security.test.mjs src/lib/storage.security.test.mjs src/app/api/commercial/[id]/milestones/route.test.mjs src/app/api/commercial/schedule-write.test.mjs src/lib/commercial-schedule.test.mjs src/lib/bounded-request.test.mjs",
     "migrate": "node scripts/migrate.js"
   },
   "dependencies": {

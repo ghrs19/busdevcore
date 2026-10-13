@@ -535,6 +535,16 @@ export async function POST(req: Request) {
   const tempFilesToClean: string[] = [];
 
   try {
+    // Check authentication and authorization
+    const { currentUser } = await import('@/lib/auth');
+    const user = await currentUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'admin') {
+      return NextResponse.json({ success: false, error: 'AI Draft Costing hanya tersedia untuk Administrator' }, { status: 403 });
+    }
+
     let formData: FormData;
     try {
       formData = await parseDraftFormData(req);

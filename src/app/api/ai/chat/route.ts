@@ -32,12 +32,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // AI Copilot restricted to admin role only
+    if (user.role !== 'admin') {
+      return NextResponse.json({ error: 'AI Copilot hanya tersedia untuk Administrator' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { message, chat_history } = body;
 
     if (!message || typeof message !== 'string' || !message.trim()) {
       return NextResponse.json({ error: 'Pesan tidak boleh kosong' }, { status: 400 });
     }
+
+    // Limit message length to prevent token overflow
+    if (message.length > 2000) {
+      return NextResponse.json({ error: 'Pesan terlalu panjang (maksimal 2000 karakter)' }, { status: 400 });
+    }
+
+    // Cap chat history to last 4 turns
+    const boundedHistory = Array.isArray(chat_history) ? chat_history.slice(-4) : [];
 
     // Guard 1: Enforcement penolakan mutasi master data dan audit log di level controller
     const policyViolation = isProhibitedAction(message);
@@ -49,40 +62,41 @@ export async function POST(req: Request) {
     }
 
     // 1. Fetch live system summary context from PostgreSQL busdevcore (Read-Only)
+    // Admin-only, minimized PII: company names without contact details
     const [companiesRes, projectsRes, estimatesRes, proposalsRes, rolesRes, settingsRes] = await Promise.all([
-      pool.query('SELECT id, name, email, phone FROM companies ORDER BY name ASC LIMIT 30'),
+      pool.query('SELECT id, name FROM companies ORDER BY name ASC LIMIT 20'),
       pool.query(`
         SELECT p.id, p.name, c.name as company_name 
         FROM projects p 
         JOIN companies c ON p.company_id = c.id 
-        ORDER BY p.id DESC LIMIT 30
+        ORDER BY p.id DESC LIMIT 15
       `),
       pool.query(`
         SELECT pe.id, pe.title, pe.version, pe.total_cost, pe.total_hours, c.name as company_name, p.name as project_name 
         FROM project_estimates pe 
         JOIN companies c ON pe.company_id = c.id 
         JOIN projects p ON pe.project_id = p.id 
-        ORDER BY pe.id DESC LIMIT 20
+        ORDER BY pe.id DESC LIMIT 10
       `),
       pool.query(`
         SELECT cp.id, cp.proposal_number, cp.version, cp.grand_total, cp.margin_percent, cp.deal_status, c.name as company_name, p.name as project_name 
         FROM commercial_proposals cp 
         JOIN companies c ON cp.company_id = c.id 
         JOIN projects p ON cp.project_id = p.id 
-        ORDER BY cp.id DESC LIMIT 20
+        ORDER BY cp.id DESC LIMIT 10
       `),
-      pool.query('SELECT code, name, default_hourly_rate FROM role_masters WHERE is_active = TRUE ORDER BY id ASC'),
+      pool.query('SELECT code, name, default_hourly_rate FROM role_masters WHERE is_active = TRUE ORDER BY id ASC LIMIT 15'),
       pool.query('SELECT ai_system_prompt FROM company_settings WHERE id = 1 LIMIT 1'),
     ]);
 
-    const companies = companiesRes.rows.map((c) => `- ${c.name} (Kontak: ${c.email || c.phone || '-'})`).join('\n') || '-';
+    const companies = companiesRes.rows.map((c) => `- ${c.name}`).join('\n') || '-';
     const projects = projectsRes.rows.map((p) => `- [${p.company_name}] ${p.name}`).join('\n') || '-';
     const estimates = estimatesRes.rows.map((e) => `- #${e.id} [${e.company_name} - ${e.project_name}] ${e.title} v${e.version}: Total Jam ${e.total_hours}h, Total Biaya Rp ${Number(e.total_cost).toLocaleString('id-ID')}`).join('\n') || '-';
     const proposals = proposalsRes.rows.map((pr) => `- ${pr.proposal_number} v${pr.version} [${pr.company_name} - ${pr.project_name}]: Penawaran Rp ${Number(pr.grand_total).toLocaleString('id-ID')} (Margin: +${pr.margin_percent}%, Status: ${pr.deal_status || 'draft'})`).join('\n') || '-';
     const roles = rolesRes.rows.map((r) => `- ${r.name} (${r.code}): Rp ${Number(r.default_hourly_rate).toLocaleString('id-ID')}/jam`).join('\n') || '-';
 
-    const historyText = Array.isArray(chat_history)
-      ? chat_history.slice(-6).map((m: { role: string; content: string }) => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n')
+    const historyText = boundedHistory.length > 0
+      ? boundedHistory.map((m: { role: string; content: string }) => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n')
       : '';
 
     const customInitialPrompt = settingsRes?.rows?.[0]?.ai_system_prompt?.trim() || `Kamu adalah BusDev AI Assistant, asisten cerdas in-app untuk sistem Busdevcore (Project Costing ERP).
