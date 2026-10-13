@@ -3,6 +3,7 @@ import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { maintenanceRevisionInput } from '@/lib/revision-input';
 import { normalizeRoleSnapshot } from '@/lib/costing';
+import { parseRateSnapshotInput } from '@/lib/rate-snapshot';
 
 export async function GET(
   req: Request,
@@ -173,7 +174,7 @@ export async function PUT(
       category_ids,
       category_id,
       tag_id,
-      custom_rates,
+      rate_snapshots: bodySnapshot,
     } = body;
 
     await client.query('BEGIN');
@@ -186,24 +187,26 @@ export async function PUT(
     }
     const currentEst = checkRes.rows[0];
 
-    // Use current rates or normalize custom_rates
+    // Rate snapshot: pakai kiriman form (orang: role - nama - rate); jika tidak ada, pertahankan snapshot lama.
     let effectiveRates = currentEst.rate_snapshots;
     if (typeof effectiveRates === 'string') {
       try { effectiveRates = JSON.parse(effectiveRates); } catch { /* ignore */ }
     }
+    if (bodySnapshot !== undefined) {
+      const roleRows = await client.query('SELECT code FROM role_masters WHERE is_active = TRUE');
+      const parsed = parseRateSnapshotInput(bodySnapshot, roleRows.rows.map((r: { code: string }) => r.code));
+      if (!parsed.ok) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+      }
+      effectiveRates = parsed.snapshot;
+    }
     const calcRates: Record<string, number> = {};
     if (effectiveRates && typeof effectiveRates === 'object') {
       for (const [k, v] of Object.entries(effectiveRates)) {
-        if (typeof v === 'object' && v !== null && 'rate' in v) {
-          calcRates[k] = Number((v as { rate: number }).rate) || 0;
-        } else {
-          calcRates[k] = Number(v) || 0;
-        }
-      }
-    }
-    if (custom_rates && typeof custom_rates === 'object') {
-      for (const [k, v] of Object.entries(custom_rates)) {
-        calcRates[k] = Number(v) || 0;
+        calcRates[k] = typeof v === 'object' && v !== null && 'rate' in v
+          ? Number((v as { rate: number }).rate) || 0
+          : Number(v) || 0;
       }
     }
 
@@ -311,7 +314,7 @@ export async function PUT(
         currentEst.service_type_id,
         currentEst.category_id,
         tag_id || currentEst.tag_id,
-        typeof currentEst.rate_snapshots === 'string' ? currentEst.rate_snapshots : JSON.stringify(currentEst.rate_snapshots),
+        typeof effectiveRates === 'string' ? effectiveRates : JSON.stringify(effectiveRates),
         grandTotalHours,
         grandTotalCost,
         notes || currentEst.notes,
@@ -342,6 +345,7 @@ export async function PUT(
           operational_items = $9::jsonb,
           billing_summary = $10::jsonb,
           tag_id = $11,
+          rate_snapshots = $14::jsonb,
           updated_at = NOW()
           , updated_by_user_id = $13
         WHERE id = $12
@@ -358,7 +362,7 @@ export async function PUT(
         JSON.stringify(billingSummary),
         tag_id || null,
         estimateId, user.id,
-        timeline_config ? JSON.stringify(timeline_config) : null,
+        typeof effectiveRates === 'string' ? effectiveRates : JSON.stringify(effectiveRates),
       ]);
     }
 

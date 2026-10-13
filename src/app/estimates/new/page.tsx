@@ -14,7 +14,6 @@ import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'reac
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  DEFAULT_ROLE_RATES,
   calculateModule,
   calculateMaintenance,
   calculateInfrastructure,
@@ -29,6 +28,7 @@ import {
   type OperationalItemInput,
 
 } from '@/lib/costing';
+import { nextPersonKey, personInitials, snapshotLabels, assignRoleHoursToPeople, type PersonRateSnapshot } from '@/lib/rate-snapshot';
 
 interface Company {
   id: number;
@@ -96,7 +96,8 @@ function NewEstimateForm() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [roles, setRoles] = useState<RoleMaster[]>([]);
-  const [rates, setRates] = useState<RoleRateMap>(DEFAULT_ROLE_RATES);
+  const [people, setPeople] = useState<PersonRateSnapshot>({});
+  const rates = useMemo<RoleRateMap>(() => Object.fromEntries(Object.entries(people).map(([k, v]) => [k, v.rate])), [people]);
 
   // Project states
   const [projects, setProjects] = useState<Project[]>([]);
@@ -127,24 +128,13 @@ function NewEstimateForm() {
   // Rate config collapse state (expanded by default to display active/excluded roles)
   const [isRateExpanded, setIsRateExpanded] = useState(true);
 
-  // Excluded roles from costing state
-  const [excludedRoleCodes, setExcludedRoleCodes] = useState<string[]>([]);
-
-  // Delete Role confirmation modal state
-  const [deleteRoleTarget, setDeleteRoleTarget] = useState<RoleMaster | null>(null);
-  const [deleteRoleLoading, setDeleteRoleLoading] = useState(false);
-  const [deleteRoleError, setDeleteRoleError] = useState<string | null>(null);
-
-  // Derived active vs excluded roles in costing
+  // Kolom costing = orang di Rate Snapshot. Label tampil sebagai "KODE · INISIAL".
+  const personLabels = useMemo(() => snapshotLabels(people), [people]);
   const activeCostingRoles = useMemo(
-    () => roles.filter((r) => !excludedRoleCodes.includes(r.code)),
-    [roles, excludedRoleCodes]
+    () => Object.keys(people).map((key) => ({ code: key, name: personLabels[key] || key })),
+    [people, personLabels]
   );
-
-  const excludedRoles = useMemo(
-    () => roles.filter((r) => excludedRoleCodes.includes(r.code)),
-    [roles, excludedRoleCodes]
-  );
+  const excludedRoles: Array<{ code: string; name: string }> = [];
 
   // Register company modal/expander
   const [isRegisteringCompany, setIsRegisteringCompany] = useState(false);
@@ -155,20 +145,8 @@ function NewEstimateForm() {
 
   // Modules & tasks
   const [modules, setModules] = useState<ModuleInput[]>([
-    {
-      name: '1.0 Coordination',
-      tasks: [
-        { name: 'Kickoff Project Meeting (1x)', hours_pm: 2, hours_web_dev: 2, hours_ui_ux: 2, hours_qc_doc: 0, hours_dev_ops: 0 },
-        { name: 'Client Meeting (2x)', hours_pm: 4, hours_web_dev: 4, hours_ui_ux: 4, hours_qc_doc: 0, hours_dev_ops: 0 },
-      ],
-    },
-    {
-      name: '2.0 Scrum',
-      tasks: [
-        { name: 'Scrum Definition', hours_pm: 2, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-        { name: 'Scrum Monitoring', hours_pm: 2, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-      ],
-    },
+    { name: '1.0 Coordination', tasks: [{ name: 'Kickoff Project Meeting (1x)', role_hours: {} }, { name: 'Client Meeting (2x)', role_hours: {} }] },
+    { name: '2.0 Scrum', tasks: [{ name: 'Scrum Definition', role_hours: {} }, { name: 'Scrum Monitoring', role_hours: {} }] },
   ]);
 
   // Dynamic WBS Templates loaded from Master
@@ -188,14 +166,8 @@ function NewEstimateForm() {
   // Maintenance WBS state (Maintenance Website Company Profile 2026)
   const [maintenanceDurationMonths, setMaintenanceDurationMonths] = useState<number>(12);
   const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTaskInput[]>([
-    {
-      name: 'Dev Ops (Manhour)',
-      role_hours: { DEV_OPS: 4 },
-    },
-    {
-      name: 'Web Programmer (Manhour)',
-      role_hours: { WEB_DEV: 8 },
-    },
+    { name: 'Dev Ops (Manhour)', role_hours: {} },
+    { name: 'Web Programmer (Manhour)', role_hours: {} },
   ]);
 
   // Operational WBS state (Section D)
@@ -376,16 +348,38 @@ function NewEstimateForm() {
       const hasDevelopment = matchedCategories.some((c) => ['DEV', 'DEVELOPMENT'].includes(c.code.toUpperCase()));
       const tag = hasDevelopment && tagCode ? tags.find((t) => t.id === Number(draft.tag_id) || t.code.toLowerCase() === tagCode || t.name.toLowerCase() === tagCode) : undefined;
       setSelectedTagId(tag?.id || '');
+      // Draft AI memakai jam per KODE ROLE; dipetakan ke orang pertama pemegang kode itu di Rate Snapshot.
+      const aiDropped = new Set<string>();
+      const toPeople = (tasks: Array<{ name?: string; task_name?: string; role_hours?: Record<string, number | undefined> }>) =>
+        (tasks || []).map((task) => {
+          const r = assignRoleHoursToPeople(task.role_hours, people);
+          r.dropped.forEach((c) => aiDropped.add(c));
+          return { name: task.name || task.task_name || '', role_hours: r.hours };
+        });
       const aiModules = draft.modules || draft.development_modules;
-      if (Array.isArray(aiModules)) setModules(aiModules.map((module: { name: string; tasks?: Array<ModuleInput['tasks'][number] & { task_name?: string }> }) => ({
-        name: module.name,
-        tasks: (module.tasks || []).map((task) => ({ ...task, name: task.name || task.task_name || '' })),
-      })));
+      if (Array.isArray(aiModules)) {
+        setModules(aiModules.map((module: { name: string; tasks?: Array<{ name?: string; task_name?: string; role_hours?: Record<string, number | undefined> }> }) => ({
+          name: module.name,
+          tasks: toPeople(module.tasks || []),
+        })));
+      }
       const maintenance = draft.maintenance_config || draft.maintenance;
       if (maintenance) {
         if (maintenance.duration_months != null) setMaintenanceDurationMonths(Number(maintenance.duration_months));
-        if (Array.isArray(maintenance.tasks)) setMaintenanceTasks(maintenance.tasks.map((task: MaintenanceTaskInput & { task_name?: string }) => ({ ...task, name: task.name || task.task_name || '', role_hours: task.role_hours || {} })));
-        else if (Array.isArray(maintenance.roles)) setMaintenanceTasks([{ name: 'Maintenance bulanan', role_hours: maintenance.roles.reduce((hours: Record<string, number>, role: { role_code?: string; code?: string; monthly_hours?: number; hours?: number }) => { const code = role.role_code || role.code || ''; const value = Number(role.monthly_hours ?? role.hours ?? 0); if (code && value > 0) hours[code] = value; return hours; }, {}) }]);
+        if (Array.isArray(maintenance.tasks)) {
+          setMaintenanceTasks(toPeople(maintenance.tasks));
+        } else if (Array.isArray(maintenance.roles)) {
+          const roleHours: Record<string, number> = {};
+          for (const role of maintenance.roles as Array<{ role_code?: string; code?: string; monthly_hours?: number; hours?: number }>) {
+            const code = role.role_code || role.code || '';
+            const value = Number(role.monthly_hours ?? role.hours ?? 0);
+            if (code && value > 0) roleHours[code] = value;
+          }
+          setMaintenanceTasks(toPeople([{ name: 'Maintenance bulanan', role_hours: roleHours }]));
+        }
+      }
+      if (aiDropped.size > 0) {
+        setErrorMsg(`Jam untuk role ${Array.from(aiDropped).join(', ')} tidak dimasukkan karena belum ada orang dengan kode role itu di Rate Snapshot. Tambahkan orangnya lalu jalankan ulang draft.`);
       }
       const infrastructure = draft.infrastructure_items || draft.infrastructure;
       if (Array.isArray(infrastructure)) setInfraItems(infrastructure.map((item: InfrastructureItemInput) => ({ ...item, billing_type: item.billing_type || 'MONTHLY', quantity: Number(item.quantity) || 1, unit_cost: Number(item.unit_cost) || 0, period_count: Number(item.period_count) || 1, notes: item.notes || '' })));
@@ -424,13 +418,6 @@ function NewEstimateForm() {
         activeRoles = data.roles;
       }
       setRoles(activeRoles);
-
-      // Populate default rates map from active roles
-      const initialRates: RoleRateMap = { ...DEFAULT_ROLE_RATES };
-      for (const r of activeRoles) {
-        initialRates[r.code] = r.default_hourly_rate;
-      }
-      setRates(initialRates);
 
       if (data.success) {
         setCompanies(data.companies || []);
@@ -594,14 +581,16 @@ function NewEstimateForm() {
           setSelectedCategoryIds([est.category_id]);
         }
 
-        // 5. Rates snapshot
+        // 5. Rate snapshot = orang (role - nama - rate)
+        const loadedPeople: PersonRateSnapshot = {};
         if (est.rate_snapshots && typeof est.rate_snapshots === 'object') {
-          const snapshotRates: RoleRateMap = {};
-          Object.entries(est.rate_snapshots).forEach(([code, item]) => {
-            snapshotRates[code] = typeof item === 'object' && item !== null ? Number((item as { rate?: number }).rate || 0) : Number(item || 0);
+          Object.entries(est.rate_snapshots as Record<string, { code?: string; name?: string; rate?: number }>).forEach(([key, item]) => {
+            if (item && typeof item === 'object') {
+              loadedPeople[key] = { code: String(item.code || ''), name: String(item.name || ''), rate: Number(item.rate) || 0 };
+            }
           });
-          setRates((prev) => ({ ...prev, ...snapshotRates }));
         }
+        setPeople(loadedPeople);
 
         // 6. Development Modules & Tasks
         if (Array.isArray(est.modules) && est.modules.length > 0) {
@@ -609,14 +598,7 @@ function NewEstimateForm() {
             est.modules.map((m: ModuleInput) => ({
               name: m.name,
               tasks: Array.isArray(m.tasks)
-                ? m.tasks.map((t) => ({
-                    name: t.name,
-                    hours_pm: Number(t.hours_pm) || 0,
-                    hours_web_dev: Number(t.hours_web_dev) || 0,
-                    hours_ui_ux: Number(t.hours_ui_ux) || 0,
-                    hours_qc_doc: Number(t.hours_qc_doc) || 0,
-                    hours_dev_ops: Number(t.hours_dev_ops) || 0,
-                  }))
+                ? m.tasks.map((t) => ({ name: t.name, role_hours: t.role_hours || {} }))
                 : [],
             }))
           );
@@ -864,33 +846,33 @@ function NewEstimateForm() {
     ]);
   };
 
+  // Template/AI menyimpan jam per KODE ROLE. Jam dialokasikan ke orang pertama yang memegang kode itu;
+  // kode yang tidak dimiliki siapa pun dilaporkan agar user menambah orangnya.
+  const mapTasksToPeople = <T extends { name: string; role_hours?: Record<string, number | undefined> }>(tasks: T[]) => {
+    const dropped = new Set<string>();
+    const mapped = tasks.map((t) => {
+      const r = assignRoleHoursToPeople(t.role_hours, people);
+      r.dropped.forEach((c) => dropped.add(c));
+      return { name: t.name, role_hours: r.hours };
+    });
+    return { mapped, dropped: Array.from(dropped) };
+  };
+
   const applyDevelopmentTemplate = (name: string, payload: unknown) => {
-    if (!Array.isArray(payload)) return;
+    if (!Array.isArray(payload)) { setErrorMsg('Template Development kosong atau formatnya tidak valid.'); return; }
     const isTask = (item: unknown): item is TaskInput => {
       if (!item || typeof item !== 'object' || typeof (item as TaskInput).name !== 'string' || !(item as TaskInput).name.trim()) return false;
-      const task = item as TaskInput;
-      const hours = task.role_hours;
-      if (hours !== undefined && (!hours || typeof hours !== 'object' || Array.isArray(hours)
-        || !Object.values(hours).every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0))) return false;
-      return ['hours_pm', 'hours_web_dev', 'hours_ui_ux', 'hours_qc_doc', 'hours_dev_ops']
-        .every(key => task[key as keyof TaskInput] === undefined || (typeof task[key as keyof TaskInput] === 'number' && Number.isFinite(task[key as keyof TaskInput]) && (task[key as keyof TaskInput] as number) >= 0));
+      const hours = (item as TaskInput).role_hours;
+      return hours === undefined || (!!hours && typeof hours === 'object' && !Array.isArray(hours)
+        && Object.values(hours).every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0));
     };
     if (!payload.length || !payload.every(isTask)) { setErrorMsg('Template Development kosong atau formatnya tidak valid.'); return; }
-    const tasks = (payload as TaskInput[]).map(item => ({
-      name: item.name,
-      role_hours: {
-        ...(item.role_hours || {}),
-        ...(item.hours_pm !== undefined && { PM: item.hours_pm }),
-        ...(item.hours_web_dev !== undefined && { WEB_DEV: item.hours_web_dev }),
-        ...(item.hours_ui_ux !== undefined && { UI_UX: item.hours_ui_ux }),
-        ...(item.hours_qc_doc !== undefined && { QC_DOC: item.hours_qc_doc }),
-        ...(item.hours_dev_ops !== undefined && { DEV_OPS: item.hours_dev_ops }),
-      },
-    }));
-    if (!tasks.length) { setErrorMsg('Template Development kosong atau formatnya tidak valid.'); return; }
+    if (Object.keys(people).length === 0) { setErrorMsg('Tambahkan minimal 1 orang di Rate Snapshot sebelum memakai template.'); return; }
+    const { mapped, dropped } = mapTasksToPeople(payload as TaskInput[]);
+    if (!mapped.length) { setErrorMsg('Template Development kosong atau formatnya tidak valid.'); return; }
     if (modules.some(module => module.tasks.length > 0) && !window.confirm('Template akan mengganti seluruh modul Development saat ini. Lanjutkan?')) return;
-    setModules([{ name, tasks }]);
-    setErrorMsg(null);
+    setModules([{ name, tasks: mapped }]);
+    setErrorMsg(dropped.length ? `Jam untuk role ${dropped.join(', ')} tidak dimasukkan karena belum ada orang dengan kode role itu di Rate Snapshot.` : null);
   };
 
   const applyOperationalTemplate = (payload: unknown) => {
@@ -965,7 +947,7 @@ function NewEstimateForm() {
     if (typeof window !== 'undefined' && !window.confirm('Reset seluruh isi form ke kondisi bersih/awal?')) {
       return;
     }
-    setExcludedRoleCodes([]);
+    setPeople({});
     setTitle('');
     if (companies.length > 0) setSelectedCompanyId(companies[0].id);
     else setSelectedCompanyId('');
@@ -982,12 +964,12 @@ function NewEstimateForm() {
       {
         name: '1.0 Core Features',
         tasks: [
-          { name: 'Feature Implementation', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Feature Implementation', role_hours: {} },
         ],
       },
     ]);
     setMaintenanceTasks([
-      { name: 'Server Monitoring & Bug Fixes', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+      { name: 'Server Monitoring & Bug Fixes', role_hours: {} },
     ]);
     setInfraItems([]);
     setOperationalItems([]);
@@ -1001,115 +983,14 @@ function NewEstimateForm() {
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  const loadSpreadsheetExample = () => {
-    setExcludedRoleCodes([]);
-    setTitle('Djarum Urban - Microsite');
-    const it = serviceTypes.find((s) => s.code === 'IT');
-    if (it) setSelectedServiceTypeId(it.id);
-    const dev = categories.find((c) => c.code === 'DEV' || c.code === 'DEVELOPMENT');
-    if (dev) setSelectedCategoryIds([dev.id]);
-    const init = tags.find((t) => t.code === 'INITIAL');
-    if (init) setSelectedTagId(init.id);
-
-    setModules([
-      {
-        name: '1.0 Coordination',
-        tasks: [
-          { name: 'Kickoff Project Meeting (1x)', hours_pm: 2, hours_web_dev: 2, hours_ui_ux: 2, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Client Meeting (2x)', hours_pm: 4, hours_web_dev: 4, hours_ui_ux: 4, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
-      },
-      {
-        name: '2.0 Scrum',
-        tasks: [
-          { name: 'Scrum Definition', hours_pm: 2, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Scrum Monitoring', hours_pm: 2, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
-      },
-      {
-        name: '3.0 Design & Prototyping',
-        tasks: [
-          { name: 'Design System - Style Guide', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 8, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Design Exploration UI & Responsive', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 32, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Asset Management', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 6, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
-      },
-      {
-        name: '4.0 Development Frontend & Backend',
-        tasks: [
-          { name: 'Architecture Database & Development Engine', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Slicing & Integration Homepage Desktop & Mobile', hours_pm: 0, hours_web_dev: 16, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Slicing & Integration Article / Content Desktop & Mobile', hours_pm: 0, hours_web_dev: 16, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Slicing & Integration Gallery Desktop & Mobile', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Slicing & Integration Custom Form Desktop & Mobile', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Slicing & Integration Hubungi Kami Desktop & Mobile', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Development CMS Admin (Dynamic Page, Content, Form, Media)', hours_pm: 0, hours_web_dev: 40, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
-      },
-      {
-        name: '5.0 SEO Onpage Basic',
-        tasks: [
-          { name: 'Metadata Open Graph & Twitter Card', hours_pm: 0, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Google Analytics & Tag Manager Setup', hours_pm: 0, hours_web_dev: 1, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Google Search Console & Sitemap XML', hours_pm: 0, hours_web_dev: 1, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
-      },
-      {
-        name: '6.0 Third Party Services',
-        tasks: [
-          { name: 'Facebook Pixel Setup', hours_pm: 0, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Mail SMTP Setup', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 2 },
-          { name: 'Installation Security Module', hours_pm: 0, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
-      },
-      {
-        name: '7.0 Coordination',
-        tasks: [
-          { name: 'Preview Project Meeting', hours_pm: 2, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 2 },
-          { name: 'Feedback Meeting', hours_pm: 4, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 4 },
-        ],
-      },
-      {
-        name: '8.0 Content',
-        tasks: [
-          { name: 'Upload Content', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
-      },
-      {
-        name: '9.0 Testing & Production',
-        tasks: [
-          { name: 'Final Testing & Training', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 8, hours_dev_ops: 0 },
-          { name: 'Deployment', hours_pm: 0, hours_web_dev: 4, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Scrum Monitoring', hours_pm: 2, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-        ],
-      },
-    ]);
-  };
-
   const applyMaintenanceTemplate = (tplPayload: unknown) => {
-    if (!Array.isArray(tplPayload)) return;
-    if (Array.isArray(tplPayload) && tplPayload.length > 0) {
-      setMaintenanceTasks(tplPayload.map((t: MaintenanceTaskInput & { custom_rates?: Record<string, number> }) => ({
-        name: t.name || 'Maintenance Task',
-        role_hours: t.role_hours || {},
-      })));
-
-      // If template contains specific custom rates (e.g., E-Commerce WEB_DEV rate 35.835)
-      const mergedRates: Record<string, number> = {};
-      tplPayload.forEach((t: MaintenanceTaskInput & { custom_rates?: Record<string, number> }) => {
-        if (t.custom_rates && typeof t.custom_rates === 'object') {
-          Object.entries(t.custom_rates).forEach(([code, rateVal]) => {
-            if (typeof rateVal === 'number' && rateVal > 0) {
-              mergedRates[code] = rateVal;
-            }
-          });
-        }
-      });
-
-      if (Object.keys(mergedRates).length > 0) {
-        setRates(prev => ({ ...prev, ...mergedRates }));
-      }
-    }
+    if (!Array.isArray(tplPayload) || tplPayload.length === 0) return;
+    if (Object.keys(people).length === 0) { setErrorMsg('Tambahkan minimal 1 orang di Rate Snapshot sebelum memakai template.'); return; }
+    const { mapped, dropped } = mapTasksToPeople(
+      tplPayload.map((t: MaintenanceTaskInput) => ({ name: t.name || 'Maintenance Task', role_hours: t.role_hours || {} }))
+    );
+    setMaintenanceTasks(mapped);
+    setErrorMsg(dropped.length ? `Jam untuk role ${dropped.join(', ')} tidak dimasukkan karena belum ada orang dengan kode role itu di Rate Snapshot.` : null);
   };
 
   // Handle register company
@@ -1152,7 +1033,7 @@ function NewEstimateForm() {
       {
         name: `${nextIdx}.0 Module Baru`,
         tasks: [
-          { name: 'Task 1', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Task 1', role_hours: {} },
         ],
       },
     ]);
@@ -1170,19 +1051,7 @@ function NewEstimateForm() {
 
   const addTask = (mIdx: number) => {
     const next = [...modules];
-    const initialRoleHours: Record<string, number> = {};
-    for (const r of roles) {
-      initialRoleHours[r.code] = 0;
-    }
-    next[mIdx].tasks.push({
-      name: `Task ${next[mIdx].tasks.length + 1}`,
-      role_hours: initialRoleHours,
-      hours_pm: 0,
-      hours_web_dev: 0,
-      hours_ui_ux: 0,
-      hours_qc_doc: 0,
-      hours_dev_ops: 0,
-    });
+    next[mIdx].tasks.push({ name: `Task ${next[mIdx].tasks.length + 1}`, role_hours: {} });
     setModules(next);
   };
 
@@ -1192,191 +1061,45 @@ function NewEstimateForm() {
     setModules(next);
   };
 
-  const updateTaskField = (
-    mIdx: number,
-    tIdx: number,
-    field: 'name' | 'hours_pm' | 'hours_web_dev' | 'hours_ui_ux' | 'hours_qc_doc' | 'hours_dev_ops',
-    val: string | number
-  ) => {
+  const updateTaskField = (mIdx: number, tIdx: number, _field: 'name', val: string | number) => {
+    const next = [...modules];
+    next[mIdx].tasks[tIdx] = { ...next[mIdx].tasks[tIdx], name: String(val) };
+    setModules(next);
+  };
+
+  const updateTaskRoleHours = (mIdx: number, tIdx: number, personKey: string, val: string) => {
     const next = [...modules];
     const task = { ...next[mIdx].tasks[tIdx] };
-    if (field === 'name') {
-      task.name = String(val);
-    } else {
-      task[field] = Number(val) || 0;
-    }
+    task.role_hours = { ...(task.role_hours || {}), [personKey]: Math.max(0, Number(val) || 0) };
     next[mIdx].tasks[tIdx] = task;
     setModules(next);
   };
 
-  const updateTaskRoleHours = (
-    mIdx: number,
-    tIdx: number,
-    roleCode: string,
-    val: string
-  ) => {
-    const next = [...modules];
-    const task = { ...next[mIdx].tasks[tIdx] };
-    const num = Number(val) || 0;
-    task.role_hours = {
-      ...(task.role_hours || {}),
-      [roleCode]: num,
-    };
-    if (roleCode === 'PM') task.hours_pm = num;
-    if (roleCode === 'WEB_DEV') task.hours_web_dev = num;
-    if (roleCode === 'UI_UX') task.hours_ui_ux = num;
-    if (roleCode === 'QC_DOC') task.hours_qc_doc = num;
-    if (roleCode === 'DEV_OPS') task.hours_dev_ops = num;
-
-    next[mIdx].tasks[tIdx] = task;
-    setModules(next);
-  };
-
-  const updateRate = (role: string, val: number) => {
-    setRates((prev) => ({
+  // ---- Rate Snapshot (orang): tambah / ubah / hapus ----
+  const addPerson = () => {
+    setPeople((prev) => ({
       ...prev,
-      [role]: val,
+      [nextPersonKey(Object.keys(prev))]: { code: roles[0]?.code || '', name: '', rate: 0 },
     }));
   };
 
-  const handleExcludeRole = (code: string) => {
-    if (activeCostingRoles.length <= 1) {
-      setErrorMsg('Setidaknya minimal 1 role harus tetap aktif di costing form.');
-      setTimeout(() => setErrorMsg(null), 4000);
-      return;
-    }
-    setExcludedRoleCodes((prev) => [...prev, code]);
-    // Zero out hours for this role across all tasks so excluded role doesn't inflate project totals
-    setModules((prevMods) =>
-      prevMods.map((m) => ({
-        ...m,
-        tasks: m.tasks.map((t) => {
-          const nextRoleHours = { ...(t.role_hours || {}) };
-          nextRoleHours[code] = 0;
-          return {
-            ...t,
-            role_hours: nextRoleHours,
-            hours_pm: code === 'PM' ? 0 : t.hours_pm,
-            hours_web_dev: code === 'WEB_DEV' ? 0 : t.hours_web_dev,
-            hours_ui_ux: code === 'UI_UX' ? 0 : t.hours_ui_ux,
-            hours_qc_doc: code === 'QC_DOC' ? 0 : t.hours_qc_doc,
-            hours_dev_ops: code === 'DEV_OPS' ? 0 : t.hours_dev_ops,
-          };
-        }),
-      }))
-    );
+  const updatePerson = (key: string, patch: Partial<{ code: string; name: string; rate: number }>) => {
+    setPeople((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   };
 
-  const handleIncludeRole = (code: string) => {
-    setExcludedRoleCodes((prev) => prev.filter((c) => c !== code));
-  };
-
-  const handleDeleteRoleConfirm = async () => {
-    if (!deleteRoleTarget) return;
-    setDeleteRoleLoading(true);
-    setDeleteRoleError(null);
-    try {
-      const res = await fetch(`/api/roles?id=${deleteRoleTarget.id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setDeleteRoleError(data.error || 'Gagal menghapus role dari master database.');
-      } else {
-        const deletedId = deleteRoleTarget.id;
-        const deletedCode = deleteRoleTarget.code;
-        const deletedName = deleteRoleTarget.name;
-
-        // Cleanup local state
-        setRoles((prev) => prev.filter((r) => r.id !== deletedId));
-        setExcludedRoleCodes((prev) => prev.filter((c) => c !== deletedCode));
-        setRates((prev) => {
-          const next = { ...prev };
-          delete next[deletedCode];
-          return next;
-        });
-        setModules((prevMods) =>
-          prevMods.map((m) => ({
-            ...m,
-            tasks: m.tasks.map((t) => {
-              const nextRoleHours = { ...(t.role_hours || {}) };
-              delete nextRoleHours[deletedCode];
-              return {
-                ...t,
-                role_hours: nextRoleHours,
-              };
-            }),
-          }))
-        );
-
-        setDeleteRoleTarget(null);
-        setSuccessMsg(data.message || `Role '${deletedName}' berhasil dihapus dari master database.`);
-        setTimeout(() => setSuccessMsg(null), 4000);
-        await loadMetadata();
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Network error';
-      setDeleteRoleError(msg);
-    } finally {
-      setDeleteRoleLoading(false);
-    }
-  };
-
-  const handleCreateNewRole = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setNewRoleError(null);
-
-    const cleanCode = newRoleCode.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
-    if (!cleanCode) {
-      setNewRoleError('Kode role wajib diisi.');
-      return;
-    }
-    if (!newRoleName.trim()) {
-      setNewRoleError('Nama role wajib diisi.');
-      return;
-    }
-    const parsedRate = Number(newRoleRate);
-    if (isNaN(parsedRate) || parsedRate < 0) {
-      setNewRoleError('Hourly rate harus berupa angka >= 0.');
-      return;
-    }
-
-    setNewRoleLoading(true);
-    try {
-      const res = await fetch('/api/roles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: cleanCode,
-          name: newRoleName.trim(),
-          default_hourly_rate: parsedRate,
-          is_active: true,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setNewRoleError(data.error || 'Gagal menambahkan role baru.');
-      } else {
-        const addedRole: RoleMaster = data.role;
-        setRoles((prev) => [...prev, addedRole]);
-        setRates((prev) => ({
-          ...prev,
-          [addedRole.code]: addedRole.default_hourly_rate,
-        }));
-        setExcludedRoleCodes((prev) => prev.filter((c) => c !== addedRole.code));
-        setNewRoleCode('');
-        setNewRoleName('');
-        setNewRoleRate('');
-        setIsNewRoleModalOpen(false);
-        setSuccessMsg(`Role '${addedRole.name}' (${addedRole.code}) berhasil ditambahkan ke database!`);
-        setTimeout(() => setSuccessMsg(null), 4000);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Network error';
-      setNewRoleError(msg);
-    } finally {
-      setNewRoleLoading(false);
-    }
+  const removePerson = (key: string) => {
+    setPeople((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    const strip = (rh?: Record<string, number | undefined>) => {
+      const copy = { ...(rh || {}) };
+      delete copy[key];
+      return copy;
+    };
+    setModules((prev) => prev.map((m) => ({ ...m, tasks: m.tasks.map((t) => ({ ...t, role_hours: strip(t.role_hours) })) })));
+    setMaintenanceTasks((prev) => prev.map((t) => ({ ...t, role_hours: strip(t.role_hours) })));
   };
 
   const executeSubmit = async (reasonText?: string) => {
@@ -1399,7 +1122,7 @@ function NewEstimateForm() {
         category_id: selectedCategoryIds[0],
         tag_id: isDevelopment && selectedTagId ? Number(selectedTagId) : null,
         notes: notes.trim() || null,
-        custom_rates: rates,
+        rate_snapshots: people,
         modules: isDevelopment ? modules : [],
         maintenance_config: isMaintenance ? {
           duration_months: maintenanceDurationMonths,
@@ -2271,16 +1994,11 @@ function NewEstimateForm() {
                       Master Rate Per Jam (Rate Snapshot)
                     </h2>
                     <span className="linear-badge" style={{ fontSize: '11px' }}>
-                      {activeCostingRoles.length} Aktif
+                      {activeCostingRoles.length} Orang
                     </span>
-                    {excludedRoles.length > 0 && (
-                      <span className="linear-badge" style={{ fontSize: '11px', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)' }}>
-                        {excludedRoles.length} Dikeluarkan
-                      </span>
-                    )}
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                    Standard hourly rate per role. Snapshot ini disimpan independen pada tiap estimate.
+                    Daftar orang untuk costing: kode role, nama, dan rate per jam. Disimpan independen pada tiap estimate.
                   </p>
                 </div>
               </div>
@@ -2290,11 +2008,11 @@ function NewEstimateForm() {
                   className="btn-secondary"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsNewRoleModalOpen(true);
+                    addPerson();
                   }}
                   style={{ fontSize: '12px', padding: '6px 12px' }}
                 >
-                  + Tambah Role Baru
+                  + Tambah Orang
                 </button>
                 <button
                   type="button"
@@ -2307,170 +2025,84 @@ function NewEstimateForm() {
             </div>
 
             {isRateExpanded && (
-              <>
-                <div
-                  style={{
-                    marginTop: '20px',
-                    paddingTop: '16px',
-                    borderTop: '1px solid var(--border-subtle)',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '14px',
-                  }}
-                >
-                  {activeCostingRoles.map((r) => (
-                    <div
-                      key={r.code}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.02)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: '8px',
-                        padding: '12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '10px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                        <div>
-                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {r.name}
-                          </div>
-                          <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                            {r.code}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteRoleTarget(r);
-                              setDeleteRoleError(null);
-                            }}
-                            title="Hapus dari Master Database"
-                            style={{
-                              padding: '2px 6px',
-                              fontSize: '12px',
-                              color: 'var(--text-tertiary)',
-                              borderRadius: '4px',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-                            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
-                          >
-                            <TrashIcon style={{ width: "14px", height: "14px" }} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleExcludeRole(r.code);
-                            }}
-                            disabled={activeCostingRoles.length <= 1}
-                            title={activeCostingRoles.length <= 1 ? 'Minimal 1 role harus tetap aktif di costing' : 'Keluarkan dari Costing (✕)'}
-                            style={{
-                              padding: '2px 6px',
-                              fontSize: '12px',
-                              color: activeCostingRoles.length <= 1 ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                              cursor: activeCostingRoles.length <= 1 ? 'not-allowed' : 'pointer',
-                              opacity: activeCostingRoles.length <= 1 ? 0.35 : 1,
-                              borderRadius: '4px',
-                            }}
-                            onMouseEnter={(e) => {
-                              if (activeCostingRoles.length > 1) e.currentTarget.style.color = '#ef4444';
-                            }}
-                            onMouseLeave={(e) => {
-                              if (activeCostingRoles.length > 1) e.currentTarget.style.color = 'var(--text-secondary)';
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Rp</span>
-                        <input
-                          type="number"
-                          className="linear-input font-mono-numbers"
-                          value={rates[r.code] ?? r.default_hourly_rate}
-                          onChange={(e) => updateRate(r.code, Number(e.target.value) || 0)}
-                          style={{ textAlign: 'right', fontSize: '12px', padding: '4px 6px' }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {excludedRoles.length > 0 && (
-                  <div
-                    style={{
-                      marginTop: '20px',
-                      paddingTop: '16px',
-                      borderTop: '1px solid var(--border-subtle)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)' }}>
-                        Role Dikeluarkan dari Costing ({excludedRoles.length}):
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                        (Tidak muncul di kolom tabel WBS Modul & Task)
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {excludedRoles.map((r) => (
-                        <div
-                          key={r.code}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '6px 12px',
-                            background: 'rgba(255, 255, 255, 0.02)',
-                            border: '1px dashed var(--border-subtle)',
-                            borderRadius: '6px',
-                          }}
-                        >
-                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                            {r.name} <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>({r.code})</span>
-                          </span>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => handleIncludeRole(r.code)}
-                            style={{ fontSize: '11px', padding: '3px 8px', color: 'var(--accent-hover)' }}
-                            title="Gunakan kembali role ini di costing"
-                          >
-                            + Gunakan di Costing
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            onClick={() => {
-                              setDeleteRoleTarget(r);
-                              setDeleteRoleError(null);
-                            }}
-                            title="Hapus dari Master Database"
-                            style={{
-                              fontSize: '11px',
-                              padding: '2px 5px',
-                              color: 'var(--text-tertiary)',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-                            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
-                          >
-                            <TrashIcon style={{ width: "14px", height: "14px" }} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+              <div
+                style={{
+                  marginTop: '20px',
+                  paddingTop: '16px',
+                  borderTop: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                {Object.keys(people).length === 0 && (
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '8px 0' }}>
+                    Belum ada orang. Klik &quot;+ Tambah Orang&quot; lalu pilih kode role, isi nama, dan rate per jam.
                   </div>
                 )}
-              </>
+                {Object.entries(people).map(([key, person]) => (
+                  <div
+                    key={key}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(150px, 1fr) minmax(200px, 2fr) minmax(150px, 1fr) auto',
+                      gap: '10px',
+                      alignItems: 'center',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                    }}
+                  >
+                    <select
+                      className="linear-input"
+                      value={person.code}
+                      onChange={(e) => updatePerson(key, { code: e.target.value })}
+                      aria-label="Kode role"
+                      style={{ fontSize: '12px', padding: '6px 8px' }}
+                    >
+                      {!roles.some((r) => r.code === person.code) && <option value={person.code}>{person.code || '— pilih role —'}</option>}
+                      {roles.map((r) => (
+                        <option key={r.code} value={r.code}>{r.code}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      className="linear-input"
+                      value={person.name}
+                      maxLength={100}
+                      placeholder="Nama orang"
+                      aria-label="Nama orang"
+                      onChange={(e) => updatePerson(key, { name: e.target.value })}
+                      style={{ fontSize: '12px', padding: '6px 8px' }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Rp</span>
+                      <input
+                        type="number"
+                        min="0"
+                        className="linear-input font-mono-numbers"
+                        value={person.rate || ''}
+                        placeholder="0"
+                        aria-label="Rate per jam"
+                        onChange={(e) => updatePerson(key, { rate: Math.max(0, Number(e.target.value) || 0) })}
+                        style={{ textAlign: 'right', fontSize: '12px', padding: '6px 8px' }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => removePerson(key)}
+                      title="Hapus orang dari costing"
+                      style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--text-tertiary)' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                    >
+                      <TrashIcon style={{ width: '14px', height: '14px' }} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </section>
 
@@ -2707,7 +2339,7 @@ function NewEstimateForm() {
                         <tr>
                           <th style={{ minWidth: '220px', textAlign: 'left' }}>Nama Task</th>
                           {activeCostingRoles.map((r) => (
-                            <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }}>
+                            <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }} title={people[r.code]?.name || r.name}>
                               {r.name}
                             </th>
                           ))}
@@ -2731,13 +2363,7 @@ function NewEstimateForm() {
                                 />
                               </td>
                               {activeCostingRoles.map((r) => {
-                                const val = task.role_hours?.[r.code] ?? (
-                                  r.code === 'PM' ? task.hours_pm :
-                                  r.code === 'WEB_DEV' ? task.hours_web_dev :
-                                  r.code === 'UI_UX' ? task.hours_ui_ux :
-                                  r.code === 'QC_DOC' ? task.hours_qc_doc :
-                                  r.code === 'DEV_OPS' ? task.hours_dev_ops : 0
-                                );
+                                const val = task.role_hours?.[r.code] ?? 0;
                                 return (
                                   <td key={r.code}>
                                     <input
@@ -2927,7 +2553,7 @@ function NewEstimateForm() {
                       <tr>
                         <th style={{ minWidth: '220px', textAlign: 'left' }}>Task Maintenance Bulanan</th>
                         {activeCostingRoles.map((r) => (
-                          <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }}>
+                          <th key={r.code} style={{ textAlign: 'center', minWidth: '70px' }} title={people[r.code]?.name || r.name}>
                             {r.name}
                           </th>
                         ))}
@@ -3639,236 +3265,6 @@ function NewEstimateForm() {
           </div>
         </form>
 
-        {/* Modal Tambah Role Baru */}
-        {isNewRoleModalOpen && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
-              backdropFilter: 'blur(6px)',
-              zIndex: 100,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '16px',
-            }}
-            onClick={() => setIsNewRoleModalOpen(false)}
-          >
-            <div
-              className="linear-card"
-              style={{
-                width: '100%',
-                maxWidth: '460px',
-                padding: '24px',
-                background: '#121417',
-                border: '1px solid var(--border-subtle)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Tambah Role Baru
-                </h3>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => setIsNewRoleModalOpen(false)}
-                  style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {newRoleError && (
-                <div style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: '6px', fontSize: '12px', marginBottom: '16px' }}>
-                  {newRoleError}
-                </div>
-              )}
-
-              <form onSubmit={handleCreateNewRole}>
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                    Kode Role (contoh: MOBILE_DEV, QA_ENG) *
-                  </label>
-                  <input
-                    type="text"
-                    className="linear-input"
-                    value={newRoleCode}
-                    onChange={(e) => setNewRoleCode(e.target.value.toUpperCase())}
-                    placeholder="KODE_ROLE"
-                    required
-                  />
-                </div>
-
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                    Nama Role (contoh: Mobile App Developer) *
-                  </label>
-                  <input
-                    type="text"
-                    className="linear-input"
-                    value={newRoleName}
-                    onChange={(e) => setNewRoleName(e.target.value)}
-                    placeholder="Nama Lengkap Role"
-                    required
-                  />
-                </div>
-
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                    Standard Hourly Rate (Rp) *
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>Rp</span>
-                    <input
-                      type="number"
-                      min="0"
-                      className="linear-input font-mono-numbers"
-                      value={newRoleRate}
-                      onChange={(e) => setNewRoleRate(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="35000"
-                      required
-                      style={{ textAlign: 'right' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => setIsNewRoleModalOpen(false)}
-                    disabled={newRoleLoading}
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    disabled={newRoleLoading}
-                  >
-                    {newRoleLoading ? 'Menyimpan...' : 'Simpan Role'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-        {/* Modal Konfirmasi Hapus Role Master */}
-        {deleteRoleTarget && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
-              backdropFilter: 'blur(6px)',
-              zIndex: 100,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '16px',
-            }}
-            onClick={() => {
-              if (!deleteRoleLoading) {
-                setDeleteRoleTarget(null);
-                setDeleteRoleError(null);
-              }
-            }}
-          >
-            <div
-              className="linear-card"
-              style={{
-                width: '100%',
-                maxWidth: '460px',
-                padding: '24px',
-                background: '#121417',
-                border: '1px solid var(--border-subtle)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Hapus Role dari Master Database
-                </h3>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => {
-                    setDeleteRoleTarget(null);
-                    setDeleteRoleError(null);
-                  }}
-                  disabled={deleteRoleLoading}
-                  style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {deleteRoleError ? (
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#ef4444',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    marginBottom: '16px',
-                    lineHeight: 1.5,
-                  }}
-                >
-                  ⚠️ {deleteRoleError}
-                </div>
-              ) : (
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
-                  Role ini akan dihapus dari daftar pilihan master, namun seluruh project estimate lama yang pernah menggunakan role ini tetap aman dan utuh.
-                </p>
-              )}
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => {
-                    setDeleteRoleTarget(null);
-                    setDeleteRoleError(null);
-                  }}
-                  disabled={deleteRoleLoading}
-                >
-                  {deleteRoleError ? 'Tutup' : 'Batal'}
-                </button>
-                {!deleteRoleError && (
-                  <button
-                    type="button"
-                    onClick={handleDeleteRoleConfirm}
-                    disabled={deleteRoleLoading}
-                    style={{
-                      background: '#ef4444',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      cursor: deleteRoleLoading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {deleteRoleLoading ? 'Menghapus...' : 'Hapus dari Master'}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
         {/* Revision Reason Modal on Edit Save */}
         {isRevisionModalOpen && (
           <div

@@ -60,29 +60,27 @@ export async function GET(request: Request) {
       FROM project_estimates
     `);
 
-    // 4. Role Hours Breakdown (Aggregated from legacy columns & role_hours jsonb)
+    // 4. Role Hours Breakdown: jam per orang (role_hours) dijumlah per KODE ROLE lewat snapshot tiap estimasi.
     const roleHoursRes = await pool.query(`
-      SELECT 
-        COALESCE(SUM(hours_pm), 0) as total_pm,
-        COALESCE(SUM(hours_web_dev), 0) as total_web_dev,
-        COALESCE(SUM(hours_ui_ux), 0) as total_ui_ux,
-        COALESCE(SUM(hours_qc_doc), 0) as total_qc_doc,
-        COALESCE(SUM(hours_dev_ops), 0) as total_dev_ops
-      FROM estimate_tasks
+      SELECT
+        snap.value->>'code' AS role_code,
+        COALESCE(SUM((rh.value)::numeric), 0) AS total_hours
+      FROM estimate_tasks et
+      JOIN estimate_modules em ON em.id = et.module_id
+      JOIN project_estimates pe ON pe.id = em.estimate_id
+      CROSS JOIN LATERAL jsonb_each_text(COALESCE(et.role_hours, '{}'::jsonb)) AS rh(key, value)
+      JOIN LATERAL jsonb_each(COALESCE(pe.rate_snapshots, '{}'::jsonb)) AS snap(key, value) ON snap.key = rh.key
+      GROUP BY snap.value->>'code'
     `);
 
     const roleMastersRes = await pool.query(`
       SELECT id, name, code, default_hourly_rate FROM role_masters ORDER BY id ASC
     `);
 
-    const rh = roleHoursRes.rows[0] || {};
-    const roleHoursMap: Record<string, number> = {
-      'PM': Number(rh.total_pm || 0),
-      'WEB_DEV': Number(rh.total_web_dev || 0),
-      'UI_UX': Number(rh.total_ui_ux || 0),
-      'QC_DOC': Number(rh.total_qc_doc || 0),
-      'DEV_OPS': Number(rh.total_dev_ops || 0),
-    };
+    const roleHoursMap: Record<string, number> = {};
+    for (const row of roleHoursRes.rows) {
+      if (row.role_code) roleHoursMap[row.role_code] = Number(row.total_hours || 0);
+    }
 
     const topRoles = roleMastersRes.rows.map(rm => ({
       role_name: rm.name,

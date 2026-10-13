@@ -12,6 +12,8 @@ import React, { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { compareVersions } from '@/lib/version-diff';
+import { snapshotLabels } from '@/lib/rate-snapshot';
+
 type RoleSnapshotEntry = { code: string; name: string; rate: number };
 
 interface EstimateDetailTask {
@@ -230,9 +232,12 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
     );
   }
 
-  const modalRoles = estimate.rate_snapshots && Object.keys(estimate.rate_snapshots).length > 0
-    ? Object.keys(estimate.rate_snapshots)
-    : ['PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS'];
+  const modalRoles = estimate.rate_snapshots ? Object.keys(estimate.rate_snapshots) : [];
+  const personLabels = snapshotLabels(
+    Object.fromEntries(
+      Object.entries(estimate.rate_snapshots || {}).filter(([, v]) => typeof v === 'object' && v !== null) as [string, RoleSnapshotEntry][]
+    )
+  );
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
@@ -517,7 +522,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {estimate.rate_snapshots && Object.entries(estimate.rate_snapshots).map(([rk, val]) => {
-                const name = typeof val === 'object' && val ? (val.name || val.code) : rk;
+                const name = typeof val === 'object' && val ? `${val.code} · ${val.name}` : rk;
                 const rVal = typeof val === 'object' && val ? val.rate : val;
                 return (
                   <span
@@ -652,9 +657,10 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                         <th style={{ minWidth: '220px' }}>Task</th>
                         {modalRoles.map((rk) => {
                           const rItem = estimate.rate_snapshots?.[rk];
-                          const rName = typeof rItem === 'object' && rItem ? (rItem.name || rItem.code) : rk;
+                          const rName = personLabels[rk] || rk;
+                          const rFull = typeof rItem === 'object' && rItem ? rItem.name : rk;
                           return (
-                            <th key={rk} style={{ textAlign: 'center', minWidth: '65px' }} title={rName}>
+                            <th key={rk} style={{ textAlign: 'center', minWidth: '65px' }} title={rFull}>
                               {rName}
                             </th>
                           );
@@ -668,20 +674,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                         <tr key={task.id || tIdx}>
                           <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{task.name}</td>
                           {modalRoles.map((rk) => {
-                            let hours: number | string = 0;
-                            if (task.role_hours && task.role_hours[rk] !== undefined) {
-                              hours = Number(task.role_hours[rk]) || 0;
-                            } else if (rk === 'PM') {
-                              hours = Number(task.hours_pm) || 0;
-                            } else if (rk === 'WEB_DEV') {
-                              hours = Number(task.hours_web_dev) || 0;
-                            } else if (rk === 'UI_UX') {
-                              hours = Number(task.hours_ui_ux) || 0;
-                            } else if (rk === 'QC_DOC') {
-                              hours = Number(task.hours_qc_doc) || 0;
-                            } else if (rk === 'DEV_OPS') {
-                              hours = Number(task.hours_dev_ops) || 0;
-                            }
+                            const hours: number = Number(task.role_hours?.[rk]) || 0;
                             return (
                               <td key={rk} style={{ textAlign: 'center' }}>
                                 {Number(hours) > 0 ? `${hours}h` : '-'}
@@ -736,9 +729,10 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       <th style={{ minWidth: '220px' }}>Task Rutin Bulanan</th>
                       {modalRoles.map((rk) => {
                         const rItem = estimate.rate_snapshots?.[rk];
-                        const rName = typeof rItem === 'object' && rItem ? (rItem.name || rItem.code) : rk;
+                        const rName = personLabels[rk] || rk;
+                          const rFull = typeof rItem === 'object' && rItem ? rItem.name : rk;
                         return (
-                          <th key={rk} style={{ textAlign: 'center', minWidth: '65px' }} title={rName}>
+                          <th key={rk} style={{ textAlign: 'center', minWidth: '65px' }} title={rFull}>
                             {rName}
                           </th>
                         );

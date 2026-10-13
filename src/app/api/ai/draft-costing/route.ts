@@ -324,8 +324,8 @@ function normalizeDraft(
       if (t.hours_pm) roleHours['PM'] = Number(t.hours_pm);
       if (t.hours_web_dev) roleHours['WEB_DEV'] = Number(t.hours_web_dev);
       if (t.hours_ui_ux) roleHours['UI_UX'] = Number(t.hours_ui_ux);
-      if (t.hours_qc_doc) roleHours['QC_DOC'] = Number(t.hours_qc_doc);
-      if (t.hours_dev_ops) roleHours['DEV_OPS'] = Number(t.hours_dev_ops);
+      if (t.hours_qc_doc) roleHours['QC_DOCS'] = Number(t.hours_qc_doc);
+      if (t.hours_dev_ops) roleHours['DEVOPS'] = Number(t.hours_dev_ops);
 
       // Default role hours if completely empty
       if (Object.keys(roleHours).length === 0 && activeRoleCodes.size > 0) {
@@ -340,8 +340,8 @@ function normalizeDraft(
         hours_pm: roleHours['PM'] || 0,
         hours_web_dev: roleHours['WEB_DEV'] || 0,
         hours_ui_ux: roleHours['UI_UX'] || 0,
-        hours_qc_doc: roleHours['QC_DOC'] || 0,
-        hours_dev_ops: roleHours['DEV_OPS'] || 0,
+        hours_qc_doc: roleHours['QC_DOCS'] || 0,
+        hours_dev_ops: roleHours['DEVOPS'] || 0,
       };
     });
 
@@ -472,7 +472,7 @@ function generateFallbackDraft(
         {
           name: 'Pengembangan Backend API & Database',
           task_name: 'Pengembangan Backend API & Database',
-          role_hours: { [roleCodeMap['WEB_DEV'] || 'WEB_DEV']: 24, [roleCodeMap['DEV_OPS'] || 'DEV_OPS']: 8 },
+          role_hours: { [roleCodeMap['WEB_DEV'] || 'WEB_DEV']: 24, [roleCodeMap['DEVOPS'] || 'DEVOPS']: 8 },
         },
         {
           name: 'Pengembangan Antarmuka Pengguna (Frontend)',
@@ -487,12 +487,12 @@ function generateFallbackDraft(
         {
           name: 'Pengujian QA & UAT',
           task_name: 'Pengujian QA & UAT',
-          role_hours: { [roleCodeMap['QC_DOC'] || 'QC_DOC']: 12, [roleCodeMap['PM'] || 'PM']: 4 },
+          role_hours: { [roleCodeMap['QC_DOCS'] || 'QC_DOCS']: 12, [roleCodeMap['PM'] || 'PM']: 4 },
         },
         {
           name: 'Deployment & Go-Live Staging/Prod',
           task_name: 'Deployment & Go-Live Staging/Prod',
-          role_hours: { [roleCodeMap['DEV_OPS'] || 'DEV_OPS']: 8, [roleCodeMap['WEB_DEV'] || 'WEB_DEV']: 8 },
+          role_hours: { [roleCodeMap['DEVOPS'] || 'DEVOPS']: 8, [roleCodeMap['WEB_DEV'] || 'WEB_DEV']: 8 },
         },
       ],
     },
@@ -699,10 +699,10 @@ PETUNJUK ANALISIS & MAPPING:
 6. Maintenance Config (maintenance_config):
    - Jika categories menyertakan "MAINTENANCE", tentukan duration_months (default 12 bulan, atau sesuai brief 6/12 bulan).
    - Gunakan standar skema Maintenance Website Company Profile 2026:
-     * Skema Basic: DEV_OPS (1 jam/bulan), WEB_DEV (2 jam/bulan).
-     * Skema Expert: DEV_OPS (4 jam/bulan), WEB_DEV (8 jam/bulan).
+     * Skema Basic: DEVOPS (1 jam/bulan), WEB_DEV (2 jam/bulan).
+     * Skema Expert: DEVOPS (4 jam/bulan), WEB_DEV (8 jam/bulan).
    - Format tasks:
-     * Dev Ops (Manhour): role_hours: { "DEV_OPS": 1 atau 4 }
+     * Dev Ops (Manhour): role_hours: { "DEVOPS": 1 atau 4 }
      * Web Programmer (Manhour): role_hours: { "WEB_DEV": 2 atau 8 }
    - Jika tidak ada MAINTENANCE, isi duration_months: 0, roles: [], tasks: [].
 7. Infrastructure Items (infrastructure_items):

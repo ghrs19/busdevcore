@@ -12,32 +12,31 @@ import {
   type ModuleInput,
 } from './costing.ts';
 
+
+// Costing is keyed by person id. These fixtures use ids equal to the legacy role codes so the
+// original spreadsheet numbers still prove the arithmetic.
+const LEGACY_RATES = { PM: 39602, WEB_DEV: 39602, UI_UX: 33113, QC_DOC: 33101, DEV_OPS: 47261 };
+const hrs = (pm = 0, web = 0, ui = 0, qc = 0, ops = 0) => ({ PM: pm, WEB_DEV: web, UI_UX: ui, QC_DOC: qc, DEV_OPS: ops });
+
 describe('Costing Calculation & Business Rules', () => {
   it('should have exact default role rates matching spreadsheet', () => {
     assert.equal(DEFAULT_ROLE_RATES.PM, 39602);
     assert.equal(DEFAULT_ROLE_RATES.WEB_DEV, 39602);
     assert.equal(DEFAULT_ROLE_RATES.UI_UX, 33113);
-    assert.equal(DEFAULT_ROLE_RATES.QC_DOC, 33101);
-    assert.equal(DEFAULT_ROLE_RATES.DEV_OPS, 47261);
+    assert.equal(DEFAULT_ROLE_RATES.QC_DOCS, 33101);
+    assert.equal(DEFAULT_ROLE_RATES.DEVOPS, 47261);
   });
 
   it('should calculate individual task cost correctly', () => {
     // Kickoff: PM: 2, WEB DEV: 2, UI-UX: 2
-    const task = calculateTask({
-      name: 'Kickoff Meeting',
-      hours_pm: 2,
-      hours_web_dev: 2,
-      hours_ui_ux: 2,
-      hours_qc_doc: 0,
-      hours_dev_ops: 0,
-    });
+    const task = calculateTask({ name: 'Kickoff Meeting', role_hours: hrs(2, 2, 2) }, LEGACY_RATES);
 
     assert.equal(task.total_hours, 6);
     // 2*39602 + 2*39602 + 2*33113 = 79204 + 79204 + 66226 = 224634
     assert.equal(task.total_cost, 224634);
-    assert.equal(task.cost_breakdown.pm, 79204);
-    assert.equal(task.cost_breakdown.web_dev, 79204);
-    assert.equal(task.cost_breakdown.ui_ux, 66226);
+    assert.equal(task.cost_breakdown.PM, 79204);
+    assert.equal(task.cost_breakdown.WEB_DEV, 79204);
+    assert.equal(task.cost_breakdown.UI_UX, 66226);
   });
 
   it('should replicate the exact spreadsheet calculation (204 manhours, Rp 7.717.782 total cost)', () => {
@@ -45,76 +44,77 @@ describe('Costing Calculation & Business Rules', () => {
       {
         name: '1.0 Coordination',
         tasks: [
-          { name: 'Kickoff Project Meeting (1x)', hours_pm: 2, hours_web_dev: 2, hours_ui_ux: 2, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Client Meeting (2x)', hours_pm: 4, hours_web_dev: 4, hours_ui_ux: 4, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Kickoff Project Meeting (1x)', role_hours: hrs(2, 2, 2, 0, 0) },
+          { name: 'Client Meeting (2x)', role_hours: hrs(4, 4, 4, 0, 0) },
         ],
       },
       {
         name: '2.0 Scrum',
         tasks: [
-          { name: 'Scrum Definition', hours_pm: 2, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Scrum Monitoring', hours_pm: 2, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Scrum Definition', role_hours: hrs(2, 0, 0, 0, 0) },
+          { name: 'Scrum Monitoring', role_hours: hrs(2, 0, 0, 0, 0) },
         ],
       },
       {
         name: '3.0 Backend',
         tasks: [
-          { name: 'Project Setup & Model Definition', hours_pm: 0, hours_web_dev: 4, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Project Setup & Model Definition', role_hours: hrs(0, 4, 0, 0, 0) },
         ],
       },
       {
         name: '4.0 Frontend',
         tasks: [
-          { name: 'Registration Flow', hours_pm: 4, hours_web_dev: 4, hours_ui_ux: 4, hours_qc_doc: 8, hours_dev_ops: 0 },
-          { name: 'Mini Games Activation', hours_pm: 0, hours_web_dev: 24, hours_ui_ux: 16, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Voucher/Coupon Flow', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 4, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Redeem Flow', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 4, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Profile', hours_pm: 0, hours_web_dev: 4, hours_ui_ux: 4, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Registration Flow', role_hours: hrs(4, 4, 4, 8, 0) },
+          { name: 'Mini Games Activation', role_hours: hrs(0, 24, 16, 0, 0) },
+          { name: 'Voucher/Coupon Flow', role_hours: hrs(0, 8, 4, 0, 0) },
+          { name: 'Redeem Flow', role_hours: hrs(0, 8, 4, 0, 0) },
+          { name: 'Profile', role_hours: hrs(0, 4, 4, 0, 0) },
         ],
       },
       {
         name: '5.0 Backend',
         tasks: [
-          { name: 'User Management', hours_pm: 4, hours_web_dev: 4, hours_ui_ux: 0, hours_qc_doc: 8, hours_dev_ops: 0 },
-          { name: 'Outlet Management', hours_pm: 0, hours_web_dev: 4, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Voucher/Coupon Management', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Redeem Management', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Dashboard & Reporting', hours_pm: 0, hours_web_dev: 4, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'User Management', role_hours: hrs(4, 4, 0, 8, 0) },
+          { name: 'Outlet Management', role_hours: hrs(0, 4, 0, 0, 0) },
+          { name: 'Voucher/Coupon Management', role_hours: hrs(0, 8, 0, 0, 0) },
+          { name: 'Redeem Management', role_hours: hrs(0, 8, 0, 0, 0) },
+          { name: 'Dashboard & Reporting', role_hours: hrs(0, 4, 0, 0, 0) },
         ],
       },
       {
         name: '6.0 Configuration',
         tasks: [
-          { name: 'Domain Setup', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 2 },
-          { name: 'Facebook Pixel Setup', hours_pm: 0, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Mail SMTP Setup', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 2 },
-          { name: 'Installation Security Module', hours_pm: 0, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Domain Setup', role_hours: hrs(0, 0, 0, 0, 2) },
+          { name: 'Facebook Pixel Setup', role_hours: hrs(0, 2, 0, 0, 0) },
+          { name: 'Mail SMTP Setup', role_hours: hrs(0, 0, 0, 0, 2) },
+          { name: 'Installation Security Module', role_hours: hrs(0, 2, 0, 0, 0) },
         ],
       },
       {
         name: '7.0 Coordination',
         tasks: [
-          { name: 'Preview Project Meeting', hours_pm: 2, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 2 },
-          { name: 'Feedback Meeting', hours_pm: 4, hours_web_dev: 2, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 4 },
+          { name: 'Preview Project Meeting', role_hours: hrs(2, 2, 0, 0, 2) },
+          { name: 'Feedback Meeting', role_hours: hrs(4, 2, 0, 0, 4) },
         ],
       },
       {
         name: '8.0 Content',
         tasks: [
-          { name: 'Upload Content', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Upload Content', role_hours: hrs(0, 8, 0, 0, 0) },
         ],
       },
       {
         name: '9.0 Testing & Production',
         tasks: [
-          { name: 'Final Testing & Training', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 8, hours_dev_ops: 0 },
-          { name: 'Deployment', hours_pm: 0, hours_web_dev: 4, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
-          { name: 'Scrum Monitoring', hours_pm: 2, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+          { name: 'Final Testing & Training', role_hours: hrs(0, 0, 0, 8, 0) },
+          { name: 'Deployment', role_hours: hrs(0, 4, 0, 0, 0) },
+          { name: 'Scrum Monitoring', role_hours: hrs(2, 0, 0, 0, 0) },
         ],
       },
     ];
 
     const estimate = calculateEstimate({
+      rates: LEGACY_RATES,
       title: 'Djarum Urban - Microsite MVP',
       serviceTypeCode: 'IT',
       categoryCode: 'DEVELOPMENT',
@@ -134,19 +134,19 @@ describe('Costing Calculation & Business Rules', () => {
     assert.equal(estimate.modules[8].total_cost, 502420);   // 9.0 Testing & Production
 
     // Check hours per role
-    assert.equal(estimate.hours_by_role.pm, 26);
-    assert.equal(estimate.hours_by_role.web_dev, 106);
-    assert.equal(estimate.hours_by_role.ui_ux, 38);
-    assert.equal(estimate.hours_by_role.qc_doc, 24);
-    assert.equal(estimate.hours_by_role.dev_ops, 10);
+    assert.equal(estimate.hours_by_role.PM, 26);
+    assert.equal(estimate.hours_by_role.WEB_DEV, 106);
+    assert.equal(estimate.hours_by_role.UI_UX, 38);
+    assert.equal(estimate.hours_by_role.QC_DOC, 24);
+    assert.equal(estimate.hours_by_role.DEV_OPS, 10);
     assert.equal(estimate.total_hours, 204);
 
     // Check cost per role
-    assert.equal(estimate.cost_by_role.pm, 1029652);
-    assert.equal(estimate.cost_by_role.web_dev, 4197812);
-    assert.equal(estimate.cost_by_role.ui_ux, 1258294);
-    assert.equal(estimate.cost_by_role.qc_doc, 794424);
-    assert.equal(estimate.cost_by_role.dev_ops, 472610);
+    assert.equal(estimate.cost_by_role.PM, 1029652);
+    assert.equal(estimate.cost_by_role.WEB_DEV, 4197812);
+    assert.equal(estimate.cost_by_role.UI_UX, 1258294);
+    assert.equal(estimate.cost_by_role.QC_DOC, 794424);
+    assert.equal(estimate.cost_by_role.DEV_OPS, 472610);
 
     // Grand total cost matching spreadsheet exactly
     assert.equal(estimate.total_cost, 7752792);
@@ -156,13 +156,13 @@ describe('Costing Calculation & Business Rules', () => {
     const maintenanceModule = calculateModule({
       name: 'Maintenance Tasks',
       tasks: [
-        { name: 'Dev Ops (Manhour)', hours_pm: 0, hours_web_dev: 0, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 4 },
-        { name: 'Web Programmer (Manhour)', hours_pm: 0, hours_web_dev: 8, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+        { name: 'Dev Ops (Manhour)', role_hours: hrs(0, 0, 0, 0, 4) },
+        { name: 'Web Programmer (Manhour)', role_hours: hrs(0, 8, 0, 0, 0) },
       ],
-    });
+    }, LEGACY_RATES);
 
-    assert.equal(maintenanceModule.cost_breakdown.dev_ops, 189044); // 4 * 47261
-    assert.equal(maintenanceModule.cost_breakdown.web_dev, 316816);  // 8 * 39602
+    assert.equal(maintenanceModule.cost_breakdown.DEV_OPS, 189044); // 4 * 47261
+    assert.equal(maintenanceModule.cost_breakdown.WEB_DEV, 316816);  // 8 * 39602
     assert.equal(maintenanceModule.total_cost, 505860);
     assert.equal(maintenanceModule.total_hours, 12);
   });
@@ -237,7 +237,7 @@ describe('Costing Calculation & Business Rules', () => {
         {
           name: 'Sprint 1',
           tasks: [
-            { name: 'Task 1', hours_pm: 10, hours_web_dev: 10, hours_ui_ux: 0, hours_qc_doc: 0, hours_dev_ops: 0 },
+            { name: 'Task 1', role_hours: hrs(10, 10, 0, 0, 0) },
           ],
         },
       ],
@@ -370,12 +370,12 @@ describe('Costing Calculation & Business Rules', () => {
 
     // 2. Legacy number map format
     const legacySnapshot = {
-      DEV_OPS: 45000,
+      DEVOPS: 45000,
       CUSTOM_ROLE: 60000,
     };
     const normalizedLegacy = normalizeRoleSnapshot(legacySnapshot);
-    assert.equal(normalizedLegacy.DEV_OPS.name, 'DevOps Engineer'); // Resolved from DEFAULT_ROLE_NAMES
-    assert.equal(normalizedLegacy.DEV_OPS.rate, 45000);
+    assert.equal(normalizedLegacy.DEVOPS.name, 'DevOps Engineer'); // Resolved from DEFAULT_ROLE_NAMES
+    assert.equal(normalizedLegacy.DEVOPS.rate, 45000);
     assert.equal(normalizedLegacy.CUSTOM_ROLE.name, 'CUSTOM_ROLE'); // Fallback to key
     assert.equal(normalizedLegacy.CUSTOM_ROLE.rate, 60000);
   });
@@ -395,7 +395,7 @@ describe('Costing Calculation & Business Rules', () => {
       ],
     };
 
-    const calculated = calculateMaintenance(maintenanceConfig);
+    const calculated = calculateMaintenance(maintenanceConfig, LEGACY_RATES);
     assert.equal(calculated.duration_months, 6);
     assert.equal(calculated.total_monthly_hours, 12);
     // 4 * 47261 (189044) + 8 * 39602 (316816) = 505860/month
@@ -449,6 +449,7 @@ describe('Costing Calculation & Business Rules', () => {
 
   it('should calculate combined multi-billing summary across Dev, Maintenance, and Infrastructure', () => {
     const estimate = calculateEstimate({
+      rates: LEGACY_RATES,
       title: 'Full Stack Project: Dev + Maint + Infra',
       serviceTypeCode: 'IT',
       categoryCodes: ['DEVELOPMENT', 'MAINTENANCE', 'INFRASTRUCTURE'],
@@ -457,7 +458,7 @@ describe('Costing Calculation & Business Rules', () => {
         {
           name: 'MVP Module',
           tasks: [
-            { name: 'Core Feature', hours_pm: 10, hours_web_dev: 10 },
+            { name: 'Core Feature', role_hours: hrs(10, 10, 0, 0, 0) },
           ],
         },
       ],

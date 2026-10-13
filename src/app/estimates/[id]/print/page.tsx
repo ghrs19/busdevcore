@@ -1,5 +1,6 @@
 import React from 'react';
 import pool from '@/lib/db';
+import { snapshotLabels } from '@/lib/rate-snapshot';
 import { normalizeRoleSnapshot } from '@/lib/costing';
 
 export const instant = false;
@@ -72,6 +73,10 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
     const num = typeof val === 'string' ? parseFloat(val) : val;
     return `Rp ${(num || 0).toLocaleString('id-ID')}`;
   };
+
+  const snapshot = normalizeRoleSnapshot(estimate.rate_snapshots);
+  const personKeys = Object.keys(snapshot);
+  const labels = snapshotLabels(snapshot);
 
   return (
     <div className="print-container" style={{ background: '#ffffff', color: '#111827', minHeight: '100vh', padding: '32px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
@@ -149,15 +154,15 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', border: '1px solid #e5e7eb' }}>
           <thead>
             <tr style={{ background: '#f3f4f6', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>
-              <th style={{ padding: '8px 12px' }}>KODE ROLE</th>
-              <th style={{ padding: '8px 12px' }}>NAMA ROLE</th>
+              <th style={{ padding: '8px 12px' }}>KODE · INISIAL</th>
+              <th style={{ padding: '8px 12px' }}>NAMA</th>
               <th style={{ padding: '8px 12px', textAlign: 'right' }}>HOURLY RATE SNAPSHOT</th>
             </tr>
           </thead>
           <tbody>
             {estimate.rate_snapshots && Object.entries(normalizeRoleSnapshot(estimate.rate_snapshots)).map(([code, val]) => (
               <tr key={code} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '6px 12px', fontFamily: 'monospace', fontWeight: 600 }}>{code}</td>
+                <td style={{ padding: '6px 12px', fontFamily: 'monospace', fontWeight: 600 }}>{labels[code] || code}</td>
                 <td style={{ padding: '6px 12px' }}>{val.name || code}</td>
                 <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 600 }}>
                   {formatIDR(val.rate || 0)}/jam
@@ -178,32 +183,28 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
             <thead>
               <tr style={{ background: '#f3f4f6', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>
                 <th style={{ padding: '8px 12px' }}>MODUL / TASK</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center', width: '60px' }}>PM</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center', width: '60px' }}>DEV</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center', width: '60px' }}>UI/UX</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center', width: '60px' }}>QC</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center', width: '60px' }}>OPS</th>
+                {personKeys.map((k) => (
+                  <th key={k} style={{ padding: '8px 6px', textAlign: 'center', width: '70px' }}>{labels[k]}</th>
+                ))}
                 <th style={{ padding: '8px 12px', textAlign: 'center', width: '80px' }}>TOTAL JAM</th>
                 <th style={{ padding: '8px 12px', textAlign: 'right', width: '130px' }}>SUBTOTAL</th>
               </tr>
             </thead>
             <tbody>
-              {estimate.modules.map((mod: { name: string; total_hours?: number; total_cost?: number ; tasks: { name: string; hours_pm?: number; hours_web_dev?: number; hours_ui_ux?: number; hours_qc_doc?: number; hours_dev_ops?: number; total_hours?: number; total_cost?: number }[] }, mIdx: number) => (
+              {estimate.modules.map((mod: { name: string; total_hours?: number; total_cost?: number ; tasks: { name: string; role_hours?: Record<string, number>; total_hours?: number; total_cost?: number }[] }, mIdx: number) => (
                 <React.Fragment key={mIdx}>
                   <tr style={{ background: '#f9fafb', fontWeight: 700, borderBottom: '1px solid #e5e7eb' }}>
                     <td style={{ padding: '6px 12px' }}>{mod.name}</td>
-                    <td colSpan={5}></td>
+                    <td colSpan={personKeys.length}></td>
                     <td style={{ padding: '6px 12px', textAlign: 'center' }}>{mod.total_hours}h</td>
                     <td style={{ padding: '6px 12px', textAlign: 'right' }}>{formatIDR(mod.total_cost || 0)}</td>
                   </tr>
                   {Array.isArray(mod.tasks) && mod.tasks.map((t, tIdx: number) => (
                     <tr key={tIdx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '4px 12px 4px 24px', color: '#4b5563' }}>• {t.name}</td>
-                      <td style={{ padding: '4px 6px', textAlign: 'center' }}>{t.hours_pm || '-'}</td>
-                      <td style={{ padding: '4px 6px', textAlign: 'center' }}>{t.hours_web_dev || '-'}</td>
-                      <td style={{ padding: '4px 6px', textAlign: 'center' }}>{t.hours_ui_ux || '-'}</td>
-                      <td style={{ padding: '4px 6px', textAlign: 'center' }}>{t.hours_qc_doc || '-'}</td>
-                      <td style={{ padding: '4px 6px', textAlign: 'center' }}>{t.hours_dev_ops || '-'}</td>
+                      {personKeys.map((k) => (
+                        <td key={k} style={{ padding: '4px 6px', textAlign: 'center' }}>{Number(t.role_hours?.[k]) || '-'}</td>
+                      ))}
                       <td style={{ padding: '4px 6px', textAlign: 'center', fontWeight: 600 }}>{t.total_hours}h</td>
                       <td style={{ padding: '4px 12px', textAlign: 'right', fontWeight: 500 }}>{formatIDR(t.total_cost || 0)}</td>
                     </tr>
@@ -240,7 +241,7 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
                 <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '6px 12px', fontWeight: 500 }}>{t.name}</td>
                   <td style={{ padding: '6px 12px', color: '#4b5563' }}>
-                    {t.role_hours ? Object.entries(t.role_hours).map(([k, v]) => `${k}: ${v}h`).join(', ') : '-'}
+                    {t.role_hours ? Object.entries(t.role_hours).filter(([, v]) => Number(v) > 0).map(([k, v]) => `${labels[k] || k}: ${v}h`).join(', ') || '-' : '-'}
                   </td>
                   <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 600 }}>{t.total_hours}h</td>
                   <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 600 }}>{formatIDR(t.monthly_cost || 0)}</td>

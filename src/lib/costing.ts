@@ -14,18 +14,18 @@ export const DEFAULT_ROLE_RATES: Record<string, number> = {
   PM: 39602,
   WEB_DEV: 39602,
   UI_UX: 33113,
-  QC_DOC: 33101,
-  DEV_OPS: 47261,
-  MOBILE_DEV: 32661,
+  QC_DOCS: 33101,
+  DEVOPS: 47261,
+  MOB_DEV: 32661,
 };
 
 export const DEFAULT_ROLE_NAMES: Record<string, string> = {
   PM: 'Project Manager',
   WEB_DEV: 'Web Developer',
   UI_UX: 'UI/UX Designer',
-  QC_DOC: 'Quality Control & Documentation',
-  DEV_OPS: 'DevOps Engineer',
-  MOBILE_DEV: 'Mobile Developer',
+  QC_DOCS: 'Quality Control & Documentation',
+  DEVOPS: 'DevOps Engineer',
+  MOB_DEV: 'Mobile Developer',
 };
 
 export function normalizeRoleSnapshot(
@@ -273,11 +273,9 @@ export function validateEstimateRules(params: {
   };
 }
 
-export function calculateTask(task: TaskInput, rates: RoleRateMap = DEFAULT_ROLE_RATES): CalculatedTask {
+export function calculateTask(task: TaskInput, rates: RoleRateMap = {}): CalculatedTask {
   const roleHours: Record<string, number> = {};
-
   const roleKeys = Array.from(new Set<string>([
-    'PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS',
     ...Object.keys(rates),
     ...Object.keys(task.role_hours || {}),
   ]));
@@ -287,51 +285,34 @@ export function calculateTask(task: TaskInput, rates: RoleRateMap = DEFAULT_ROLE
   const cost_breakdown: Record<string, number> = {};
 
   for (const role of roleKeys) {
-    let hours = 0;
-    if (task.role_hours && task.role_hours[role] !== undefined) {
-      hours = Number(task.role_hours[role]) || 0;
-    } else if (role === 'PM' && task.hours_pm !== undefined) {
-      hours = Number(task.hours_pm) || 0;
-    } else if (role === 'WEB_DEV' && task.hours_web_dev !== undefined) {
-      hours = Number(task.hours_web_dev) || 0;
-    } else if (role === 'UI_UX' && task.hours_ui_ux !== undefined) {
-      hours = Number(task.hours_ui_ux) || 0;
-    } else if (role === 'QC_DOC' && task.hours_qc_doc !== undefined) {
-      hours = Number(task.hours_qc_doc) || 0;
-    } else if (role === 'DEV_OPS' && task.hours_dev_ops !== undefined) {
-      hours = Number(task.hours_dev_ops) || 0;
-    }
-
+    const hours = Number(task.role_hours?.[role]) || 0;
     roleHours[role] = hours;
     total_hours += hours;
-
-    const rate = rates[role] !== undefined ? rates[role] : (DEFAULT_ROLE_RATES[role] || 0);
+    const rate = rates[role] ?? 0;
     const cost = Math.round(hours * rate);
     total_cost += cost;
     cost_breakdown[role] = cost;
-    cost_breakdown[role.toLowerCase()] = cost;
   }
 
   return {
     ...task,
     name: task.name,
     role_hours: roleHours,
-    hours_pm: roleHours.PM || 0,
-    hours_web_dev: roleHours.WEB_DEV || 0,
-    hours_ui_ux: roleHours.UI_UX || 0,
-    hours_qc_doc: roleHours.QC_DOC || 0,
-    hours_dev_ops: roleHours.DEV_OPS || 0,
+    hours_pm: 0,
+    hours_web_dev: 0,
+    hours_ui_ux: 0,
+    hours_qc_doc: 0,
+    hours_dev_ops: 0,
     total_hours,
     total_cost,
     cost_breakdown,
   };
 }
 
-export function calculateModule(mod: ModuleInput, rates: RoleRateMap = DEFAULT_ROLE_RATES): CalculatedModule {
+export function calculateModule(mod: ModuleInput, rates: RoleRateMap = {}): CalculatedModule {
   const calculatedTasks = (mod.tasks || []).map(t => calculateTask(t, rates));
 
   const roleKeys = Array.from(new Set<string>([
-    'PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS',
     ...Object.keys(rates),
     ...calculatedTasks.flatMap(t => Object.keys(t.role_hours || {})),
   ]));
@@ -342,11 +323,9 @@ export function calculateModule(mod: ModuleInput, rates: RoleRateMap = DEFAULT_R
   for (const role of roleKeys) {
     const totalRoleHours = calculatedTasks.reduce((acc, t) => acc + (t.role_hours[role] || 0), 0);
     hours_breakdown[role] = totalRoleHours;
-    hours_breakdown[role.toLowerCase()] = totalRoleHours;
 
     const totalRoleCost = calculatedTasks.reduce((acc, t) => acc + (t.cost_breakdown[role] || 0), 0);
     cost_breakdown[role] = totalRoleCost;
-    cost_breakdown[role.toLowerCase()] = totalRoleCost;
   }
 
   const total_hours = calculatedTasks.reduce((acc, t) => acc + t.total_hours, 0);
@@ -364,14 +343,13 @@ export function calculateModule(mod: ModuleInput, rates: RoleRateMap = DEFAULT_R
 
 export function calculateMaintenance(
   input: MaintenanceConfigInput,
-  rates: RoleRateMap = DEFAULT_ROLE_RATES
+  rates: RoleRateMap = {}
 ): CalculatedMaintenance {
   const duration_months = Math.max(1, Number(input?.duration_months) || 1);
   const tasks = input?.tasks || [];
   const calculatedTasks: MaintenanceTaskCalculated[] = [];
 
   const roleKeys = Array.from(new Set<string>([
-    'PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS',
     ...Object.keys(rates),
     ...tasks.flatMap(t => Object.keys(t.role_hours || {})),
   ]));
@@ -393,24 +371,11 @@ export function calculateMaintenance(
     let taskMonthlyCost = 0;
 
     for (const r of roleKeys) {
-      let h = 0;
-      if (t.role_hours && t.role_hours[r] !== undefined) {
-        h = Number(t.role_hours[r]) || 0;
-      } else if (r === 'PM' && t.hours_pm !== undefined) {
-        h = Number(t.hours_pm) || 0;
-      } else if (r === 'WEB_DEV' && t.hours_web_dev !== undefined) {
-        h = Number(t.hours_web_dev) || 0;
-      } else if (r === 'UI_UX' && t.hours_ui_ux !== undefined) {
-        h = Number(t.hours_ui_ux) || 0;
-      } else if (r === 'QC_DOC' && t.hours_qc_doc !== undefined) {
-        h = Number(t.hours_qc_doc) || 0;
-      } else if (r === 'DEV_OPS' && t.hours_dev_ops !== undefined) {
-        h = Number(t.hours_dev_ops) || 0;
-      }
+      const h = Number(t.role_hours?.[r]) || 0;
 
       roleHours[r] = h;
       taskHours += h;
-      const rate = rates[r] !== undefined ? rates[r] : (DEFAULT_ROLE_RATES[r] || 0);
+      const rate = rates[r] ?? 0;
       const c = Math.round(h * rate);
       costBreakdown[r] = c;
       taskMonthlyCost += c;
@@ -638,10 +603,7 @@ export function calculateEstimate(params: {
   const normalizedSnapshot = normalizeRoleSnapshot(params.rates);
   const flatRates = snapshotToRateMap(params.rates);
 
-  const effectiveRates: RoleRateMap = {
-    ...DEFAULT_ROLE_RATES,
-    ...flatRates,
-  };
+  const effectiveRates: RoleRateMap = { ...flatRates };
 
   const hasDev = cats.includes('DEVELOPMENT');
   const hasMaint = cats.includes('MAINTENANCE');
@@ -655,7 +617,6 @@ export function calculateEstimate(params: {
   }
 
   const roleKeys = Array.from(new Set<string>([
-    'PM', 'WEB_DEV', 'UI_UX', 'QC_DOC', 'DEV_OPS',
     ...Object.keys(effectiveRates),
     ...calculatedModules.flatMap(m => Object.keys(m.hours_breakdown)),
   ]));
@@ -666,11 +627,9 @@ export function calculateEstimate(params: {
   for (const role of roleKeys) {
     const totalRoleHours = calculatedModules.reduce((acc, m) => acc + (m.hours_breakdown[role] || 0), 0);
     hours_by_role[role] = totalRoleHours;
-    hours_by_role[role.toLowerCase()] = totalRoleHours;
 
     const totalRoleCost = calculatedModules.reduce((acc, m) => acc + (m.cost_breakdown[role] || 0), 0);
     cost_by_role[role] = totalRoleCost;
-    cost_by_role[role.toLowerCase()] = totalRoleCost;
   }
 
   const dev_hours = calculatedModules.reduce((acc, m) => acc + m.total_hours, 0);

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
 import { normalizeRoleSnapshot } from '@/lib/costing';
+import { snapshotLabels } from '@/lib/rate-snapshot';
 
 export async function GET(
   req: Request,
@@ -94,12 +95,14 @@ export async function GET(
       ['Total Biaya / Kontrak', `Rp ${Number(est.total_cost || 0).toLocaleString('id-ID')}`],
       ['', ''],
       ['SNAPSHOT MASTER HOURLY RATE (RP/JAM)', ''],
-      ['Role Code', 'Role Name', 'Hourly Rate (IDR)']
+      ['Kode · Inisial', 'Kode Role', 'Nama', 'Hourly Rate (IDR)']
     ];
 
     if (est.rate_snapshots && typeof est.rate_snapshots === 'object') {
-      Object.entries(normalizeRoleSnapshot(est.rate_snapshots)).forEach(([code, val]) => {
-        ratesData.push([code, val.name, val.rate]);
+      const snap = normalizeRoleSnapshot(est.rate_snapshots);
+      const snapLabels = snapshotLabels(snap);
+      Object.entries(snap).forEach(([key, val]) => {
+        ratesData.push([snapLabels[key] || key, val.code, val.name, val.rate]);
       });
     }
     wsSummary.addRows(ratesData);
@@ -107,31 +110,31 @@ export async function GET(
     // 2. SHEET: WBS DEVELOPMENT (If has modules or DEV category)
     if (modules.length > 0 || catCodes.includes('DEV') || catCodes.includes('DEVELOPMENT')) {
       const wsDev = wb.addWorksheet('WBS Development');
+      const devSnap = normalizeRoleSnapshot(est.rate_snapshots);
+      const devKeys = Object.keys(devSnap);
+      const devLabels = snapshotLabels(devSnap);
+      const pad = (n: number) => Array.from({ length: n }, () => '');
       const devData: (string | number)[][] = [
         ['WBS DEVELOPMENT - MODUL & MANHOURS BREAKDOWN'],
-        ['Modul', 'Task', 'PM (Jam)', 'Web Dev (Jam)', 'UI-UX (Jam)', 'QC-Doc (Jam)', 'DevOps (Jam)', 'Total Jam', 'Subtotal Biaya (IDR)']
+        ['Modul', 'Task', ...devKeys.map((k) => `${devLabels[k]} (Jam)`), 'Total Jam', 'Subtotal Biaya (IDR)']
       ];
 
       modules.forEach(m => {
-        m.tasks.forEach((t: { name: string; hours_pm?: number; hours_web_dev?: number; hours_ui_ux?: number; hours_qc_doc?: number; hours_dev_ops?: number; total_hours?: number; total_cost?: number }) => {
+        m.tasks.forEach((t: { name: string; role_hours?: Record<string, number>; total_hours?: number; total_cost?: number }) => {
           devData.push([
             m.name,
             t.name,
-            Number(t.hours_pm || 0),
-            Number(t.hours_web_dev || 0),
-            Number(t.hours_ui_ux || 0),
-            Number(t.hours_qc_doc || 0),
-            Number(t.hours_dev_ops || 0),
+            ...devKeys.map((k) => Number(t.role_hours?.[k] || 0)),
             Number(t.total_hours || 0),
             Number(t.total_cost || 0)
           ]);
         });
         devData.push([
-          `SUBTOTAL ${m.name}`, '', '', '', '', '', '',
+          `SUBTOTAL ${m.name}`, '', ...pad(devKeys.length),
           Number(m.total_hours || 0),
           Number(m.total_cost || 0)
         ]);
-        devData.push(['', '', '', '', '', '', '', '', '']);
+        devData.push(['', '', ...pad(devKeys.length), '', '']);
       });
       wsDev.addRows(devData);
     }
@@ -141,17 +144,18 @@ export async function GET(
       const wsMaint = wb.addWorksheet('WBS Maintenance');
       const mConf = est.maintenance_config || {};
       const maintTasks = Array.isArray(mConf.tasks) ? mConf.tasks : [];
+      const maintLabels = snapshotLabels(normalizeRoleSnapshot(est.rate_snapshots));
       const maintData: (string | number)[][] = [
         ['WBS MAINTENANCE - RUTIN BULANAN'],
         ['Durasi Kontrak (Bulan)', Number(mConf.duration_months || 12)],
         ['Rate / Biaya Bulanan', Number(mConf.monthly_cost || 0)],
         ['Total Kontrak Maintenance', Number(mConf.total_cost || 0)],
         ['', ''],
-        ['Nama Task Rutin', 'Detail Alokasi Jam Role', 'Total Jam/Bulan', 'Biaya/Bulan (IDR)']
+        ['Nama Task Rutin', 'Detail Alokasi Jam', 'Total Jam/Bulan', 'Biaya/Bulan (IDR)']
       ];
 
       maintTasks.forEach((t: { name: string; role_hours?: Record<string, number>; total_hours?: number; monthly_cost?: number }) => {
-        const rhStr = t.role_hours ? Object.entries(t.role_hours).map(([k, v]) => `${k}: ${v}h`).join(', ') : '-';
+        const rhStr = t.role_hours ? Object.entries(t.role_hours).filter(([, v]) => Number(v) > 0).map(([k, v]) => `${maintLabels[k] || k}: ${v}h`).join(', ') || '-' : '-';
         maintData.push([
           t.name,
           rhStr,

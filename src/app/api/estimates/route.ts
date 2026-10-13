@@ -3,14 +3,13 @@ import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import {
   calculateEstimate,
-  DEFAULT_ROLE_RATES,
-  DEFAULT_ROLE_NAMES,
   normalizeRoleSnapshot,
   type ModuleInput,
   type MaintenanceConfigInput,
   type InfrastructureItemInput,
   type OperationalItemInput,
 } from '@/lib/costing';
+import { parseRateSnapshotInput } from '@/lib/rate-snapshot';
 
 export async function GET() {
   try {
@@ -116,7 +115,7 @@ export async function POST(req: Request) {
       tag_id,
       title,
       notes,
-      custom_rates,
+      rate_snapshots,
       modules,
       maintenance,
       maintenance_config,
@@ -252,47 +251,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fetch master role rates for full snapshot (code, name, rate)
-    const roleRows = await client.query('SELECT code, name, default_hourly_rate FROM role_masters');
-    const snapshotRates: Record<string, { code: string; name: string; rate: number }> = {};
-    for (const r of roleRows.rows) {
-      const code = r.code;
-      const rateVal = custom_rates && custom_rates[code] !== undefined
-        ? Number(custom_rates[code])
-        : Number(r.default_hourly_rate);
-      snapshotRates[code] = {
-        code,
-        name: r.name,
-        rate: rateVal,
-      };
+    // Rate snapshot = daftar orang (role - nama - rate) yang dikirim dari form costing.
+    // Role di master hanya dipakai untuk memvalidasi kode role yang dipilih user.
+    const roleRows = await client.query('SELECT code FROM role_masters WHERE is_active = TRUE');
+    const parsedSnapshot = parseRateSnapshotInput(rate_snapshots, roleRows.rows.map((r: { code: string }) => r.code));
+    if (!parsedSnapshot.ok) {
+      return NextResponse.json({ success: false, error: parsedSnapshot.error }, { status: 400 });
     }
-
-    // Also include default role rates if not in role_masters
-    for (const [defCode, defRate] of Object.entries(DEFAULT_ROLE_RATES)) {
-      if (!snapshotRates[defCode]) {
-        const rateVal = custom_rates && custom_rates[defCode] !== undefined
-          ? Number(custom_rates[defCode])
-          : defRate;
-        snapshotRates[defCode] = {
-          code: defCode,
-          name: DEFAULT_ROLE_NAMES[defCode] || defCode,
-          rate: rateVal,
-        };
-      }
-    }
-
-    // Include any custom_rates not yet in snapshotRates
-    if (custom_rates && typeof custom_rates === 'object') {
-      for (const [cCode, cRate] of Object.entries(custom_rates)) {
-        if (!snapshotRates[cCode]) {
-          snapshotRates[cCode] = {
-            code: cCode,
-            name: DEFAULT_ROLE_NAMES[cCode] || cCode,
-            rate: Number(cRate) || 0,
-          };
-        }
-      }
-    }
+    const snapshotRates = parsedSnapshot.snapshot;
 
     // Calculate estimate breakdown
     const parsedModules: ModuleInput[] = Array.isArray(modules) ? modules : [];
