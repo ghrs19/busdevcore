@@ -354,7 +354,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
           ];
           return (
             <div className="no-scrollbar -mx-1 mb-6 overflow-x-auto px-1">
-              <div role="tablist" aria-label="Bagian costing" className="flex w-max min-w-full gap-1">
+              <div role="tablist" aria-label="Bagian costing" className="tab-bar">
                 {tabs.map((tab) => {
                   const active = activeTab === tab.id;
                   const Icon = tab.icon;
@@ -365,15 +365,12 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       role="tab"
                       aria-selected={active}
                       onClick={() => setActiveTab(tab.id)}
-                      className={cn(
-                        'inline-flex h-10 shrink-0 items-center gap-2 border-0 px-3.5 text-[13px] font-medium transition-colors',
-                        active ? 'bg-brand text-white' : 'text-fg-3 hover:text-fg',
-                      )}
+                      className={cn('tab', active && 'active')}
                     >
-                      {Icon && <Icon className={cn('size-4', active ? 'text-white' : 'text-fg-3')} aria-hidden />}
+                      {Icon && <Icon className="size-4" aria-hidden />}
                       {tab.label}
                       {tab.count !== undefined && (
-                        <span className={cn('font-mono-numbers rounded-full px-1.5 text-[11px]', active ? 'text-white' : 'bg-surface-2 text-fg-3')}>{tab.count}</span>
+                        <span className="font-mono-numbers text-[11px]">{tab.count}</span>
                       )}
                     </button>
                   );
@@ -777,7 +774,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
         {activeTab === 'HISTORY' && estimate.version_history && estimate.version_history.length > 1 && (
           <section className="linear-card-elevated" style={{ padding: '20px', marginBottom: '28px' }} aria-label="Perbandingan versi">
             <h2 style={{ fontSize: '16px', marginBottom: '12px' }}>Bandingkan rincian task antar versi</h2>
-            <label htmlFor="compare-version" style={{ display: 'block', marginBottom: '8px' }}>Bandingkan v{estimate.version} dengan:</label>
+            <label htmlFor="compare-version" className="field-label">Bandingkan v{estimate.version} dengan:</label>
             <select id="compare-version" className="linear-select" style={{ maxWidth: '240px' }} value={compareId ?? ''}
               onChange={(event) => { setComparison(null); setComparisonError(null); setCompareId(event.target.value ? Number(event.target.value) : null); }}>
               <option value="">Pilih versi</option>
@@ -810,33 +807,12 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
 
         {/* Delete Confirmation Modal */}
         {isDeleteModalOpen && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgb(8 10 14 / 0.62)',
-              zIndex: 200,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '16px',
-            }}
+          <div className="modal-overlay"
             onClick={() => {
               if (!isDeleting) setIsDeleteModalOpen(false);
             }}
           >
-            <div
-              className="linear-card"
-              style={{
-                width: '100%',
-                maxWidth: '440px',
-                padding: '24px',
-                backgroundColor: 'var(--bg-panel)',
-                border: '1px solid rgb(var(--danger-rgb) / 0.3)',
-              }}
+            <div className="modal-panel modal-panel-danger"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>

@@ -231,23 +231,13 @@ export default function ProfilePage() {
 
           <form onSubmit={handleUpdateName}>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label className="field-label">
                 Email Akun (Login)
               </label>
-              <input
+              <input className="linear-input"
                 type="email"
                 value={profile?.email || ''}
                 disabled
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-subtle)',
-                  backgroundColor: 'rgb(var(--ink-rgb) / 0.02)',
-                  color: 'var(--text-tertiary)',
-                  fontSize: '13px',
-                  cursor: 'not-allowed',
-                }}
               />
               <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px', display: 'block' }}>
                 Email digunakan sebagai identifier login utama dan tidak dapat diubah mandiri.
@@ -255,24 +245,15 @@ export default function ProfilePage() {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label className="field-label">
                 Nama Lengkap
               </label>
-              <input
+              <input className="linear-input"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Masukkan nama lengkap Anda"
                 required
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                }}
               />
             </div>
 
@@ -304,69 +285,42 @@ export default function ProfilePage() {
 
           <form onSubmit={handleUpdatePassword}>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label className="field-label">
                 Password Saat Ini (Lama)
               </label>
-              <input
+              <input className="linear-input"
                 type="password"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Password Baru
                 </label>
-                <input
+                <input className="linear-input"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Min. 6 karakter"
                   required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-card)',
-                    color: 'var(--text-primary)',
-                    fontSize: '13px',
-                  }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Konfirmasi Password Baru
                 </label>
-                <input
+                <input className="linear-input"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Ulangi password baru"
                   required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-card)',
-                    color: 'var(--text-primary)',
-                    fontSize: '13px',
-                  }}
                 />
               </div>
             </div>

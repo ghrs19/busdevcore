@@ -357,6 +357,33 @@
   .pill-item.active * { color: inherit !important; }
   .pill-item:disabled { opacity: .4; cursor: not-allowed; }
 
+  .btn-success { background: var(--color-success); color: #fff; border-color: var(--color-success); }
+  .btn-success:hover:not(:disabled) { filter: brightness(.92); }
+
+  /* Form labels and headings */
+  .field-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 500; line-height: 1.3; color: var(--text-secondary); }
+  .field-label-caps { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-tertiary); }
+  .heading-md { font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--text-primary); }
+  .heading-sm { font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--text-primary); }
+
+  /* Modal: one overlay + one flat panel. */
+  .modal-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgb(8 10 14 / 0.62); }
+  .modal-panel { width: 100%; max-width: 480px; max-height: calc(100vh - 32px); overflow-y: auto; padding: 24px; background: var(--bg-elevated); border: 1px solid var(--border-hover); border-radius: 12px; box-shadow: none; }
+  .modal-panel-lg { max-width: 520px; }
+  .modal-panel-danger { border-color: rgb(var(--danger-rgb) / .4); }
+
+  /* Section tabs: flat rectangle, solid accent when active. */
+  .tab-bar { display: flex; width: max-content; min-width: 100%; gap: 4px; }
+  .tab {
+    display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; height: 40px; padding: 0 14px;
+    border: 0; border-radius: 0; background: transparent; color: var(--text-tertiary);
+    font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: none;
+    transition: color .15s ease, background-color .15s ease;
+  }
+  .tab:hover:not(.active) { color: var(--text-primary); }
+  .tab.active { background: var(--accent-primary); color: var(--on-accent); }
+  .tab.active * { color: inherit !important; }
+
   /* Badges: tinted fill + same-hue text. Meaning, not decoration. */
   .badge, .linear-badge {
     display: inline-flex; align-items: center; gap: 5px;
@@ -371,6 +398,7 @@
   .badge-draft, .badge-warning { background: var(--color-warning-bg); color: var(--color-warning); border-color: rgb(var(--warning-rgb) / .3); }
   .badge-info { background: var(--color-info-bg); color: var(--color-info); border-color: rgb(var(--info-rgb) / .3); }
   .badge-danger { background: var(--color-danger-bg); color: var(--color-danger); border-color: rgb(var(--danger-rgb) / .3); }
+  .badge-violet { background: var(--color-violet-bg); color: var(--color-violet); border-color: rgb(var(--violet-rgb) / .3); }
   .badge-neutral { background: var(--bg-card); color: var(--text-secondary); border-color: var(--border-subtle); }
 
   /* ------------------------------------------------------------------------

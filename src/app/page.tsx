@@ -576,7 +576,7 @@ export default function HistoricalEstimatesPage() {
           >
             {/* Filter Perusahaan */}
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>
+              <label className="field-label">
                 Perusahaan
               </label>
               <select
@@ -595,7 +595,7 @@ export default function HistoricalEstimatesPage() {
 
             {/* Filter Service Type */}
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>
+              <label className="field-label">
                 Service Type
               </label>
               <select
@@ -614,7 +614,7 @@ export default function HistoricalEstimatesPage() {
 
             {/* Filter Kategori */}
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>
+              <label className="field-label">
                 Kategori
               </label>
               <select
@@ -633,7 +633,7 @@ export default function HistoricalEstimatesPage() {
 
             {/* Filter Tag */}
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>
+              <label className="field-label">
                 Tag
               </label>
               <select
@@ -812,20 +812,7 @@ export default function HistoricalEstimatesPage() {
 
         {/* Delete Confirmation Modal */}
         {deleteTarget && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgb(8 10 14 / 0.62)',
-              zIndex: 200,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '16px',
-            }}
+          <div className="modal-overlay"
             onClick={() => {
               if (!isDeleting) {
                 setDeleteTarget(null);
@@ -833,15 +820,7 @@ export default function HistoricalEstimatesPage() {
               }
             }}
           >
-            <div
-              className="linear-card"
-              style={{
-                width: '100%',
-                maxWidth: '480px',
-                padding: '24px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-subtle)',
-              }}
+            <div className="modal-panel"
               onClick={(e) => e.stopPropagation()}
             >
               <div
@@ -949,33 +928,12 @@ export default function HistoricalEstimatesPage() {
 
         {/* Fork / Revision Modal */}
         {forkTarget && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgb(8 10 14 / 0.62)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 250,
-              padding: '16px',
-            }}
+          <div className="modal-overlay"
             onClick={() => {
               if (!isForking) setForkTarget(null);
             }}
           >
-            <div
-              className="linear-card-elevated"
-              style={{
-                width: '100%',
-                maxWidth: '480px',
-                padding: '24px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid rgb(var(--info-rgb) / 0.3)',
-              }}
+            <div className="modal-panel"
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
@@ -1009,7 +967,7 @@ export default function HistoricalEstimatesPage() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Catatan Revisi / Alasan Perubahan (Opsional):
                 </label>
                 <input

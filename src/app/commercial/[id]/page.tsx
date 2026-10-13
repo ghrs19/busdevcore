@@ -463,7 +463,7 @@ function CommercialProposalDetailContent() {
         )}
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
+        <div className="tab-bar" role="tablist" style={{ marginBottom: 24 }}>
           {[
             { id: 'overview', label: 'Rincian & Deliverables' },
             { id: 'documents', label: `Dokumen Kontrak (SPK & BAST) (${contractDocs.length})` },
@@ -472,18 +472,11 @@ function CommercialProposalDetailContent() {
           ].map((tab) => (
             <button
               key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              style={{
-                padding: '10px 16px',
-                fontSize: '13px',
-                fontWeight: 600,
-                background: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === tab.id ? '2px solid var(--accent-hover)' : '2px solid transparent',
-                color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
+              className={activeTab === tab.id ? 'tab active' : 'tab'}
             >
               {tab.label}
             </button>
@@ -1098,29 +1091,9 @@ function CommercialProposalDetailContent() {
 
         {/* Modal Alasan Lost */}
         {showLostModal && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgb(8 10 14 / 0.62)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-            }}
+          <div className="modal-overlay"
           >
-            <div
-              className="linear-card"
-              style={{
-                width: '100%',
-                maxWidth: '480px',
-                padding: '24px',
-                background: 'var(--bg-surface)',
-                border: '1px solid rgb(var(--danger-rgb) / 0.4)',
-              }}
+            <div className="modal-panel modal-panel-danger"
             >
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-danger)', margin: '0 0 8px 0' }}>
                 Tandai Proposal Sebagai LOST (Kalah)

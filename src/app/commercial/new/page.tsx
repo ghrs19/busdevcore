@@ -679,7 +679,7 @@ function NewCommercialProposalForm() {
             >
               {/* 1. Perusahaan / Klien */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Perusahaan / Klien <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <select
@@ -699,7 +699,7 @@ function NewCommercialProposalForm() {
 
               {/* 2. Proyek */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Proyek Terkait <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <select
@@ -722,7 +722,7 @@ function NewCommercialProposalForm() {
 
               {/* 3. Dokumen Estimasi */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Dokumen Estimasi Baseline <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <select
@@ -921,7 +921,7 @@ function NewCommercialProposalForm() {
             >
               {/* Tipe & Nilai Diskon */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Diskon Penawaran
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -946,7 +946,7 @@ function NewCommercialProposalForm() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Dokumen Klien
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-primary)' }}>
@@ -962,7 +962,7 @@ function NewCommercialProposalForm() {
 
               {/* Toggle PPN 11% */}
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Pajak Pertambahan Nilai (PPN)
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-primary)', marginTop: '4px' }}>
@@ -1136,7 +1136,7 @@ function NewCommercialProposalForm() {
               }}
             >
               <div>
-                <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '6px' }}>
+                <label className="field-label field-label-caps">
                   Total Durasi Kalender
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1153,7 +1153,7 @@ function NewCommercialProposalForm() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '6px' }}>
+                <label className="field-label field-label-caps">
                   Target Mulai (Opsional)
                 </label>
                 <input
@@ -1268,11 +1268,11 @@ function NewCommercialProposalForm() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="pill-group">
                 <button
                   type="button"
                   onClick={() => setMaintenanceBillingMode('ALL_IN_PROJECT')}
-                  className={maintenanceBillingMode === 'ALL_IN_PROJECT' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                  className={`pill-item${maintenanceBillingMode === 'ALL_IN_PROJECT' ? ' active' : ''}`}
 
                 >
                   ✓ Dibayar Sekaligus (All-in di Termin Proyek)
@@ -1280,7 +1280,7 @@ function NewCommercialProposalForm() {
                 <button
                   type="button"
                   onClick={() => setMaintenanceBillingMode('MONTHLY_RETAINER')}
-                  className={maintenanceBillingMode === 'MONTHLY_RETAINER' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                  className={`pill-item${maintenanceBillingMode === 'MONTHLY_RETAINER' ? ' active' : ''}`}
 
                 >
                   Ditagih Terpisah per Bulan (Post-Launch Retainer)
@@ -1490,7 +1490,7 @@ function NewCommercialProposalForm() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Masa Berlaku Penawaran
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1508,7 +1508,7 @@ function NewCommercialProposalForm() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label className="field-label">
                   Catatan / Syarat & Ketentuan Khusus Penawaran
                 </label>
                 <textarea

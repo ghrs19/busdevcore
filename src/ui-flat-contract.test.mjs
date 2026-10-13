@@ -40,3 +40,22 @@ test('globals.css keeps button system flat', () => {
   assert.match(css, /--shadow-card:\s*none/);
   assert.match(css, /--shadow-pop:\s*none/);
 });
+
+test('components use shared classes instead of inline clones', () => {
+  const offenders = [];
+  for (const f of files) {
+    const s = readFileSync(f, 'utf8');
+    if (/<label\b[^>]*style=\{\{[^}]*display:\s*'block'/.test(s)) offenders.push(`${f}: inline block label`);
+    if (/'btn-primary[^']*'\s*:\s*'btn-secondary/.test(s)) offenders.push(`${f}: primary/secondary toggle swap`);
+    if (/rgb\(8 10 14/.test(s)) offenders.push(`${f}: inline modal scrim`);
+    if (/border-b-2/.test(s)) offenders.push(`${f}: underline tab`);
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test('globals.css defines shared modal, tab and label classes', () => {
+  const css = readFileSync('src/app/globals.css', 'utf8');
+  for (const c of ['.modal-overlay', '.modal-panel', '.tab-bar', '.tab.active', '.field-label', '.btn-danger', '.btn-icon']) {
+    assert.ok(css.includes(c), `missing ${c}`);
+  }
+});

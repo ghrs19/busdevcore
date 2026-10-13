@@ -1707,7 +1707,7 @@ function NewEstimateForm() {
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Nama Project *
                     </label>
                     <input
@@ -1719,7 +1719,7 @@ function NewEstimateForm() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Deskripsi Project (Opsional)
                     </label>
                     <input
@@ -1769,7 +1769,7 @@ function NewEstimateForm() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Nama Perusahaan *
                     </label>
                     <input
@@ -1781,7 +1781,7 @@ function NewEstimateForm() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Email
                     </label>
                     <input
@@ -1793,7 +1793,7 @@ function NewEstimateForm() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Telepon
                     </label>
                     <input
@@ -1805,7 +1805,7 @@ function NewEstimateForm() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Alamat
                     </label>
                     <input
@@ -1839,13 +1839,7 @@ function NewEstimateForm() {
 
             <div style={{ marginTop: '16px' }}>
               <label
-                style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: 'var(--text-tertiary)',
-                  marginBottom: '6px',
-                }}
+                className="field-label"
               >
                 Catatan / Keterangan (Opsional)
               </label>
@@ -1893,7 +1887,7 @@ function NewEstimateForm() {
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1.2fr) minmax(460px, 2.1fr) minmax(220px, 0.9fr)', gap: '20px', alignItems: 'start' }}>
               {/* Col 1: Service Type */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
+                <label className="field-label">
                   Service Type
                 </label>
                 <div className="pill-group" style={{ height: '43px' }}>
@@ -1952,7 +1946,7 @@ function NewEstimateForm() {
 
               {/* Col 3: Tag Klasifikasi */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
+                <label className="field-label">
                   Tag Klasifikasi {isDevelopment ? (
                     <span style={{ color: 'var(--accent-hover)' }}>(Wajib untuk Dev)</span>
                   ) : (
@@ -2175,20 +2169,11 @@ function NewEstimateForm() {
 
             {/* Tab Selector if multiple categories selected */}
             {(isDevelopment ? 1 : 0) + (isMaintenance ? 1 : 0) + (isInfrastructure ? 1 : 0) > 1 && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  marginBottom: '20px',
-                  borderBottom: '1px solid var(--border-subtle)',
-                  paddingBottom: '10px',
-                  flexWrap: 'wrap',
-                }}
-              >
+              <div className="pill-group" role="tablist" style={{ marginBottom: 20 }}>
                 <button
                   type="button"
                   onClick={() => setWbsTab('ALL')}
-                  className={wbsTab === 'ALL' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                  className={`pill-item${wbsTab === 'ALL' ? ' active' : ''}`}
                 >
                   Tampilkan Semua WBS
                 </button>
@@ -2196,7 +2181,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setWbsTab('DEV')}
-                    className={wbsTab === 'DEV' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                    className={`pill-item${wbsTab === 'DEV' ? ' active' : ''}`}
                   >
                     Development WBS ({formatIDR(calculation.total_cost)})
                   </button>
@@ -2205,7 +2190,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setWbsTab('MAINTENANCE')}
-                    className={wbsTab === 'MAINTENANCE' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                    className={`pill-item${wbsTab === 'MAINTENANCE' ? ' active' : ''}`}
                   >
                     Maintenance WBS ({formatIDR(maintCalculation ? maintCalculation.monthly_cost : 0)}/bln)
                   </button>
@@ -2214,7 +2199,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setWbsTab('INFRASTRUCTURE')}
-                    className={wbsTab === 'INFRASTRUCTURE' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                    className={`pill-item${wbsTab === 'INFRASTRUCTURE' ? ' active' : ''}`}
                   >
                     Infrastructure Items ({formatIDR(infraCalculation ? infraCalculation.grand_total : 0)})
                   </button>
@@ -2223,7 +2208,7 @@ function NewEstimateForm() {
                   <button
                     type="button"
                     onClick={() => setWbsTab('OPERATION')}
-                    className={wbsTab === 'OPERATION' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                    className={`pill-item${wbsTab === 'OPERATION' ? ' active' : ''}`}
                   >
                     Operation Items ({formatIDR(opCalculation ? opCalculation.grand_total : 0)})
                   </button>
@@ -2498,13 +2483,13 @@ function NewEstimateForm() {
                         style={{ width: '56px', textAlign: 'center', padding: '4px 6px', fontSize: '12px' }}
                       />
                       <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Bln</span>
-                      <div style={{ display: 'flex', gap: '4px', marginLeft: '2px' }}>
+                      <div className="pill-group" style={{ marginLeft: 2 }}>
                         {[1, 3, 6, 12].map((m) => (
                           <button
                             key={m}
                             type="button"
                             onClick={() => setMaintenanceDurationMonths(m)}
-                            className={maintenanceDurationMonths === m ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                            className={`pill-item${maintenanceDurationMonths === m ? ' active' : ''}`}
                           >
                             {m}bln
                           </button>
@@ -3034,7 +3019,7 @@ function NewEstimateForm() {
               }}
             >
               <div>
-                <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '6px' }}>
+                <label className="field-label field-label-caps">
                   Total Durasi Kalender
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3051,7 +3036,7 @@ function NewEstimateForm() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '6px' }}>
+                <label className="field-label field-label-caps">
                   Target Mulai (Opsional)
                 </label>
                 <input
@@ -3270,34 +3255,12 @@ function NewEstimateForm() {
 
         {/* Revision Reason Modal on Edit Save */}
         {isRevisionModalOpen && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgb(8 10 14 / 0.62)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 300,
-              padding: '16px',
-            }}
+          <div className="modal-overlay"
             onClick={() => {
               if (!isLoading) setIsRevisionModalOpen(false);
             }}
           >
-            <div
-              className="linear-card-elevated"
-              style={{
-                width: '100%',
-                maxWidth: '520px',
-                padding: '24px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid rgb(var(--accent-rgb) / 0.35)',
-                borderRadius: '12px',
-              }}
+            <div className="modal-panel modal-panel-lg"
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '18px' }}>
@@ -3341,7 +3304,7 @@ function NewEstimateForm() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                <label className="field-label">
                   Alasan Edit / Catatan Perubahan <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <textarea

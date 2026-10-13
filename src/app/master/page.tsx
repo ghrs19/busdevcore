@@ -412,7 +412,7 @@ export default function MasterDataPage() {
 
         {/* Tabs */}
         <div className="no-scrollbar -mx-1 mb-6 overflow-x-auto px-1">
-          <div role="tablist" aria-label="Bagian master data" className="flex w-max min-w-full gap-1">
+          <div role="tablist" aria-label="Bagian master data" className="tab-bar">
             {([
               { id: 'ROLES', label: 'Roles & Rates', icon: Briefcase, count: roles.length, on: () => {} },
               { id: 'WORKERS', label: 'Worker', icon: HardHat, count: workers.length, on: () => fetchWorkers() },
@@ -431,15 +431,12 @@ export default function MasterDataPage() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => { setActiveTab(tab.id); tab.on(); setErrorMsg(null); setSuccessMsg(null); }}
-                  className={cn(
-                    'inline-flex h-10 shrink-0 items-center gap-2 border-0 rounded-none px-3.5 text-[13px] font-medium shadow-none transition-colors',
-                    active ? 'bg-brand text-white shadow-none' : 'text-fg-3 hover:text-fg',
-                  )}
+                  className={cn('tab', active && 'active')}
                 >
-                  <Icon className={cn('size-4', active ? 'text-white' : 'text-fg-3')} aria-hidden />
+                  <Icon className="size-4" aria-hidden />
                   {tab.label}
                   {tab.count !== undefined && (
-                    <span className={cn('font-mono-numbers text-[11px]', active ? 'text-white' : 'text-fg-3')}>{tab.count}</span>
+                    <span className="font-mono-numbers text-[11px]">{tab.count}</span>
                   )}
                 </button>
               );
@@ -552,7 +549,7 @@ export default function MasterDataPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>KODE ROLE (UNIK)</label>
+                    <label className="field-label">KODE ROLE (UNIK)</label>
                     <input
                       type="text"
                       disabled={!!editingRole}
@@ -565,7 +562,7 @@ export default function MasterDataPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>NAMA ROLE</label>
+                    <label className="field-label">NAMA ROLE</label>
                     <input
                       type="text"
                       value={newRoleName}
@@ -577,7 +574,7 @@ export default function MasterDataPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>HOURLY RATE (RP/JAM)</label>
+                    <label className="field-label">HOURLY RATE (RP/JAM)</label>
                     <input
                       type="number"
                       value={newRoleRate}
@@ -635,7 +632,7 @@ export default function MasterDataPage() {
                       <tr key={r.id}>
                         <td style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>#{r.id}</td>
                         <td>
-                          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--accent-hover)', background: 'rgb(var(--info-rgb) / 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                          <span className="badge badge-info font-mono">
                             {r.code}
                           </span>
                         </td>
@@ -644,7 +641,7 @@ export default function MasterDataPage() {
                           {formatIDR(r.default_hourly_rate)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: r.is_active ? 'rgb(var(--success-rgb) / 0.15)' : 'var(--bg-card)', color: r.is_active ? 'var(--color-success)' : '#94a3b8' }}>
+                          <span className={`badge ${r.is_active ? 'badge-connected' : 'badge-neutral'}`}>
                             {r.is_active ? 'Aktif' : 'Non-Aktif'}
                           </span>
                         </td>
@@ -720,7 +717,7 @@ export default function MasterDataPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '14px' }}>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>NAMA TEMPLATE *</label>
+                    <label className="field-label">NAMA TEMPLATE *</label>
                     <input
                       type="text"
                       value={tplName}
@@ -732,7 +729,7 @@ export default function MasterDataPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>KATEGORI WBS TARGET *</label>
+                    <label className="field-label">KATEGORI WBS TARGET *</label>
                     <select
                       value={tplCategory}
                       onChange={(e) => setTplCategory(e.target.value as TemplateCategory)}
@@ -748,7 +745,7 @@ export default function MasterDataPage() {
                 </div>
 
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>DESKRIPSI / CATATAN SKEMA</label>
+                  <label className="field-label">DESKRIPSI / CATATAN SKEMA</label>
                   <input
                     type="text"
                     value={tplDesc}
@@ -760,7 +757,7 @@ export default function MasterDataPage() {
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>PAYLOAD STRUKTUR DATA (JSON) *</label>
+                  <label className="field-label">PAYLOAD STRUKTUR DATA (JSON) *</label>
                   <textarea
                     rows={8}
                     value={tplPayloadStr}
@@ -816,7 +813,7 @@ export default function MasterDataPage() {
                   >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: tpl.category === 'MAINTENANCE' ? 'rgb(var(--info-rgb) / 0.15)' : 'rgb(var(--violet-rgb) / 0.15)', color: tpl.category === 'MAINTENANCE' ? 'var(--color-info)' : 'var(--color-violet)' }}>
+                        <span className={`badge ${tpl.category === 'MAINTENANCE' ? 'badge-info' : 'badge-violet'}`}>
                           {tpl.category}
                         </span>
                         <div style={{ display: 'flex', gap: '4px' }}>
@@ -887,7 +884,7 @@ export default function MasterDataPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Nama Perusahaan Klien *</label>
+                  <label className="field-label">Nama Perusahaan Klien *</label>
                   <input
                     type="text"
                     required
@@ -899,7 +896,7 @@ export default function MasterDataPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Email Kontak</label>
+                  <label className="field-label">Email Kontak</label>
                   <input
                     type="email"
                     className="linear-input"
@@ -910,7 +907,7 @@ export default function MasterDataPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Nomor Telepon</label>
+                  <label className="field-label">Nomor Telepon</label>
                   <input
                     type="text"
                     className="linear-input"
@@ -921,7 +918,7 @@ export default function MasterDataPage() {
                   />
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Alamat Resmi (Ditampilkan pada PDF Invoice & Proposal)</label>
+                  <label className="field-label">Alamat Resmi (Ditampilkan pada PDF Invoice & Proposal)</label>
                   <input
                     type="text"
                     className="linear-input"
@@ -1116,7 +1113,7 @@ ATURAN KEAMANAN MUTLAK:
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nama Resmi Perusahaan (Badan Usaha)</label>
+                      <label className="field-label">Nama Resmi Perusahaan (Badan Usaha)</label>
                       <input
                         type="text"
                         required
@@ -1127,7 +1124,7 @@ ATURAN KEAMANAN MUTLAK:
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Tagline / Bidang Layanan</label>
+                      <label className="field-label">Tagline / Bidang Layanan</label>
                       <input
                         type="text"
                         className="linear-input"
@@ -1137,7 +1134,7 @@ ATURAN KEAMANAN MUTLAK:
                       />
                     </div>
                     <div style={{ gridColumn: 'span 2' }}>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Alamat Kantor Resmi (Dicetak di Bagian Ditagihkan Oleh)</label>
+                      <label className="field-label">Alamat Kantor Resmi (Dicetak di Bagian Ditagihkan Oleh)</label>
                       <textarea
                         rows={2}
                         className="linear-textarea"
@@ -1147,7 +1144,7 @@ ATURAN KEAMANAN MUTLAK:
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Email Finance / Kontak</label>
+                      <label className="field-label">Email Finance / Kontak</label>
                       <input
                         type="email"
                         className="linear-input"
@@ -1157,7 +1154,7 @@ ATURAN KEAMANAN MUTLAK:
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Website Resmi</label>
+                      <label className="field-label">Website Resmi</label>
                       <input
                         type="text"
                         className="linear-input"
@@ -1176,7 +1173,7 @@ ATURAN KEAMANAN MUTLAK:
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nama Bank</label>
+                      <label className="field-label">Nama Bank</label>
                       <input
                         type="text"
                         className="linear-input"
@@ -1186,7 +1183,7 @@ ATURAN KEAMANAN MUTLAK:
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nomor Rekening</label>
+                      <label className="field-label">Nomor Rekening</label>
                       <input
                         type="text"
                         className="linear-input font-mono"
@@ -1196,7 +1193,7 @@ ATURAN KEAMANAN MUTLAK:
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Atas Nama Pemilik Rekening</label>
+                      <label className="field-label">Atas Nama Pemilik Rekening</label>
                       <input
                         type="text"
                         className="linear-input"
@@ -1215,7 +1212,7 @@ ATURAN KEAMANAN MUTLAK:
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nama Lengkap Penandatangan</label>
+                      <label className="field-label">Nama Lengkap Penandatangan</label>
                       <input
                         type="text"
                         className="linear-input"
@@ -1226,7 +1223,7 @@ ATURAN KEAMANAN MUTLAK:
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Jabatan / Role Penandatangan</label>
+                      <label className="field-label">Jabatan / Role Penandatangan</label>
                       <input
                         type="text"
                         className="linear-input"

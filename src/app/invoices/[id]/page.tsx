@@ -403,30 +403,9 @@ function InvoiceDetailPageInner() {
 
         {/* Modal Update Status */}
         {isEditing && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgb(8 10 14 / 0.62)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-            }}
+          <div className="modal-overlay"
           >
-            <div
-              className="linear-card-elevated"
-              style={{
-                width: '100%',
-                maxWidth: '520px',
-                padding: '24px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-hover)',
-                borderRadius: '12px',
-              }}
+            <div className="modal-panel modal-panel-lg"
             >
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
                 Update Status Invoice & Pembayaran
@@ -438,7 +417,7 @@ function InvoiceDetailPageInner() {
               <form onSubmit={handleSaveModal}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Status Penagihan (Billing Stage)
                     </label>
                     <select
@@ -455,7 +434,7 @@ function InvoiceDetailPageInner() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Nomor Invoice Resmi
                     </label>
                     <input
@@ -469,7 +448,7 @@ function InvoiceDetailPageInner() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Tanggal Terbit Invoice
                     </label>
                     <input
@@ -482,7 +461,7 @@ function InvoiceDetailPageInner() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Tanggal Jatuh Tempo (Due Date)
                     </label>
                     <input
@@ -495,7 +474,7 @@ function InvoiceDetailPageInner() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Tanggal Pelunasan (Paid Date)
                     </label>
                     <input
@@ -508,7 +487,7 @@ function InvoiceDetailPageInner() {
                   </div>
 
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Nominal Pembayaran Diterima (Rp)
                     </label>
                     <input
@@ -522,7 +501,7 @@ function InvoiceDetailPageInner() {
                   </div>
 
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    <label className="field-label">
                       Referensi Bukti Transfer / Catatan
                     </label>
                     <input
