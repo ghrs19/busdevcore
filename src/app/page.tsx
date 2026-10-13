@@ -479,12 +479,7 @@ export default function HistoricalEstimatesPage() {
         >
           <div>
             <h1
-              style={{
-                fontSize: '24px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.02em',
-              }}
+              className="heading-page"
             >
               Costing Estimates
             </h1>
@@ -831,7 +826,7 @@ export default function HistoricalEstimatesPage() {
                   marginBottom: '16px',
                 }}
               >
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <h3 className="heading-md">
                   Konfirmasi Hapus Estimasi
                 </h3>
                 <button
@@ -939,7 +934,7 @@ export default function HistoricalEstimatesPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <ArrowLeftRight style={{ width: '22px', height: '22px', color: 'var(--accent-hover)' }} />
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <h3 className="heading-md">
                     Buat Revisi (Fork Versioning)
                   </h3>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
@@ -1022,22 +1017,7 @@ export default function HistoricalEstimatesPage() {
 
         {/* Toast Notification */}
         {toastMessage && (
-          <div
-            style={{
-              position: 'fixed',
-              top: '24px',
-              right: '24px',
-              zIndex: 300,
-              padding: '12px 20px',
-              borderRadius: '8px',
-              backgroundColor: 'var(--color-success)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              fontSize: '13px',
-              fontWeight: 500,
-            }}
+          <div className="toast"
           >
             <span>✓ {toastMessage}</span>
             <button className="btn-ghost btn-icon btn-sm"

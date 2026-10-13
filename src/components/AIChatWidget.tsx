@@ -392,14 +392,13 @@ function AIChatWidgetContent() {
                   flex: 1,
                   fontSize: '12.5px',
                   padding: '8px 12px',
-                  borderRadius: '8px',
                 }}
               />
               <button
                 type="submit"
                 disabled={!inputMessage.trim() || loading}
                 className="btn-primary btn-sm"
-                style={{ borderRadius: '8px', opacity: !inputMessage.trim() || loading ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                style={{ opacity: !inputMessage.trim() || loading ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
                 <span>Kirim</span>
                 <Send style={{ width: '13px', height: '13px' }} />

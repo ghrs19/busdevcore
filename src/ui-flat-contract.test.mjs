@@ -59,3 +59,17 @@ test('globals.css defines shared modal, tab and label classes', () => {
     assert.ok(css.includes(c), `missing ${c}`);
   }
 });
+
+test('headings, fixed chrome and status chips use shared classes', () => {
+  const offenders = [];
+  for (const f of files) {
+    const s = readFileSync(f, 'utf8');
+    if (/<h[1-4]\b[^>]*style=\{\{[^}]*fontSize/.test(s)) offenders.push(`${f}: inline heading size`);
+    if (/position:\s*'fixed'/.test(s) && !f.endsWith('AIChatWidget.tsx')) offenders.push(`${f}: inline fixed positioning`);
+  }
+  assert.deepEqual(offenders, []);
+  const css = readFileSync('src/app/globals.css', 'utf8');
+  for (const c of ['.heading-page', '.heading-md', '.heading-sm', '.sticky-bar', '.toast', '.status-chip']) {
+    assert.ok(css.includes(c), `missing ${c}`);
+  }
+});

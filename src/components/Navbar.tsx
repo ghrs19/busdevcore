@@ -91,9 +91,9 @@ function UserMenu({ email, role }: { email: string; role: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface-2 pl-1.5 pr-2.5 text-[12.5px] text-fg-2 transition-colors hover:border-line-strong hover:text-fg"
+        className="inline-flex h-9 items-center gap-2 rounded-full border-0 bg-surface-2 pl-1.5 pr-2.5 text-[12.5px] text-fg-3 transition-colors hover:bg-[var(--row-hover)] hover:text-fg"
       >
-        <span className="grid size-6 place-items-center rounded-md bg-[var(--accent-light)] text-[11px] font-semibold text-brand-fg">{initial}</span>
+        <span className="grid size-6 place-items-center rounded-full bg-[var(--accent-light)] text-[11px] font-semibold text-brand-fg">{initial}</span>
         <span className="hidden max-w-[160px] truncate md:inline">{email}</span>
         <ChevronDown className={cn('size-3.5 text-fg-3 transition-transform', open && 'rotate-180')} aria-hidden />
       </button>

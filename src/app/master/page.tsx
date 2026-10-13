@@ -465,7 +465,7 @@ export default function MasterDataPage() {
           <section className="linear-card" style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Master Worker</h3>
+                <h3 className="heading-md">Master Worker</h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: 2 }}>
                   Daftar orang beserta rate per jam. Tidak terhubung ke role: kode role dipilih saat costing. Estimasi lama tidak berubah karena menyimpan snapshot sendiri.
                 </p>
@@ -518,7 +518,7 @@ export default function MasterDataPage() {
           <div className="linear-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <h3 className="heading-md">
                   Daftar Master Role & Tarif Jam Kerja (Hourly Rate)
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -684,7 +684,7 @@ export default function MasterDataPage() {
           <div className="linear-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <h3 className="heading-md">
                   Katalog Master Template WBS Costing
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -835,7 +835,7 @@ export default function MasterDataPage() {
                           </button>
                         </div>
                       </div>
-                      <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      <h4 className="heading-md" style={{ marginBottom: '4px' }}>
                         {tpl.name}
                       </h4>
                       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '10px' }}>
@@ -858,7 +858,7 @@ export default function MasterDataPage() {
           <div className="linear-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                <h3 className="heading-md" style={{ margin: 0 }}>
                   Master Perusahaan Klien
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
@@ -1012,7 +1012,7 @@ export default function MasterDataPage() {
             <div style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '18px' }}>🤖</span>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                <h3 className="heading-md" style={{ margin: 0 }}>
                   Konfigurasi Initial Prompt Busdev AI Copilot
                 </h3>
               </div>
@@ -1094,7 +1094,7 @@ ATURAN KEAMANAN MUTLAK:
         {activeTab === 'COMPANY_ISSUER' && (
           <div className="linear-card" style={{ padding: '24px' }}>
             <div style={{ marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              <h3 className="heading-md" style={{ margin: 0 }}>
                 Pengaturan Profil Perusahaan, Kop Surat, & Tanda Tangan PDF
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>

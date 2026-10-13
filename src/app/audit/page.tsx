@@ -129,7 +129,7 @@ export default function AuditDashboardPage() {
                         type="button"
                         onClick={() => toggle(log.id)}
                         aria-expanded={isOpen}
-                        className="group flex w-full items-start gap-1.5 rounded-md p-2 text-left transition-colors hover:bg-[var(--row-hover)]"
+                        className="group flex w-full items-start gap-1.5 rounded-lg p-2 text-left transition-colors hover:bg-[var(--row-hover)]"
                         title={isOpen ? 'Ciutkan detail' : 'Lihat detail lengkap'}
                       >
                         <ChevronRight className={`mt-[3px] size-3.5 shrink-0 text-fg-3 transition-transform ${isOpen ? 'rotate-90' : ''}`} aria-hidden />

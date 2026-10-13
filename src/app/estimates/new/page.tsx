@@ -1256,15 +1256,7 @@ function NewEstimateForm() {
           >
             <div>
               <h1
-                style={{
-                  fontSize: '24px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  letterSpacing: '-0.02em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                }}
+                className="heading-page" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
               >
                 {editId ? `Edit / Revisi Estimasi #${editId}` : 'Buat Costing Baru'}
                 {editId && editingEstimateMeta?.version && (
@@ -1361,7 +1353,7 @@ function NewEstimateForm() {
         <section className="linear-card" style={{ padding: '20px', marginBottom: '24px', border: '1px solid var(--accent-hover)', background: 'rgb(var(--accent-rgb) / 0.03)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 className="heading-md" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Sparkles style={{ width: "16px", height: "16px", color: "var(--accent-hover)" }} /><span>AI Costing Assistant (Hermes)</span></span>
                 {aiChatHistory.length > 0 && (
                   <span className="badge badge-accent" style={{ fontSize: '10px' }}>
@@ -1574,15 +1566,7 @@ function NewEstimateForm() {
           {/* Section 1: Project & Client */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <h2
-              style={{
-                fontSize: '15px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
+              className="heading-md" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <span
                 style={{
@@ -1856,15 +1840,7 @@ function NewEstimateForm() {
           {/* Section 2: Klasifikasi Layanan (Tactile Pills) */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <h2
-              style={{
-                fontSize: '15px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
+              className="heading-md" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <span
                 style={{
@@ -2007,7 +1983,7 @@ function NewEstimateForm() {
                 </span>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <h2 className="heading-md">
                       Master Rate Per Jam (Rate Snapshot)
                     </h2>
                     <span className="linear-badge" style={{ fontSize: '11px' }}>
@@ -2157,7 +2133,7 @@ function NewEstimateForm() {
                   4
                 </span>
                 <div>
-                  <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <h2 className="heading-md">
                     WBS Breakdown Berdasarkan Kategori Proyek
                   </h2>
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -2244,7 +2220,7 @@ function NewEstimateForm() {
                       <span className="badge badge-accent" style={{ fontSize: '11px' }}>
                         ONE-TIME PAYMENT
                       </span>
-                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <h3 className="heading-sm">
                         A. WBS Development (Modul & Tasks Manhours)
                       </h3>
                     </div>
@@ -2298,21 +2274,8 @@ function NewEstimateForm() {
                         value={mod.name}
                         onChange={(e) => updateModuleName(mIdx, e.target.value)}
                         placeholder="Nama Modul"
-                        style={{
-                          maxWidth: '380px',
-                          fontWeight: 600,
-                          fontSize: '13px',
-                          background: 'transparent',
-                          border: 'none',
-                          borderBottom: '1px dashed var(--border-subtle)',
-                          borderRadius: 0,
-                          padding: '3px 4px',
-                          color: 'var(--text-primary)',
-                          outline: 'none',
-                          transition: 'border-color 0.15s ease',
-                        }}
-                        onFocus={(e) => (e.currentTarget.style.borderBottomColor = 'var(--accent-hover)')}
-                        onBlur={(e) => (e.currentTarget.style.borderBottomColor = 'var(--border-subtle)')}
+                        className="linear-input"
+                        style={{ maxWidth: '380px', fontWeight: 600, minHeight: 32 }}
                       />
                     </div>
 
@@ -2457,7 +2420,7 @@ function NewEstimateForm() {
                       <span className="badge badge-info" style={{ fontSize: '11px' }}>
                         MONTHLY RECURRING
                       </span>
-                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <h3 className="heading-sm">
                         B. WBS Maintenance (Alokasi Jam Kerja Rutin Bulanan)
                       </h3>
                     </div>
@@ -2663,7 +2626,7 @@ function NewEstimateForm() {
                       <span className="badge badge-warning" style={{ fontSize: '11px' }}>
                         EXPENSES & TRAVEL
                       </span>
-                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <h3 className="heading-sm">
                         D. WBS Operation & Travel Expenses (Transport, Hotel, dll.)
                       </h3>
                     </div>
@@ -2819,7 +2782,7 @@ function NewEstimateForm() {
                       <span className="badge badge-warning" style={{ fontSize: '11px' }}>
                         HARDWARE & CLOUD
                       </span>
-                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <h3 className="heading-sm">
                         C. WBS Infrastructure Items (One-Time Setup & Recurring Cloud)
                       </h3>
                     </div>
@@ -2978,7 +2941,7 @@ function NewEstimateForm() {
                   </span>
                   <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Baseline Kalender & Jadwal</span>
                 </div>
-                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', margin: 0 }}>
+                <h2 className="heading-md" style={{ marginTop: '4px', margin: 0 }}>
                   Delivery Timeline Setup
                 </h2>
                 <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '3px' }}>
@@ -3155,17 +3118,7 @@ function NewEstimateForm() {
           </section>
 
           {/* Sticky Bottom Summary & Multi-Billing Action Bar */}
-          <div
-            style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: 40,
-              background: 'var(--bg-panel)',
-              borderTop: '1px solid var(--border-subtle)',
-              padding: '14px 24px',
-            }}
+          <div className="sticky-bar"
           >
             <div
               style={{
@@ -3284,7 +3237,7 @@ function NewEstimateForm() {
                     </svg>
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                    <h3 className="heading-md" style={{ margin: 0 }}>
                       Simpan Perubahan Revisi
                     </h3>
                     <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '3px' }}>

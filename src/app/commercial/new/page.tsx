@@ -555,13 +555,7 @@ function NewCommercialProposalForm() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h1
-                style={{
-                  fontSize: '24px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  letterSpacing: '-0.02em',
-                  margin: 0,
-                }}
+                className="heading-page" style={{ margin: 0 }}
               >
                 {isRevisionMode
                   ? `Revisi Proposal: ${existingProposalNumber} (v${existingVersion} → v${existingVersion + 1})`
@@ -661,7 +655,7 @@ function NewCommercialProposalForm() {
                 1
               </span>
               <div>
-                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                <h2 className="heading-md" style={{ margin: 0 }}>
                   Pemilihan Dokumen Baseline (Perusahaan, Proyek, & Estimasi)
                 </h2>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -808,7 +802,7 @@ function NewCommercialProposalForm() {
                 2
               </span>
               <div>
-                <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                <h2 className="heading-md" style={{ margin: 0 }}>
                   Kalkulasi Komersial (Dua Arah: Rupiah ↔ Persentase)
                 </h2>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -1103,7 +1097,7 @@ function NewCommercialProposalForm() {
                   3
                 </span>
                 <div>
-                  <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  <h2 className="heading-md" style={{ margin: 0 }}>
                     Delivery Timeline Setup (Jadwal & Milestone Kerja)
                   </h2>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -1306,7 +1300,7 @@ function NewCommercialProposalForm() {
                   4
                 </span>
                 <div>
-                  <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  <h2 className="heading-md" style={{ margin: 0 }}>
                     Skema Termin Pembayaran (Edit Bebas: Nominal Rp ↔ Persentase %)
                   </h2>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -1484,7 +1478,7 @@ function NewCommercialProposalForm() {
 
           {/* STEP 5: Validitas & Catatan Proposal */}
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '14px' }}>
+            <h2 className="heading-md" style={{ marginBottom: '14px' }}>
               Pengaturan Tambahan & Syarat Penawaran
             </h2>
 
@@ -1524,17 +1518,7 @@ function NewCommercialProposalForm() {
           </section>
 
           {/* Sticky Bottom Summary Action Bar */}
-          <div
-            style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: 40,
-              background: 'var(--bg-panel)',
-              borderTop: '1px solid var(--border-subtle)',
-              padding: '14px 24px',
-            }}
+          <div className="sticky-bar"
           >
             <div
               style={{

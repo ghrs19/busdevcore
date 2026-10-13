@@ -339,6 +339,19 @@
   .density-toggle-option:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
   .density-toggle-option svg { color: inherit; }
 
+  /* Status chip: flat pill, tone by state, no border. */
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px;
+    border: 0; border-radius: 999px; background: var(--bg-card); color: var(--text-tertiary);
+    font-size: 12.5px; font-weight: 500; cursor: pointer; box-shadow: none;
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .status-chip:hover:not(:disabled):not(.is-current) { background: var(--row-hover); color: var(--text-primary); }
+  .status-chip:disabled { opacity: .6; cursor: not-allowed; }
+  .status-chip.is-current { background: var(--accent-light); color: var(--accent-text); font-weight: 600; }
+  .status-chip.is-current.is-ok { background: var(--color-success-bg); color: var(--color-success); }
+  .status-chip.is-current.is-bad { background: var(--color-danger-bg); color: var(--color-danger); }
+
   /* Segmented filter control: flat, no border, solid accent when active. */
   .pill-group {
     display: inline-flex; align-items: stretch; gap: 2px; padding: 3px;
@@ -363,8 +376,13 @@
   /* Form labels and headings */
   .field-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 500; line-height: 1.3; color: var(--text-secondary); }
   .field-label-caps { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-tertiary); }
+  .heading-page { font-size: 24px; font-weight: 600; line-height: 1.25; letter-spacing: -0.02em; color: var(--text-primary); }
   .heading-md { font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--text-primary); }
   .heading-sm { font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--text-primary); }
+
+  /* Fixed chrome: bottom summary bar and toast. Flat, border only. */
+  .sticky-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 14px 24px; background: var(--bg-panel); border-top: 1px solid var(--border-subtle); }
+  .toast { position: fixed; top: 24px; right: 24px; z-index: 300; display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-radius: 8px; background: var(--color-success); color: #fff; font-size: 13px; font-weight: 500; }
 
   /* Modal: one overlay + one flat panel. */
   .modal-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgb(8 10 14 / 0.62); }

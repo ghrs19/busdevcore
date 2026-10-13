@@ -370,7 +370,7 @@ export default function InvoicesTrackerPage() {
           >
             <div className="modal-panel modal-panel-lg"
             >
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
+              <h3 className="heading-md" style={{ margin: '0 0 4px 0' }}>
                 Update Status Invoice & Pembayaran
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>

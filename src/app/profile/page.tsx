@@ -150,7 +150,7 @@ export default function ProfilePage() {
       <div style={{ marginBottom: '24px' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+          <h1 className="heading-page" style={{ margin: 0 }}>
             Pengaturan Akun & Profil
           </h1>
           {profile?.role && (
@@ -225,7 +225,7 @@ export default function ProfilePage() {
             padding: '24px',
           }}
         >
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          <h2 className="heading-md" style={{ marginBottom: '16px' }}>
             Informasi Profil
           </h2>
 
@@ -276,7 +276,7 @@ export default function ProfilePage() {
             padding: '24px',
           }}
         >
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h2 className="heading-md" style={{ marginBottom: '4px' }}>
             Ubah Kata Sandi (Password)
           </h2>
           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>

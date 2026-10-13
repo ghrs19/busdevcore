@@ -385,13 +385,7 @@ function CommercialProposalDetailContent() {
                   disabled={changingStatus}
                   aria-pressed={isCurrent}
                   onClick={() => handleStatusChange(st.id)}
-                  className={cn(
-                    'inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-[12.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',
-                    !isCurrent && 'border-line bg-surface-2 text-fg-3 hover:border-line-strong hover:text-fg',
-                    isCurrent && tone === 'ok' && 'border-[color-mix(in_srgb,var(--color-success)_45%,transparent)] bg-[var(--color-success-bg)] text-ok',
-                    isCurrent && tone === 'bad' && 'border-[color-mix(in_srgb,var(--color-danger)_45%,transparent)] bg-[var(--color-danger-bg)] text-bad',
-                    isCurrent && tone === 'brand' && 'border-[color-mix(in_srgb,var(--accent-primary)_55%,transparent)] bg-[var(--accent-light)] text-brand-fg',
-                  )}
+                  className={cn('status-chip', isCurrent && 'is-current', isCurrent && tone === 'ok' && 'is-ok', isCurrent && tone === 'bad' && 'is-bad')}
                 >
                   {isCurrent ? <Check className="size-3.5" aria-hidden /> : <span className="font-mono-numbers text-[11px] opacity-60">{idx + 1}</span>}
                   {st.label}
@@ -491,7 +485,7 @@ function CommercialProposalDetailContent() {
               <section className="linear-card" style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
                   <Building2 style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
-                  <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  <h3 className="heading-sm" style={{ margin: 0 }}>
                     Informasi Klien & Entitas
                   </h3>
                 </div>
@@ -516,7 +510,7 @@ function CommercialProposalDetailContent() {
               <section className="linear-card" style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
                   <FileText style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
-                  <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  <h3 className="heading-sm" style={{ margin: 0 }}>
                     Administrasi Dokumen Penawaran
                   </h3>
                 </div>
@@ -548,7 +542,7 @@ function CommercialProposalDetailContent() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <CalendarDays style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
-                    <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                    <h3 className="heading-sm" style={{ margin: 0 }}>
                       Delivery Timeline Setup
                     </h3>
                   </div>
@@ -593,7 +587,7 @@ function CommercialProposalDetailContent() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <CreditCard style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
-                    <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                    <h3 className="heading-sm" style={{ margin: 0 }}>
                       Termin Pembayaran (Term of Payment)
                     </h3>
                   </div>
@@ -665,7 +659,7 @@ function CommercialProposalDetailContent() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Box style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                   <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                    <h3 className="heading-md" style={{ margin: 0 }}>
                       Ruang Lingkup Fitur & Modul (Scope of Work Baseline)
                     </h3>
                     <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -737,7 +731,7 @@ function CommercialProposalDetailContent() {
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                <h3 className="heading-md" style={{ margin: 0 }}>
                   Konversi Dokumen Kontrak & Penagihan
                 </h3>
                 <p style={{ fontSize: '12.5px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
@@ -907,7 +901,7 @@ function CommercialProposalDetailContent() {
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                <h3 className="heading-md" style={{ margin: 0 }}>
                   Riwayat Seluruh Versi Dokumen ({proposal.proposal_number})
                 </h3>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -1003,7 +997,7 @@ function CommercialProposalDetailContent() {
           <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                <h3 className="heading-md" style={{ margin: 0 }}>
                   Activity Trail & Audit Log Dokumen
                 </h3>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
@@ -1095,7 +1089,7 @@ function CommercialProposalDetailContent() {
           >
             <div className="modal-panel modal-panel-danger"
             >
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-danger)', margin: '0 0 8px 0' }}>
+              <h3 className="heading-md" style={{ color: 'var(--color-danger)', margin: '0 0 8px 0' }}>
                 Tandai Proposal Sebagai LOST (Kalah)
               </h3>
               <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '16px' }}>

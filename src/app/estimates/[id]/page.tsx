@@ -773,7 +773,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
 
         {activeTab === 'HISTORY' && estimate.version_history && estimate.version_history.length > 1 && (
           <section className="linear-card-elevated" style={{ padding: '20px', marginBottom: '28px' }} aria-label="Perbandingan versi">
-            <h2 style={{ fontSize: '16px', marginBottom: '12px' }}>Bandingkan rincian task antar versi</h2>
+            <h2 className="heading-md" style={{ marginBottom: '12px' }}>Bandingkan rincian task antar versi</h2>
             <label htmlFor="compare-version" className="field-label">Bandingkan v{estimate.version} dengan:</label>
             <select id="compare-version" className="linear-select" style={{ maxWidth: '240px' }} value={compareId ?? ''}
               onChange={(event) => { setComparison(null); setComparisonError(null); setCompareId(event.target.value ? Number(event.target.value) : null); }}>
@@ -815,7 +815,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
             <div className="modal-panel modal-panel-danger"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              <h3 className="heading-md" style={{ marginBottom: '8px' }}>
                 Hapus Estimasi #{estimate.id}?
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
