@@ -177,9 +177,11 @@ export async function PUT(
       revision_notes,
       maintenance_billing_mode,
       category_pricing,
+      marketing_fee_percent,
+      marketing_fee_categories,
     } = body; // cogs/margin/base/subtotal/tax/grand total dari klien diabaikan; server menghitung ulang dari category_pricing
 
-    const priced = resolveCommercialPricing({ category_pricing, discount_type, discount_value, is_tax_enabled });
+    const priced = resolveCommercialPricing({ category_pricing, discount_type, discount_value, is_tax_enabled, marketing_fee_percent, marketing_fee_categories });
     if (!priced.ok) {
       await client.query('ROLLBACK');
       return NextResponse.json({ success: false, error: priced.error }, { status: 400 });
@@ -194,7 +196,7 @@ export async function PUT(
         discount_type, discount_value, subtotal_after_discount,
         is_tax_enabled, tax_amount, grand_total,
         timeline_config, payment_terms, validity_days, notes,
-        maintenance_billing_mode, category_pricing,
+        maintenance_billing_mode, category_pricing, marketing_fee_percent, marketing_fee_categories, marketing_fee_mode,
         created_by_user_id, created_at, updated_at
       ) VALUES (
         $1, $2, $3, $4,
@@ -203,7 +205,7 @@ export async function PUT(
         $11, $12, $13,
         $14, $15, $16,
         $17::jsonb, $18::jsonb, $19, $20,
-        $21, $22::jsonb, $23, NOW(), NOW()
+        $21, $22::jsonb, $23, $24::jsonb, $25, $26, NOW(), NOW()
       ) RETURNING id, proposal_number, version, grand_total, maintenance_billing_mode, created_at`,
       [
         currentProposal.proposal_number,
@@ -228,6 +230,9 @@ export async function PUT(
         notes?.trim() || null,
         maintenance_billing_mode || currentProposal.maintenance_billing_mode || 'ALL_IN_PROJECT',
         JSON.stringify(priced.pricing),
+        priced.marketingFeePercent,
+        JSON.stringify(priced.marketingFeeCategories),
+        priced.marketingFeeMode,
         user.id,
       ]
     );

@@ -105,6 +105,9 @@ function NewCommercialProposalForm() {
   const [categoryPricing, setCategoryPricing] = useState<CategoryPricing>({});
   const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'NOMINAL'>('PERCENTAGE');
   const [discountValue, setDiscountValue] = useState<number>(0);
+  const [marketingFeePercent, setMarketingFeePercent] = useState<number>(0);
+  const [marketingFeeMode, setMarketingFeeMode] = useState<'ALL_PROPORTIONAL' | 'SELECTED_ONLY'>('ALL_PROPORTIONAL');
+  const [marketingFeeCategories, setMarketingFeeCategories] = useState<PricingCategory[]>([]);
   const [isTaxEnabled, setIsTaxEnabled] = useState<boolean>(true);
 
   // Delivery Timeline States (Prefilled & editable)
@@ -132,10 +135,11 @@ function NewCommercialProposalForm() {
 
   // --- TWO-WAY LINKED FINANCIAL CALCULATION ENGINE ---
 
-  const discountOpts = { discountType, discountValue, taxEnabled: isTaxEnabled };
+  const presentCategories = CATEGORY_ORDER.filter((c) => categoryPricing[c]);
+  const effectiveMarketingFeeCategories = marketingFeeMode === 'ALL_PROPORTIONAL' ? presentCategories : marketingFeeCategories.filter((c) => categoryPricing[c]);
+  const discountOpts = { discountType, discountValue, taxEnabled: isTaxEnabled, marketingFeePercent, marketingFeeCategories: effectiveMarketingFeeCategories };
   const totals = computeTotals(categoryPricing, discountOpts);
   const grandTotal = totals.grand_total;
-  const presentCategories = CATEGORY_ORDER.filter((c) => categoryPricing[c]);
 
   // Satu pintu untuk semua perubahan harga: hitung ulang total lalu sinkronkan nominal termin.
   const applyPricing = (next: CategoryPricing, opts = discountOpts) => {
@@ -275,6 +279,9 @@ function NewCommercialProposalForm() {
           }
           setDiscountType(p.discount_type || 'PERCENTAGE');
           setDiscountValue(Number(p.discount_value) || 0);
+          setMarketingFeePercent(Number(p.marketing_fee_percent) || 0);
+          setMarketingFeeMode(p.marketing_fee_mode === 'SELECTED_ONLY' ? 'SELECTED_ONLY' : 'ALL_PROPORTIONAL');
+          setMarketingFeeCategories(Array.isArray(p.marketing_fee_categories) ? p.marketing_fee_categories : []);
           setIsTaxEnabled(Boolean(p.is_tax_enabled));
           setValidityDays(Number(p.validity_days) || 30);
           if (p.notes) setNotes(p.notes);
@@ -477,6 +484,10 @@ function NewCommercialProposalForm() {
       setErrorMessage('Estimasi belum memiliki kategori biaya untuk dihitung.');
       return;
     }
+    if (marketingFeePercent > 0 && effectiveMarketingFeeCategories.length === 0) {
+      setErrorMessage('Pilih kategori untuk memasukkan fee marketing.');
+      return;
+    }
 
     if (Math.abs(termDiff) > 100) {
       if (!confirm(`Total akumulasi nominal termin (Rp ${totalTermAmount.toLocaleString('id-ID')}) berbeda dari Grand Total Penawaran (Rp ${grandTotal.toLocaleString('id-ID')}). Apakah yakin ingin melanjutkan?`)) {
@@ -492,6 +503,9 @@ function NewCommercialProposalForm() {
       project_id: selectedProjectId,
       estimate_id: selectedEstimateId,
       category_pricing: categoryPricing,
+      marketing_fee_percent: marketingFeePercent,
+      marketing_fee_mode: marketingFeeMode,
+      marketing_fee_categories: effectiveMarketingFeeCategories,
       discount_type: discountType,
       discount_value: discountValue,
       is_tax_enabled: isTaxEnabled,
@@ -878,7 +892,59 @@ function NewCommercialProposalForm() {
                 marginBottom: '20px',
               }}
             >
-              {/* Margin & harga dasar diatur per kategori di tabel di atas grid ini */}
+              {/* Configurable marketing fee, calculated on total category base price */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Fee Marketing (% dari total harga dasar)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="any"
+                  value={marketingFeePercent}
+                  onChange={(e) => {
+                    const value = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                    setMarketingFeePercent(value);
+                    syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, marketingFeePercent: value }).grand_total);
+                  }}
+                  className="linear-input font-mono-numbers"
+                  aria-label="Fee marketing persentase"
+                />
+                <select
+                  className="linear-select"
+                  aria-label="Mode fee marketing"
+                  value={marketingFeeMode}
+                  onChange={(e) => {
+                    const mode = e.target.value as 'ALL_PROPORTIONAL' | 'SELECTED_ONLY';
+                    setMarketingFeeMode(mode);
+                    const cats = mode === 'ALL_PROPORTIONAL' ? presentCategories : marketingFeeCategories;
+                    syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, marketingFeeCategories: cats }).grand_total);
+                  }}
+                  style={{ width: '100%', marginTop: '8px' }}
+                >
+                  <option value="ALL_PROPORTIONAL">Proporsional ke semua kategori</option>
+                  <option value="SELECTED_ONLY">Pasang di kategori tertentu</option>
+                </select>
+                {marketingFeeMode === 'SELECTED_ONLY' && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px' }}>
+                    {presentCategories.map((cat) => (
+                      <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        <input
+                          type="checkbox"
+                          checked={marketingFeeCategories.includes(cat)}
+                          onChange={(e) => {
+                            const cats = e.target.checked ? [...marketingFeeCategories, cat] : marketingFeeCategories.filter((c) => c !== cat);
+                            setMarketingFeeCategories(cats);
+                            syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, marketingFeeCategories: cats }).grand_total);
+                          }}
+                        />
+                        {CATEGORY_LABELS[cat]}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
               {/* Tipe & Nilai Diskon */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>

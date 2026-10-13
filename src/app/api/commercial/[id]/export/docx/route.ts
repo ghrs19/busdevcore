@@ -278,7 +278,7 @@ export async function GET(
       })
     );
 
-    const priceLines = publicPriceLines(proposal.category_pricing);
+    const priceLines = publicPriceLines(proposal.category_pricing, Number(proposal.marketing_fee_percent) || 0, Array.isArray(proposal.marketing_fee_categories) ? proposal.marketing_fee_categories : []);
     const categoryInvestmentRows = priceLines.length > 0
       ? priceLines.map((line, idx) => new TableRow({
           children: [

@@ -25,11 +25,15 @@ export interface DiscountOptions {
   discountType: 'PERCENTAGE' | 'NOMINAL';
   discountValue: number;
   taxEnabled: boolean;
+  marketingFeePercent?: number;
+  marketingFeeCategories?: PricingCategory[];
+  marketingFeeMode?: 'ALL_PROPORTIONAL' | 'SELECTED_ONLY';
 }
 
 export interface Totals {
   cogs: number;
   base_price: number;
+  marketing_fee: number;
   discount: number;
   subtotal: number;
   tax: number;
@@ -80,6 +84,20 @@ export function discountAmount(base: number, type: 'PERCENTAGE' | 'NOMINAL', val
   return Math.min(Math.max(value, 0), base);
 }
 
+export function marketingFeeAllocations(lines: CategoryPricing, percent: number, selected: PricingCategory[]): Partial<Record<PricingCategory, number>> {
+  const cats = CATEGORY_ORDER.filter((c) => lines[c] && selected.includes(c));
+  const fee = Math.round(CATEGORY_ORDER.reduce((sum, c) => sum + (lines[c]?.base_price || 0), 0) * (Math.min(Math.max(percent, 0), 100) / 100));
+  const weightTotal = cats.reduce((sum, c) => sum + (lines[c]?.base_price || 0), 0);
+  const allocation: Partial<Record<PricingCategory, number>> = {};
+  if (!cats.length) return allocation;
+  const exact = cats.map((c) => fee * (weightTotal > 0 ? (lines[c]?.base_price || 0) / weightTotal : 1 / cats.length));
+  const rounded = exact.map(Math.floor);
+  let rem = fee - rounded.reduce((a, b) => a + b, 0);
+  exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac).forEach(({ i }) => { if (rem > 0) { rounded[i]++; rem--; } });
+  cats.forEach((c, i) => { allocation[c] = rounded[i]; });
+  return allocation;
+}
+
 export function computeTotals(lines: CategoryPricing, opts: DiscountOptions): Totals {
   let cogs = 0;
   let base = 0;
@@ -89,12 +107,16 @@ export function computeTotals(lines: CategoryPricing, opts: DiscountOptions): To
     cogs += l.cogs;
     base += l.base_price;
   }
-  const discount = discountAmount(base, opts.discountType, opts.discountValue);
-  const subtotal = Math.max(0, base - discount);
+  const marketingFee = Math.round(base * (Math.min(Math.max(opts.marketingFeePercent ?? 0, 0), 100) / 100));
+
+  const priceBeforeDiscount = base + marketingFee;
+  const discount = discountAmount(priceBeforeDiscount, opts.discountType, opts.discountValue);
+  const subtotal = Math.max(0, priceBeforeDiscount - discount);
   const tax = opts.taxEnabled ? Math.round(subtotal * TAX_RATE) : 0;
   return {
     cogs,
     base_price: base,
+    marketing_fee: marketingFee,
     discount,
     subtotal,
     tax,
@@ -116,6 +138,7 @@ export function distributeGrandTotal(lines: CategoryPricing, grandTotal: number,
   } else if (opts.discountType === 'NOMINAL') {
     targetBase = subtotal + Math.max(opts.discountValue, 0);
   }
+  targetBase = Math.round(targetBase / (1 + Math.min(Math.max(opts.marketingFeePercent ?? 0, 0), 100) / 100));
 
   const currentSum = cats.reduce((acc, c) => acc + (lines[c] as CategoryLine).base_price, 0);
   const weights = cats.map((c) => (currentSum > 0 ? (lines[c] as CategoryLine).base_price / currentSum : c === cats[0] ? 1 : 0));
@@ -160,11 +183,12 @@ export function parseCategoryPricing(input: unknown): ParseResult {
 }
 
 // What the client may see: category name and price only. No COGS, no margin.
-export function publicPriceLines(lines: CategoryPricing | null | undefined): Array<{ category: PricingCategory; label: string; price: number }> {
+export function publicPriceLines(lines: CategoryPricing | null | undefined, marketingFeePercent = 0, marketingFeeCategories: PricingCategory[] = []): Array<{ category: PricingCategory; label: string; price: number }> {
   if (!lines) return [];
+  const allocations = marketingFeeAllocations(lines, marketingFeePercent, marketingFeeCategories);
   return CATEGORY_ORDER.filter((c) => lines[c]).map((c) => ({
     category: c,
     label: CATEGORY_LABELS[c],
-    price: (lines[c] as CategoryLine).base_price,
+    price: (lines[c] as CategoryLine).base_price + (allocations[c] || 0),
   }));
 }

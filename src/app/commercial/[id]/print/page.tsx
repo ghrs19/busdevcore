@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { publicPriceLines, type CategoryPricing } from '@/lib/commercial-pricing';
+import { publicPriceLines, type CategoryPricing, type PricingCategory } from '@/lib/commercial-pricing';
 
 interface ProposalDetail {
   id: number;
@@ -33,6 +33,9 @@ interface ProposalDetail {
   tax_amount: string | number;
   grand_total: string | number;
   category_pricing?: CategoryPricing | null;
+  marketing_fee_percent?: number | string;
+  marketing_fee_categories?: PricingCategory[];
+  marketing_fee_mode?: 'ALL_PROPORTIONAL' | 'SELECTED_ONLY';
   validity_days: number;
   notes?: string;
   creator_name?: string;
@@ -178,7 +181,7 @@ function CommercialProposalPrintViewContent() {
     );
   }
 
-  const priceLines = publicPriceLines(proposal.category_pricing);
+  const priceLines = publicPriceLines(proposal.category_pricing, Number(proposal.marketing_fee_percent) || 0, proposal.marketing_fee_categories || []);
   const milestoneRows = schedule.filter((r) => r.billing_type === 'milestone');
   const recurringRows = schedule.filter((r) => r.billing_type === 'recurring_monthly');
   const recurringTotal = recurringRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);

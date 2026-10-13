@@ -89,6 +89,9 @@ export async function POST(req: Request) {
       notes,
       maintenance_billing_mode,
       category_pricing,
+      marketing_fee_percent,
+      marketing_fee_categories,
+      marketing_fee_mode,
     } = body; // cogs/margin/base/subtotal/tax/grand total dari klien diabaikan; server menghitung ulang dari category_pricing
 
     if (!company_id || !project_id || !estimate_id) {
@@ -98,7 +101,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const priced = resolveCommercialPricing({ category_pricing, discount_type, discount_value, is_tax_enabled });
+    const priced = resolveCommercialPricing({ category_pricing, discount_type, discount_value, is_tax_enabled, marketing_fee_percent, marketing_fee_categories, marketing_fee_mode });
     if (!priced.ok) {
       return NextResponse.json({ success: false, error: priced.error }, { status: 400 });
     }
@@ -127,7 +130,7 @@ export async function POST(req: Request) {
         discount_type, discount_value, subtotal_after_discount,
         is_tax_enabled, tax_amount, grand_total,
         timeline_config, payment_terms, validity_days, notes,
-        maintenance_billing_mode, category_pricing,
+        maintenance_billing_mode, category_pricing, marketing_fee_percent, marketing_fee_categories, marketing_fee_mode,
         created_by_user_id, created_at, updated_at
       ) VALUES (
         $1, 1, $2, $3, $4,
@@ -135,7 +138,7 @@ export async function POST(req: Request) {
         $8, $9, $10,
         $11, $12, $13,
         $14::jsonb, $15::jsonb, $16, $17,
-        $18, $19::jsonb, $20, NOW(), NOW()
+        $18, $19::jsonb, $20, $21::jsonb, $22, $23, NOW(), NOW()
       ) RETURNING id, proposal_number, version, grand_total, maintenance_billing_mode, created_at`,
       [
         proposal_number,
@@ -157,6 +160,9 @@ export async function POST(req: Request) {
         notes?.trim() || null,
         maintenance_billing_mode || 'ALL_IN_PROJECT',
         JSON.stringify(priced.pricing),
+        priced.marketingFeePercent,
+        JSON.stringify(priced.marketingFeeCategories),
+        priced.marketingFeeMode,
         user.id,
       ]
     );
