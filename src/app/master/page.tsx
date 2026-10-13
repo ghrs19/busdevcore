@@ -1,14 +1,7 @@
 'use client';
-import {
-  PencilSquareIcon,
-  TrashIcon,
-  UsersIcon,
-  UserGroupIcon,
-  DocumentDuplicateIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/outline';
 
 
+import { Copy, SquarePen, Trash2, Users, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -428,7 +421,7 @@ export default function MasterDataPage() {
             <div
               style={{
                 display: 'flex',
-                background: 'rgba(255, 255, 255, 0.04)',
+                background: 'rgb(var(--ink-rgb) / 0.04)',
                 padding: '4px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)',
@@ -483,15 +476,15 @@ export default function MasterDataPage() {
 
         {/* Notifications */}
         {errorMsg && (
-          <div style={{ padding: '12px 16px', marginBottom: '20px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ padding: '12px 16px', marginBottom: '20px', borderRadius: '8px', background: 'rgb(var(--danger-rgb) / 0.1)', border: '1px solid rgb(var(--danger-rgb) / 0.3)', color: 'var(--color-danger)', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
             <span>{errorMsg}</span>
-            <button onClick={() => setErrorMsg(null)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>✕</button>
+            <button onClick={() => setErrorMsg(null)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}>✕</button>
           </div>
         )}
         {successMsg && (
-          <div style={{ padding: '12px 16px', marginBottom: '20px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ padding: '12px 16px', marginBottom: '20px', borderRadius: '8px', background: 'rgb(var(--success-rgb) / 0.1)', border: '1px solid rgb(var(--success-rgb) / 0.3)', color: 'var(--color-success)', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
             <span>{successMsg}</span>
-            <button onClick={() => setSuccessMsg(null)} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer' }}>✕</button>
+            <button onClick={() => setSuccessMsg(null)} style={{ background: 'none', border: 'none', color: 'var(--color-success)', cursor: 'pointer' }}>✕</button>
           </div>
         )}
 
@@ -671,16 +664,16 @@ export default function MasterDataPage() {
                       <tr key={r.id}>
                         <td style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>#{r.id}</td>
                         <td>
-                          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--accent-hover)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--accent-hover)', background: 'rgb(var(--info-rgb) / 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
                             {r.code}
                           </span>
                         </td>
                         <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{r.name}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: '#10b981' }} className="font-mono-numbers">
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-success)' }} className="font-mono-numbers">
                           {formatIDR(r.default_hourly_rate)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: r.is_active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(100, 116, 139, 0.2)', color: r.is_active ? '#10b981' : '#94a3b8' }}>
+                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: r.is_active ? 'rgb(var(--success-rgb) / 0.15)' : 'var(--bg-card)', color: r.is_active ? 'var(--color-success)' : '#94a3b8' }}>
                             {r.is_active ? 'Aktif' : 'Non-Aktif'}
                           </span>
                         </td>
@@ -698,16 +691,16 @@ export default function MasterDataPage() {
                               style={{ width: '30px', height: '30px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                               title="Edit Role & Tarif"
                             >
-                              <PencilSquareIcon style={{ width: "15px", height: "15px" }} />
+                              <SquarePen style={{ width: "15px", height: "15px" }} />
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteRole(r)}
                               className="btn-secondary"
-                              style={{ width: '30px', height: '30px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
+                              style={{ width: '30px', height: '30px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-danger)' }}
                               title="Hapus Role"
                             >
-                              <TrashIcon style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
+                              <Trash2 style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
                             </button>
                           </div>
                         </td>
@@ -856,7 +849,7 @@ export default function MasterDataPage() {
                   >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: tpl.category === 'MAINTENANCE' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(168, 85, 247, 0.15)', color: tpl.category === 'MAINTENANCE' ? '#38bdf8' : '#c084fc' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: tpl.category === 'MAINTENANCE' ? 'rgb(var(--info-rgb) / 0.15)' : 'rgb(var(--violet-rgb) / 0.15)', color: tpl.category === 'MAINTENANCE' ? 'var(--color-info)' : 'var(--color-violet)' }}>
                           {tpl.category}
                         </span>
                         <div style={{ display: 'flex', gap: '4px' }}>
@@ -867,16 +860,16 @@ export default function MasterDataPage() {
                             style={{ width: '28px', height: '28px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             title="Edit Template"
                           >
-                            <PencilSquareIcon style={{ width: "15px", height: "15px" }} />
+                            <SquarePen style={{ width: "15px", height: "15px" }} />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteTemplate(tpl)}
                             className="btn-secondary"
-                            style={{ width: '28px', height: '28px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
+                            style={{ width: '28px', height: '28px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-danger)' }}
                             title="Hapus Template"
                           >
-                            <TrashIcon style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
+                            <Trash2 style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
                           </button>
                         </div>
                       </div>
@@ -888,7 +881,7 @@ export default function MasterDataPage() {
                       </p>
                     </div>
 
-                    <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-tertiary)', overflowX: 'auto', maxHeight: '80px' }}>
+                    <div style={{ background: 'var(--bg-card)', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-tertiary)', overflowX: 'auto', maxHeight: '80px' }}>
                       {JSON.stringify(tpl.payload)}
                     </div>
                   </div>
@@ -1041,7 +1034,7 @@ export default function MasterDataPage() {
                             className="btn-secondary"
                             style={{ padding: '4px 8px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                           >
-                            <PencilSquareIcon style={{ width: '13px', height: '13px' }} />
+                            <SquarePen style={{ width: '13px', height: '13px' }} />
                             <span>Edit</span>
                           </button>
                         </td>
@@ -1121,8 +1114,8 @@ ATURAN KEAMANAN MUTLAK:
                     }}
                   />
 
-                  <div style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '6px', background: 'rgba(94, 106, 210, 0.08)', border: '1px solid rgba(94, 106, 210, 0.25)', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: '#a5b4fc' }}>Catatan Keamanan:</strong> Meskipun prompt dapat disesuaikan, sistem tetap memproteksi database dengan <em>PostgreSQL Trigger Append-Only</em> pada Audit Log dan pembatasan level API controller untuk mencegah manipulasi data sensitif oleh instruksi chat AI.
+                  <div style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '6px', background: 'rgb(var(--accent-rgb) / 0.08)', border: '1px solid rgb(var(--accent-rgb) / 0.25)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--accent-text)' }}>Catatan Keamanan:</strong> Meskipun prompt dapat disesuaikan, sistem tetap memproteksi database dengan <em>PostgreSQL Trigger Append-Only</em> pada Audit Log dan pembatasan level API controller untuk mencegah manipulasi data sensitif oleh instruksi chat AI.
                   </div>
                 </div>
 

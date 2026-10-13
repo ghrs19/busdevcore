@@ -575,8 +575,8 @@ function NewCommercialProposalForm() {
               style={{
                 fontSize: '12px',
                 padding: '6px 12px',
-                background: isRevisionMode ? 'rgba(94, 106, 210, 0.2)' : undefined,
-                color: isRevisionMode ? '#a5b4fc' : undefined,
+                background: isRevisionMode ? 'rgb(var(--accent-rgb) / 0.2)' : undefined,
+                color: isRevisionMode ? 'var(--accent-text)' : undefined,
               }}
             >
               {isRevisionMode ? `Mode Revisi v${existingVersion + 1}` : 'Dynamic Two-Way Pricing'}
@@ -591,8 +591,8 @@ function NewCommercialProposalForm() {
             style={{
               padding: '16px 20px',
               marginBottom: '24px',
-              background: 'rgba(94, 106, 210, 0.08)',
-              border: '1px solid rgba(94, 106, 210, 0.3)',
+              background: 'rgb(var(--accent-rgb) / 0.08)',
+              border: '1px solid rgb(var(--accent-rgb) / 0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -628,9 +628,9 @@ function NewCommercialProposalForm() {
             style={{
               padding: '12px 16px',
               borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#ef4444',
+              background: 'rgb(var(--danger-rgb) / 0.1)',
+              border: '1px solid rgb(var(--danger-rgb) / 0.3)',
+              color: 'var(--color-danger)',
               fontSize: '13px',
               marginBottom: '20px',
             }}
@@ -754,8 +754,8 @@ function NewCommercialProposalForm() {
                   marginTop: '18px',
                   padding: '16px 20px',
                   borderRadius: '8px',
-                  background: 'rgba(94, 106, 210, 0.08)',
-                  border: '1px solid rgba(94, 106, 210, 0.25)',
+                  background: 'rgb(var(--accent-rgb) / 0.08)',
+                  border: '1px solid rgb(var(--accent-rgb) / 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -778,7 +778,7 @@ function NewCommercialProposalForm() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
                   <div>
                     <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Biaya Modal (COGS Internal)</div>
-                    <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: '#38bdf8' }}>
+                    <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-info)' }}>
                       {formatIDR(totals.cogs)}
                     </div>
                   </div>
@@ -839,7 +839,7 @@ function NewCommercialProposalForm() {
                     return (
                       <tr key={cat}>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{CATEGORY_LABELS[cat]}</td>
-                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#38bdf8' }}>{formatIDR(line.cogs)}</td>
+                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: 'var(--color-info)' }}>{formatIDR(line.cogs)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <input
                             type="number"
@@ -898,7 +898,7 @@ function NewCommercialProposalForm() {
                   <tfoot>
                     <tr>
                       <td style={{ fontWeight: 700 }}>Total</td>
-                      <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>{formatIDR(totals.cogs)}</td>
+                      <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-info)' }}>{formatIDR(totals.cogs)}</td>
                       <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent-hover)' }}>{totals.margin_percent}%</td>
                       <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700 }}>{formatIDR(totals.base_price)}</td>
                       <td />
@@ -982,8 +982,8 @@ function NewCommercialProposalForm() {
                 marginBottom: '20px',
                 padding: '16px 20px',
                 borderRadius: '8px',
-                background: 'rgba(16, 185, 129, 0.06)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
+                background: 'rgb(var(--success-rgb) / 0.06)',
+                border: '1px solid rgb(var(--success-rgb) / 0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -992,7 +992,7 @@ function NewCommercialProposalForm() {
               }}
             >
               <div>
-                <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#10b981', fontWeight: 700 }}>
+                <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-success)', fontWeight: 700 }}>
                   Total Penawaran Klien / Quotation Grand Total (Dapat Diedit Langsung)
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -1001,7 +1001,7 @@ function NewCommercialProposalForm() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '16px', fontWeight: 700, color: '#10b981' }}>Rp</span>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-success)' }}>Rp</span>
                 <input
                   type="number"
                   min="0"
@@ -1014,9 +1014,9 @@ function NewCommercialProposalForm() {
                     fontSize: '18px',
                     fontWeight: 700,
                     textAlign: 'right',
-                    color: '#10b981',
-                    borderColor: 'rgba(16, 185, 129, 0.4)',
-                    background: 'rgba(16, 185, 129, 0.05)',
+                    color: 'var(--color-success)',
+                    borderColor: 'rgb(var(--success-rgb) / 0.4)',
+                    background: 'rgb(var(--success-rgb) / 0.05)',
                   }}
                 />
               </div>
@@ -1030,7 +1030,7 @@ function NewCommercialProposalForm() {
                 gap: '12px',
                 padding: '18px',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.02)',
+                background: 'rgb(var(--ink-rgb) / 0.02)',
                 border: '1px solid var(--border-subtle)',
               }}
             >
@@ -1047,7 +1047,7 @@ function NewCommercialProposalForm() {
                 <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
                   Potongan Diskon
                 </div>
-                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: '#f59e0b', marginTop: '4px' }}>
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-warning)', marginTop: '4px' }}>
                   -{formatIDR(currentDiscountAmount)}
                 </div>
               </div>
@@ -1129,7 +1129,7 @@ function NewCommercialProposalForm() {
                 gap: '16px',
                 padding: '16px',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.02)',
+                background: 'rgb(var(--ink-rgb) / 0.02)',
                 border: '1px solid var(--border-subtle)',
                 marginBottom: '18px',
               }}
@@ -1168,7 +1168,7 @@ function NewCommercialProposalForm() {
                 <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '4px' }}>
                   Akumulasi Durasi Milestone
                 </div>
-                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: '#38bdf8' }}>
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-info)' }}>
                   {milestones.reduce((acc, m) => acc + (Number(m.duration_weeks) || 0), 0)} Minggu
                   <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 400, marginLeft: '6px' }}>
                     ({milestones.length} Tahapan)
@@ -1258,8 +1258,8 @@ function NewCommercialProposalForm() {
                 marginBottom: '20px',
                 padding: '14px 16px',
                 borderRadius: '8px',
-                background: 'rgba(94, 106, 210, 0.08)',
-                border: '1px solid rgba(94, 106, 210, 0.25)',
+                background: 'rgb(var(--accent-rgb) / 0.08)',
+                border: '1px solid rgb(var(--accent-rgb) / 0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -1370,8 +1370,8 @@ function NewCommercialProposalForm() {
                 marginBottom: '14px',
                 padding: '10px 14px',
                 borderRadius: '6px',
-                background: Math.abs(termDiff) <= 100 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
-                border: `1px solid ${Math.abs(termDiff) <= 100 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+                background: Math.abs(termDiff) <= 100 ? 'rgb(var(--success-rgb) / 0.08)' : 'rgb(var(--warning-rgb) / 0.08)',
+                border: `1px solid ${Math.abs(termDiff) <= 100 ? 'rgb(var(--success-rgb) / 0.25)' : 'rgb(var(--warning-rgb) / 0.25)'}`,
                 flexWrap: 'wrap',
                 gap: '10px',
               }}
@@ -1386,7 +1386,7 @@ function NewCommercialProposalForm() {
                   style={{
                     fontSize: '12px',
                     fontWeight: 600,
-                    color: Math.abs(totalTermPercent - 100) <= 0.1 ? '#10b981' : '#f59e0b',
+                    color: Math.abs(totalTermPercent - 100) <= 0.1 ? 'var(--color-success)' : 'var(--color-warning)',
                   }}
                 >
                   Total Bobot: {totalTermPercent.toFixed(1)}% {Math.abs(totalTermPercent - 100) <= 0.1 ? '✓' : ''}
@@ -1397,7 +1397,7 @@ function NewCommercialProposalForm() {
                   style={{
                     fontSize: '12px',
                     fontWeight: 700,
-                    color: Math.abs(termDiff) <= 100 ? '#10b981' : '#f59e0b',
+                    color: Math.abs(termDiff) <= 100 ? 'var(--color-success)' : 'var(--color-warning)',
                   }}
                 >
                   {Math.abs(termDiff) <= 100 ? 'Balance Pas ✓' : `Selisih: ${termDiff > 0 ? '-' : '+'}${formatIDR(Math.abs(termDiff))}`}
@@ -1459,7 +1459,7 @@ function NewCommercialProposalForm() {
                             style={{
                               textAlign: 'right',
                               fontWeight: 600,
-                              color: '#10b981',
+                              color: 'var(--color-success)',
                               width: '140px',
                             }}
                           />
@@ -1572,7 +1572,7 @@ function NewCommercialProposalForm() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>COGS Internal</div>
-                  <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 600, color: '#38bdf8' }}>
+                  <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-info)' }}>
                     {formatIDR(totals.cogs)}
                   </div>
                 </div>
@@ -1590,7 +1590,7 @@ function NewCommercialProposalForm() {
 
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Grand Total Penawaran Deal</div>
-                  <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: '#10b981' }}>
+                  <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-success)' }}>
                     {formatIDR(grandTotal)}
                   </div>
                 </div>

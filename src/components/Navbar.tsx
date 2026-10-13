@@ -1,106 +1,142 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import ThemeSwitcher from './ThemeSwitcher';
 import {
-  ChartBarIcon,
-  CalculatorIcon,
-  BriefcaseIcon,
-  BanknotesIcon,
-  ClipboardDocumentListIcon,
-  Cog6ToothIcon,
-  UserCircleIcon,
-} from '@heroicons/react/24/outline';
+  Calculator,
+  ChevronDown,
+  ClipboardList,
+  FileSignature,
+  LayoutDashboard,
+  LogOut,
+  Receipt,
+  Settings2,
+  UserCircle2,
+  type LucideIcon,
+} from 'lucide-react';
+import ThemeSwitcher from './ThemeSwitcher';
+import { cn } from '@/lib/cn';
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  match: (pathname: string) => boolean;
+  adminOnly?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, match: (p) => p === '/dashboard' },
+  { href: '/', label: 'Costing', icon: Calculator, match: (p) => p === '/' || p === '/costing' || p.startsWith('/estimates') },
+  { href: '/commercial', label: 'Commercial', icon: FileSignature, match: (p) => p.startsWith('/commercial') },
+  { href: '/invoices', label: 'Invoices', icon: Receipt, match: (p) => p.startsWith('/invoices') },
+  { href: '/audit', label: 'Logs', icon: ClipboardList, match: (p) => p.startsWith('/audit') },
+  { href: '/master', label: 'Master Data', icon: Settings2, match: (p) => p.startsWith('/master'), adminOnly: true },
+];
 
 function NavLinks({ role }: { role: string }) {
-  const pathname = usePathname();
-  const isDashboard = pathname === '/dashboard';
-  const isCosting = pathname === '/' || pathname === '/costing' || pathname?.startsWith('/estimates');
-  const isCommercial = pathname?.startsWith('/commercial');
-  const isInvoices = pathname?.startsWith('/invoices');
-  const isLogs = pathname?.startsWith('/audit');
-  const isMaster = pathname?.startsWith('/master');
+  const pathname = usePathname() ?? '';
+  return (
+    <nav aria-label="Navigasi utama" className="no-scrollbar -mx-1 flex h-full min-w-0 flex-1 items-center gap-0.5 overflow-x-auto px-1">
+      {NAV_ITEMS.filter((item) => !item.adminOnly || role === 'admin').map((item) => {
+        const active = item.match(pathname);
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'relative inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-[13px] font-medium no-underline transition-colors',
+              active ? 'bg-[var(--accent-light)] text-fg' : 'text-fg-3 hover:bg-[var(--row-hover)] hover:text-fg',
+            )}
+          >
+            <Icon className={cn('size-4', active ? 'text-brand-fg' : 'text-fg-3')} aria-hidden />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
-  const navItemStyle = (isActive: boolean) => ({
-    textDecoration: 'none',
-    padding: '6px 13px',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 500,
-    backgroundColor: isActive ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-    color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
-    border: isActive ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    transition: 'all 0.15s ease',
-  });
+function UserMenu({ email, role }: { email: string; role: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const initial = (email || '?').charAt(0).toUpperCase();
 
   return (
-    <nav style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-      {/* 1. Dashboard */}
-      <Link href="/dashboard" className="pill-item" style={navItemStyle(isDashboard)}>
-        <ChartBarIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Dashboard</span>
-      </Link>
-
-      {/* 2. Costing */}
-      <Link href="/" className="pill-item" style={navItemStyle(isCosting)}>
-        <CalculatorIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Costing Estimates</span>
-      </Link>
-
-      {/* 3. Commercials/Quote */}
-      <Link href="/commercial" className="pill-item" style={navItemStyle(isCommercial)}>
-        <BriefcaseIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Commercials/Quote</span>
-      </Link>
-
-      {/* 4. Invoices */}
-      <Link href="/invoices" className="pill-item" style={navItemStyle(isInvoices)}>
-        <BanknotesIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Invoices</span>
-      </Link>
-
-      {/* 5. Logs */}
-      <Link href="/audit" className="pill-item" style={navItemStyle(isLogs)}>
-        <ClipboardDocumentListIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-        <span>Logs</span>
-      </Link>
-
-      {role === 'admin' && (
-        <Link
-          href="/master"
-          className="pill-item"
-          style={{
-            textDecoration: 'none',
-            padding: '6px 14px',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: 500,
-            backgroundColor: isMaster ? 'rgba(94, 106, 210, 0.15)' : 'transparent',
-            color: isMaster ? '#a5b4fc' : 'var(--text-secondary)',
-            border: isMaster ? '1px solid rgba(94, 106, 210, 0.35)' : '1px solid transparent',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'all 0.15s ease',
-          }}
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface-2 pl-1.5 pr-2.5 text-[12.5px] text-fg-2 transition-colors hover:border-line-strong hover:text-fg"
+      >
+        <span className="grid size-6 place-items-center rounded-md bg-[var(--accent-light)] text-[11px] font-semibold text-brand-fg">{initial}</span>
+        <span className="hidden max-w-[160px] truncate md:inline">{email}</span>
+        <ChevronDown className={cn('size-3.5 text-fg-3 transition-transform', open && 'rotate-180')} aria-hidden />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-[calc(100%+8px)] z-50 w-60 overflow-hidden rounded-xl border border-line bg-surface-3 p-1.5"
+          style={{ boxShadow: 'var(--shadow-pop)' }}
         >
-          <Cog6ToothIcon className="w-4 h-4" style={{ width: '15px', height: '15px' }} />
-          <span>Master Data</span>
-        </Link>
+          <div className="border-b border-line px-2.5 pb-2.5 pt-1.5">
+            <div className="truncate text-[13px] font-medium text-fg">{email}</div>
+            <div className="mt-0.5 text-[11px] capitalize text-fg-3">{role || 'user'}</div>
+          </div>
+          <div className="pt-1.5">
+            <Link
+              href="/profile"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-fg-2 no-underline transition-colors hover:bg-[var(--row-hover)] hover:text-fg"
+            >
+              <UserCircle2 className="size-4 text-fg-3" aria-hidden /> Profil &amp; akun
+            </Link>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                router.replace('/login');
+                router.refresh();
+              }}
+              className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] text-fg-2 transition-colors hover:bg-[var(--color-danger-bg)] hover:text-bad"
+            >
+              <LogOut className="size-4" aria-hidden /> Keluar
+            </button>
+          </div>
+        </div>
       )}
-    </nav>
+    </div>
   );
 }
 
 function NavbarContent() {
   const pathname = usePathname();
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
 
@@ -121,91 +157,24 @@ function NavbarContent() {
   }
 
   return (
-    <header
-      style={{
-        position: 'relative',
-        backgroundColor: 'var(--bg-panel)',
-        borderBottom: '1px solid var(--border-subtle)',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '1360px',
-          margin: '0 auto',
-          padding: '12px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-          flexWrap: 'wrap',
-        }}
-      >
-        {/* Brand Logo & Subtitle */}
-        <Link
-          href="/"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            textDecoration: 'none',
-            color: 'inherit',
-          }}
-        >
+    <header className="sticky top-0 z-40 border-b border-line backdrop-blur-md" style={{ backgroundColor: 'var(--bg-header)', height: 'var(--nav-h)' }}>
+      <div className="mx-auto flex h-full items-center gap-4 px-4 sm:px-6" style={{ maxWidth: 'var(--page-max)' }}>
+        <Link href="/" aria-label="PT Penta Code Digital" className="flex shrink-0 items-center no-underline">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-pentacode.png"
-            alt="PT Penta Code Digital"
-            className="brand-logo-dark"
-            style={{ height: '30px', width: 'auto', objectFit: 'contain', display: 'block' }}
-          />
+          <img src="/logo-pentacode.png" alt="PT Penta Code Digital" className="brand-logo-dark h-[26px] w-auto object-contain" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-pentacode-light.jpg"
-            alt="PT Penta Code Digital"
-            className="brand-logo-light"
-            style={{ height: '30px', width: 'auto', objectFit: 'contain', display: 'none' }}
-          />
+          <img src="/logo-pentacode-light.jpg" alt="PT Penta Code Digital" className="brand-logo-light h-[26px] w-auto object-contain" />
         </Link>
 
-        {/* Global Navigation Links */}
-        <Suspense fallback={<nav style={{ height: '32px' }} />}>
+        <span className="hidden h-5 w-px shrink-0 bg-[var(--border-subtle)] sm:block" aria-hidden />
+
+        <Suspense fallback={<nav className="flex-1" />}>
           <NavLinks role={role} />
         </Suspense>
 
-        {/* User Profile & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeSwitcher />
-          {email && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Link
-                href="/profile"
-                className="btn-secondary"
-                style={{
-                  textDecoration: 'none',
-                  fontSize: '12px',
-                  padding: '5px 12px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-                title="Buka Pengaturan Akun & Profil"
-              >
-                <UserCircleIcon className="w-4 h-4" style={{ width: '16px', height: '16px', color: 'var(--accent-hover)' }} />
-                <span>{email}</span>
-              </Link>
-              <button
-                className="btn-ghost"
-                style={{ fontSize: '12px', padding: '5px 10px' }}
-                onClick={async () => {
-                  await fetch('/api/auth/logout', { method: 'POST' });
-                  router.replace('/login');
-                  router.refresh();
-                }}
-              >
-                Logout
-              </button>
-            </div>
-          )}
+          {email && <UserMenu email={email} role={role} />}
         </div>
       </div>
     </header>

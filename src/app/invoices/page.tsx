@@ -1,8 +1,11 @@
 'use client';
 
+import { Banknote, CalendarClock, ChevronDown, FileText, Layers, Repeat, Search, SquarePen, TrendingUp, Wallet, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
+import { Page, PageHeader } from '@/components/ui/Page';
+import { StatCard } from '@/components/ui/Cards';
+import DataGrid from '@/components/ui/DataGrid';
 
 interface InvoiceItem {
   id: number;
@@ -66,19 +69,13 @@ const formatIDR = (val: number | string) => {
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
 };
 
-const getStatusBadge = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case 'paid':
-      return { label: 'Paid / Lunas', bg: 'rgba(16, 185, 129, 0.15)', text: '#10b981', border: 'rgba(16, 185, 129, 0.3)' };
-    case 'invoiced':
-      return { label: 'Invoiced (Pending)', bg: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)' };
-    case 'overdue':
-      return { label: 'Overdue (Jatuh Tempo)', bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.3)' };
-    case 'unbilled':
-    default:
-      return { label: 'Unbilled (Belum Ditagih)', bg: 'rgba(255, 255, 255, 0.05)', text: 'var(--text-secondary)', border: 'rgba(255, 255, 255, 0.12)' };
-  }
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  paid: { label: 'Lunas', cls: 'badge-connected' },
+  invoiced: { label: 'Ditagihkan', cls: 'badge-info' },
+  overdue: { label: 'Jatuh tempo', cls: 'badge-danger' },
+  unbilled: { label: 'Belum ditagih', cls: 'badge-neutral' },
 };
+const getStatusBadge = (status: string) => STATUS_BADGE[status?.toLowerCase()] || STATUS_BADGE.unbilled;
 
 export default function InvoicesTrackerPage() {
   const [invoices, setInvoices] = useState<ProjectInvoiceGroup[]>([]);
@@ -167,219 +164,205 @@ export default function InvoicesTrackerPage() {
     }
   };
 
+  const TYPE_TABS: { id: 'all' | 'milestone' | 'recurring_monthly'; label: string }[] = [
+    { id: 'all', label: 'Semua model' },
+    { id: 'milestone', label: 'Termin proyek' },
+    { id: 'recurring_monthly', label: 'Retainer bulanan' },
+  ];
+  const STATUS_TABS = [
+    { id: 'all', label: 'Semua' },
+    { id: 'unbilled', label: 'Belum ditagih' },
+    { id: 'invoiced', label: 'Ditagihkan' },
+    { id: 'overdue', label: 'Jatuh tempo' },
+    { id: 'paid', label: 'Lunas' },
+  ];
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '28px 24px' }}>
-        {/* Top Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px',
-            marginBottom: '24px',
-            paddingBottom: '20px',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-              Payment Milestone & Invoice Tracker
-            </h1>
-            <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Monitoring arus kas hibrida: Termin Development & Retainer Bulanan (Maintenance & Cloud Infra 1 Tahun).
-            </p>
-          </div>
-        </div>
+    <Page wide>
+      <PageHeader
+        eyebrow="Penagihan"
+        title="Payment milestone & invoice tracker"
+        description="Monitoring arus kas hibrida: termin development dan retainer bulanan (maintenance & cloud infra)."
+      />
 
-        {/* 5 Stat Metric Cards */}
-        {summary && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '14px',
-              marginBottom: '24px',
-            }}
-          >
-            <div className="linear-card" style={{ padding: '18px' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                Total Komitmen Kontrak
-              </div>
-              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '6px' }}>
-                {formatIDR(summary.total_contract_value)}
-              </div>
-            </div>
+      {summary && (
+        <section aria-label="Ringkasan penagihan" className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <StatCard label="Total komitmen kontrak" icon={FileText} value={formatIDR(summary.total_contract_value)} />
+          <StatCard label="Realisasi masuk" icon={Banknote} tone="ok" value={formatIDR(summary.total_paid)} />
+          <StatCard label="Piutang ditagihkan" icon={Wallet} tone="note" value={formatIDR(summary.total_invoiced)} />
+          <StatCard label="Retainer bulanan (MRR)" icon={Repeat} tone="plum" value={<>{formatIDR(summary.mrr_rate)}<span className="ml-1 text-[12px] font-medium text-fg-3">/ bulan</span></>} />
+          <StatCard label="Belum ditagih" icon={CalendarClock} tone="warn" value={formatIDR(summary.total_unbilled)} />
+        </section>
+      )}
 
-            <div className="linear-card" style={{ padding: '18px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#10b981', fontWeight: 600 }}>
-                Total Realisasi Masuk (Paid)
-              </div>
-              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: '#10b981', marginTop: '6px' }}>
-                {formatIDR(summary.total_paid)}
-              </div>
-            </div>
-
-            <div className="linear-card" style={{ padding: '18px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#38bdf8', fontWeight: 600 }}>
-                Piutang Ditagihkan (Invoiced)
-              </div>
-              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: '#38bdf8', marginTop: '6px' }}>
-                {formatIDR(summary.total_invoiced)}
-              </div>
-            </div>
-
-            <div className="linear-card" style={{ padding: '18px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#c084fc', fontWeight: 600 }}>
-                Monthly Retainer (MRR)
-              </div>
-              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: '#c084fc', marginTop: '6px' }}>
-                {formatIDR(summary.mrr_rate)}/bln
-              </div>
-            </div>
-
-            <div className="linear-card" style={{ padding: '18px' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                Belum Ditagih (Unbilled)
-              </div>
-              <div className="font-mono-numbers" style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '6px' }}>
-                {formatIDR(summary.total_unbilled)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Filter Bar with Type & Status */}
-        <div
-          className="linear-card"
-          style={{
-            padding: '14px 18px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
-          {/* Tipe Billing Switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginRight: '4px' }}>Model:</span>
-            {[
-              { id: 'all', label: 'Semua Model' },
-              { id: 'milestone', label: 'Termin Proyek (Dev)' },
-              { id: 'recurring_monthly', label: 'Retainer Bulanan (Mnt & Cloud)' },
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTypeFilter(t.id as 'all' | 'milestone' | 'recurring_monthly')}
-                className={typeFilter === t.id ? 'btn-primary' : 'btn-secondary'}
-                style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer' }}
-              >
+      {/* Filters */}
+      <div className="linear-card mb-5 flex flex-wrap items-center gap-x-6 gap-y-3 p-3.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-3">Model</span>
+          <div className="pill-group" role="group" aria-label="Filter model billing">
+            {TYPE_TABS.map((t) => (
+              <button key={t.id} type="button" aria-pressed={typeFilter === t.id} onClick={() => setTypeFilter(t.id)} className={`pill-item${typeFilter === t.id ? ' active' : ''}`}>
                 {t.label}
               </button>
             ))}
           </div>
-
-          {/* Status Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginRight: '4px' }}>Status:</span>
-            {[
-              { id: 'all', label: 'Semua Status' },
-              { id: 'unbilled', label: 'Unbilled' },
-              { id: 'invoiced', label: 'Invoiced' },
-              { id: 'paid', label: 'Paid' },
-              { id: 'overdue', label: 'Overdue' },
-            ].map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setStatusFilter(s.id)}
-                className={statusFilter === s.id ? 'btn-primary' : 'btn-secondary'}
-                style={{ padding: '4px 10px', fontSize: '11.5px', borderRadius: '6px', cursor: 'pointer' }}
-              >
-                {s.label}
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-3">Status</span>
+          <div className="pill-group" role="group" aria-label="Filter status billing">
+            {STATUS_TABS.map((t) => (
+              <button key={t.id} type="button" aria-pressed={statusFilter === t.id} onClick={() => setStatusFilter(t.id)} className={`pill-item${statusFilter === t.id ? ' active' : ''}`}>
+                {t.label}
               </button>
             ))}
           </div>
         </div>
+        <div className="relative ml-auto w-full sm:w-[300px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-3" aria-hidden />
+          <input
+            type="search"
+            aria-label="Cari klien atau proyek"
+            placeholder="Cari klien atau proyek…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="linear-input"
+            style={{ paddingLeft: 36, paddingRight: search ? 34 : 12 }}
+          />
+          {search && (
+            <button type="button" onClick={() => setSearch('')} aria-label="Hapus pencarian" className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-fg-3 hover:bg-[var(--row-hover)] hover:text-fg">
+              <X className="size-3.5" aria-hidden />
+            </button>
+          )}
+        </div>
+      </div>
 
-        <input
-          type="search"
-          aria-label="Cari klien atau proyek"
-          placeholder="Cari klien atau proyek..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="linear-input"
-          style={{ width: '100%', marginBottom: '14px' }}
-        />
-
-        {/* Project-level invoice summary */}
-        <section className="linear-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <div>
-              <h2 style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 650, margin: 0 }}>Ringkasan per proyek</h2>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0' }}>Pilih proyek untuk melihat rincian tagihan</p>
-            </div>
-            <span style={{ color: 'var(--text-secondary)', fontSize: 12, whiteSpace: 'nowrap' }}>{invoices.length} proyek</span>
+      {/* Project cards */}
+      <section className="linear-card overflow-hidden" aria-label="Ringkasan per proyek">
+        <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+          <div>
+            <h2 className="text-[15px] font-semibold text-fg">Ringkasan per proyek</h2>
+            <p className="mt-0.5 text-[12px] text-fg-3">Buka proyek untuk melihat rincian tagihan.</p>
           </div>
-          {loading ? <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Memuat data invoice per proyek...</div>
-            : invoices.length === 0 ? <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Tidak ada proyek dengan kriteria ini.</div>
-              : <div style={{ display: 'grid', gap: 12, padding: 16 }}>
-                {invoices.map(project => {
-                  const projectRowId = `${project.company_id}-${project.project_id}`;
-                  const expanded = expandedProjects.includes(projectRowId);
-                  const statuses = [
-                    { key: 'paid', label: 'Paid', count: project.paid_count, amount: project.paid_amount, color: '#10b981' },
-                    { key: 'invoiced', label: 'Invoiced', count: project.invoiced_count, amount: project.invoiced_amount, color: '#38bdf8' },
-                    { key: 'overdue', label: 'Overdue', count: project.overdue_count, amount: project.overdue_amount, color: '#ef4444' },
-                    { key: 'unbilled', label: 'Unbilled', count: project.unbilled_count, amount: project.unbilled_amount, color: 'var(--text-secondary)' },
-                  ];
-                  return <article key={projectRowId} style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.015)' }}>
-                    <div style={{ padding: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
-                      <div style={{ minWidth: 210, flex: '1 1 240px' }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 5 }}>KLIEN</div>
-                        <div style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 650 }}>{project.company_name}</div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 4 }}>{project.project_name}</div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                          <span style={{ border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '5px 8px', color: 'var(--text-secondary)', fontSize: 11 }}>Milestone · {project.milestone_count}</span>
-                          <span style={{ border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '5px 8px', color: 'var(--text-secondary)', fontSize: 11 }}>Retainer · {project.recurring_count}</span>
+          <span className="font-mono-numbers text-[12px] text-fg-3">{invoices.length} proyek</span>
+        </div>
+
+        {loading ? (
+          <div className="grid gap-3 p-4" aria-busy="true">
+            {[0, 1].map((i) => <div key={i} className="h-[148px] animate-pulse rounded-xl border border-line bg-surface-2" />)}
+          </div>
+        ) : invoices.length === 0 ? (
+          <div className="dg-empty">Tidak ada proyek dengan kriteria ini.</div>
+        ) : (
+          <div className="grid gap-3 p-4">
+            {invoices.map((project) => {
+              const projectRowId = `${project.company_id}-${project.project_id}`;
+              const expanded = expandedProjects.includes(projectRowId);
+              const statuses = [
+                { key: 'paid', label: 'Lunas', count: project.paid_count, amount: project.paid_amount, text: 'text-ok', bar: 'bg-ok' },
+                { key: 'invoiced', label: 'Ditagihkan', count: project.invoiced_count, amount: project.invoiced_amount, text: 'text-note', bar: 'bg-note' },
+                { key: 'overdue', label: 'Jatuh tempo', count: project.overdue_count, amount: project.overdue_amount, text: 'text-bad', bar: 'bg-bad' },
+                { key: 'unbilled', label: 'Belum ditagih', count: project.unbilled_count, amount: project.unbilled_amount, text: 'text-fg-2', bar: 'bg-fg-3' },
+              ];
+              return (
+                <article key={projectRowId} className="overflow-hidden rounded-xl border border-line bg-surface-2/50">
+                  <div className="flex flex-wrap items-start gap-x-6 gap-y-4 p-4 sm:p-5">
+                    <div className="min-w-[220px] flex-1 basis-[260px]">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-3">Klien</div>
+                      <div className="mt-1 text-[14px] font-semibold leading-snug text-fg" title={project.company_name}>{project.company_name}</div>
+                      <div className="mt-1 text-[13px] leading-snug text-fg-2" title={project.project_name}>{project.project_name}</div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="badge badge-neutral"><Layers className="size-3" aria-hidden /> Termin · {project.milestone_count}</span>
+                        <span className="badge badge-neutral"><Repeat className="size-3" aria-hidden /> Retainer · {project.recurring_count}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid w-full flex-[3_1_640px] grid-cols-2 gap-2 lg:grid-cols-4">
+                      {statuses.map((st) => (
+                        <div key={st.key} className="min-w-0 rounded-lg border border-line bg-surface p-3">
+                          <div className="flex items-center gap-2">
+                            <span className={`size-2 rounded-full ${st.bar}`} aria-hidden />
+                            <span className={`text-[11px] font-semibold uppercase tracking-[0.06em] ${st.text}`}>{st.label}</span>
+                          </div>
+                          <div className="mt-2 text-[11.5px] text-fg-3">{st.count} item</div>
+                          <div className="font-mono-numbers mt-0.5 truncate text-[14px] font-semibold text-fg" title={formatIDR(st.amount)}>{formatIDR(st.amount)}</div>
                         </div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(140px, 1fr))', gap: 8, flex: '3 1 640px', width: '100%', overflowX: 'auto' }}>
-                        {statuses.map(status => <div key={status.key} style={{ minWidth: 140, padding: '12px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-panel)' }}>
-                          <div style={{ color: status.color, fontSize: 11, fontWeight: 650, textTransform: 'uppercase', letterSpacing: '.04em' }}>{status.label}</div>
-                          <div style={{ color: 'var(--text-tertiary)', fontSize: 11, marginTop: 8 }}>{status.count} item</div>
-                          <div className="font-mono-numbers" style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 650, marginTop: 3, whiteSpace: 'nowrap' }}>{formatIDR(status.amount)}</div>
-                        </div>)}
-                      </div>
-                      <button type="button" aria-expanded={expanded} aria-controls={`project-invoices-${projectRowId}`}
-                        onClick={() => setExpandedProjects(prev => expanded ? prev.filter(id => id !== projectRowId) : [...prev, projectRowId])}
-                        className="btn-secondary" style={{ padding: '8px 12px', whiteSpace: 'nowrap', marginLeft: 'auto' }}>
-                        {expanded ? 'Tutup rincian' : `Lihat ${project.invoice_count} item`}
-                      </button>
+                      ))}
                     </div>
-                    {project.milestone_count + project.recurring_count > 0 && <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontSize: 11 }}>
-                      Nilai model · Milestone {formatIDR(project.milestone_amount)} <span style={{ margin: '0 8px', color: 'var(--border-hover)' }}>•</span> Retainer {formatIDR(project.recurring_amount)}
-                    </div>}
-                    <div id={`project-invoices-${projectRowId}`} hidden={!expanded} style={{ borderTop: '1px solid var(--border-subtle)', padding: 12, overflowX: 'auto' }}>
-                      <table className="pro-table" style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse' }}>
-                        <thead><tr>{['Proposal / Termin', 'Model', 'Status', 'Nominal', 'No. Invoice', 'Jatuh Tempo', 'Aksi'].map((label, index) => <th key={label} style={{ textAlign: index === 3 ? 'right' : 'left', padding: '10px 12px', fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</th>)}</tr></thead>
-                        <tbody>{project.invoices.map(inv => { const badge = getStatusBadge(inv.effective_status || inv.billing_status); return <tr key={inv.id} style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                          <td style={{ padding: '12px', minWidth: 210 }}><Link href={`/commercial/${inv.proposal_id}`}>{inv.proposal_number} v{inv.proposal_version}</Link><div style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 3 }}>{inv.milestone_name}</div></td>
-                          <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{inv.billing_type === 'recurring_monthly' ? 'Retainer' : 'Milestone'}</td>
-                          <td style={{ padding: '12px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', padding: '4px 8px', borderRadius: 999, background: badge.bg, color: badge.text, border: `1px solid ${badge.border}`, fontSize: 11 }}>{badge.label}</span></td>
-                          <td className="font-mono-numbers" style={{ padding: '12px', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatIDR(inv.amount)}</td>
-                          <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{inv.invoice_number ? <Link href={`/invoices/${inv.id}`}>{inv.invoice_number}</Link> : <span style={{ color: 'var(--text-tertiary)' }}>Belum terbit</span>}</td>
-                          <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID') : '—'}</td>
-                          <td style={{ padding: '12px', whiteSpace: 'nowrap' }}><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Link href={`/invoices/${inv.id}`} className="btn-secondary" style={{ padding: '5px 9px', fontSize: 11 }}>Detail</Link><button type="button" onClick={() => openEditModal(inv)} className="btn-secondary" title="Update status" aria-label={`Update status ${inv.milestone_name}`} style={{ padding: 6, display: 'inline-flex' }}><PencilSquareIcon style={{ width: 14, height: 14 }} /></button></div></td>
-                        </tr>; })}</tbody>
+
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={`project-invoices-${projectRowId}`}
+                      onClick={() => setExpandedProjects((prev) => (expanded ? prev.filter((id) => id !== projectRowId) : [...prev, projectRowId]))}
+                      className="btn-secondary ml-auto"
+                    >
+                      {expanded ? 'Tutup rincian' : `Lihat ${project.invoice_count} item`}
+                      <ChevronDown className={`size-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden />
+                    </button>
+                  </div>
+
+                  {project.milestone_count + project.recurring_count > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-5 py-2.5 text-[12px] text-fg-3">
+                      <TrendingUp className="size-3.5" aria-hidden />
+                      <span>Termin <span className="font-mono-numbers text-fg-2">{formatIDR(project.milestone_amount)}</span></span>
+                      <span aria-hidden>·</span>
+                      <span>Retainer <span className="font-mono-numbers text-fg-2">{formatIDR(project.recurring_amount)}</span></span>
+                    </div>
+                  )}
+
+                  <div id={`project-invoices-${projectRowId}`} hidden={!expanded} className="border-t border-line bg-surface p-3">
+                    <DataGrid densityToggle={false} stickyLast maxHeight={460}>
+                      <table className="pro-table" style={{ minWidth: 980 }}>
+                        <thead>
+                          <tr>
+                            <th style={{ minWidth: 260 }}>Proposal / termin</th>
+                            <th>Model</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: 'right' }}>Nominal</th>
+                            <th>No. invoice</th>
+                            <th>Jatuh tempo</th>
+                            <th style={{ textAlign: 'right' }}>Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {project.invoices.map((inv) => {
+                            const badge = getStatusBadge(inv.effective_status || inv.billing_status);
+                            return (
+                              <tr key={inv.id}>
+                                <td>
+                                  <Link href={`/commercial/${inv.proposal_id}`} className="font-mono text-[12.5px] font-semibold text-brand-fg no-underline hover:underline">
+                                    {inv.proposal_number} v{inv.proposal_version}
+                                  </Link>
+                                  <div className="cell-trunc mt-0.5 text-[12px] text-fg-3" style={{ maxWidth: '40ch' }} title={inv.milestone_name}>{inv.milestone_name}</div>
+                                </td>
+                                <td className="whitespace-nowrap">{inv.billing_type === 'recurring_monthly' ? 'Retainer' : 'Termin'}</td>
+                                <td className="whitespace-nowrap"><span className={`badge ${badge.cls}`}><span className="badge-dot" />{badge.label}</span></td>
+                                <td className="cell-num font-mono-numbers cell-strong">{formatIDR(inv.amount)}</td>
+                                <td className="whitespace-nowrap">
+                                  {inv.invoice_number ? <Link href={`/invoices/${inv.id}`} className="font-mono text-[12.5px] no-underline hover:underline">{inv.invoice_number}</Link> : <span className="text-fg-3">Belum terbit</span>}
+                                </td>
+                                <td className="whitespace-nowrap">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
+                                <td>
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <Link href={`/invoices/${inv.id}`} className="btn-secondary" style={{ minHeight: 30, padding: '0 10px' }}>Detail</Link>
+                                    <button type="button" onClick={() => openEditModal(inv)} className="btn-secondary" title="Update status" aria-label={`Update status ${inv.milestone_name}`} style={{ minHeight: 30, width: 30, padding: 0 }}>
+                                      <SquarePen className="size-3.5" aria-hidden />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
                       </table>
-                    </div>
-                  </article>;
-                })}
-              </div>}
-        </section>
+                    </DataGrid>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
         {/* Modal Update Status Penagihan */}
         {editingItem && (
@@ -390,7 +373,7 @@ export default function InvoicesTrackerPage() {
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'rgba(0, 0, 0, 0.75)',
+              background: 'rgb(8 10 14 / 0.62)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -413,7 +396,7 @@ export default function InvoicesTrackerPage() {
                 Update Status Invoice & Pembayaran
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>
-                {editingItem.milestone_name} • Nilai: <strong style={{ color: '#10b981' }}>{formatIDR(editingItem.amount)}</strong>
+                {editingItem.milestone_name} • Nilai: <strong style={{ color: 'var(--color-success)' }}>{formatIDR(editingItem.amount)}</strong>
               </p>
 
               <form onSubmit={handleSaveModal}>
@@ -539,7 +522,6 @@ export default function InvoicesTrackerPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </Page>
   );
 }

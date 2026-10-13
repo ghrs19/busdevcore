@@ -1,15 +1,7 @@
 'use client';
-import {
-  TrashIcon,
-
-  SparklesIcon,
-  ArrowPathIcon,
-  PaperClipIcon,
-  BoltIcon,
-
-} from '@heroicons/react/24/outline';
 
 
+import { Paperclip, RefreshCw, Sparkles, Trash2, Zap } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1282,7 +1274,7 @@ function NewEstimateForm() {
                       fontWeight: 600,
                       padding: '2px 8px',
                       borderRadius: '4px',
-                      background: 'rgba(59, 130, 246, 0.15)',
+                      background: 'rgb(var(--info-rgb) / 0.15)',
                       color: 'var(--accent-hover)',
                     }}
                   >
@@ -1302,10 +1294,10 @@ function NewEstimateForm() {
                 type="button"
                 onClick={handleResetForm}
                 className="btn-secondary"
-                style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                style={{ color: 'var(--color-danger)', borderColor: 'rgb(var(--danger-rgb) / 0.3)' }}
                 title="Kosongkan seluruh isian form dan mulai dari awal"
               >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><TrashIcon style={{ width: "15px", height: "15px" }} /><span>Reset Form</span></span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Trash2 style={{ width: "15px", height: "15px" }} /><span>Reset Form</span></span>
               </button>
 
             </div>
@@ -1320,7 +1312,7 @@ function NewEstimateForm() {
               padding: '12px 16px',
               borderRadius: '8px',
               backgroundColor: 'var(--color-danger-bg)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              border: '1px solid rgb(var(--danger-rgb) / 0.3)',
               color: 'var(--color-danger)',
               fontSize: '13px',
               display: 'flex',
@@ -1347,7 +1339,7 @@ function NewEstimateForm() {
               padding: '12px 16px',
               borderRadius: '8px',
               backgroundColor: 'var(--color-success-bg)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              border: '1px solid rgb(var(--success-rgb) / 0.3)',
               color: 'var(--color-success)',
               fontSize: '13px',
               display: 'flex',
@@ -1367,11 +1359,11 @@ function NewEstimateForm() {
           </div>
         )}
 
-        <section className="linear-card" style={{ padding: '20px', marginBottom: '24px', border: '1px solid var(--accent-hover)', background: 'rgba(94, 106, 210, 0.03)' }}>
+        <section className="linear-card" style={{ padding: '20px', marginBottom: '24px', border: '1px solid var(--accent-hover)', background: 'rgb(var(--accent-rgb) / 0.03)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><SparklesIcon style={{ width: "16px", height: "16px", color: "var(--accent-hover)" }} /><span>AI Costing Assistant (Hermes)</span></span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Sparkles style={{ width: "16px", height: "16px", color: "var(--accent-hover)" }} /><span>AI Costing Assistant (Hermes)</span></span>
                 {aiChatHistory.length > 0 && (
                   <span className="badge badge-accent" style={{ fontSize: '10px' }}>
                     {aiChatHistory.filter(m => m.role === 'user').length} Iterasi Penyesuaian
@@ -1390,7 +1382,7 @@ function NewEstimateForm() {
                 style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}
                 title="Bersihkan riwayat percakapan AI"
               >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><ArrowPathIcon style={{ width: "14px", height: "14px" }} /><span>Reset Chat AI</span></span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><RefreshCw style={{ width: "14px", height: "14px" }} /><span>Reset Chat AI</span></span>
               </button>
             )}
           </div>
@@ -1401,7 +1393,7 @@ function NewEstimateForm() {
               style={{
                 marginBottom: '16px',
                 padding: '12px',
-                background: 'rgba(0, 0, 0, 0.25)',
+                background: 'var(--bg-card)',
                 borderRadius: '8px',
                 border: '1px solid var(--border-subtle)',
                 maxHeight: '260px',
@@ -1437,9 +1429,9 @@ function NewEstimateForm() {
                       borderRadius: '8px',
                       fontSize: '12px',
                       lineHeight: '1.45',
-                      background: msg.role === 'user' ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.05)',
+                      background: msg.role === 'user' ? 'var(--accent-primary)' : 'rgb(var(--ink-rgb) / 0.05)',
                       color: msg.role === 'user' ? '#ffffff' : 'var(--text-primary)',
-                      border: msg.role === 'user' ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
+                      border: msg.role === 'user' ? 'none' : '1px solid rgb(var(--ink-rgb) / 0.08)',
                       whiteSpace: 'pre-wrap',
                     }}
                   >
@@ -1476,7 +1468,7 @@ function NewEstimateForm() {
               padding: '12px',
               border: '1px dashed var(--border-hover)',
               borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.01)',
+              background: 'rgb(var(--ink-rgb) / 0.01)',
             }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
@@ -1491,7 +1483,7 @@ function NewEstimateForm() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <label style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><PaperClipIcon style={{ width: "15px", height: "15px", verticalAlign: "middle" }} /><strong>Tambah Lampiran File</strong></span> (xlsx, csv, pdf, docx, gambar mockup/arsitektur)
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Paperclip style={{ width: "15px", height: "15px", verticalAlign: "middle" }} /><strong>Tambah Lampiran File</strong></span> (xlsx, csv, pdf, docx, gambar mockup/arsitektur)
                 <input
                   type="file"
                   multiple
@@ -1522,7 +1514,7 @@ function NewEstimateForm() {
                       alignItems: 'center',
                       gap: '6px',
                       padding: '4px 8px',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: 'rgb(var(--ink-rgb) / 0.04)',
                       border: '1px solid var(--border-subtle)',
                       borderRadius: '6px',
                       fontSize: '11px',
@@ -1558,17 +1550,17 @@ function NewEstimateForm() {
             >
               {aiLoading ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <ArrowPathIcon className="animate-spin" style={{ width: '15px', height: '15px' }} />
+                  <RefreshCw className="animate-spin" style={{ width: '15px', height: '15px' }} />
                   <span>Menganalisis & Mengatur Ulang Draft...</span>
                 </span>
               ) : aiChatHistory.length > 0 ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <SparklesIcon style={{ width: '15px', height: '15px' }} />
+                  <Sparkles style={{ width: '15px', height: '15px' }} />
                   <span>Terapkan Penyesuaian ke Form</span>
                 </span>
               ) : (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <BoltIcon style={{ width: '15px', height: '15px' }} />
+                  <Zap style={{ width: '15px', height: '15px' }} />
                   <span>Generate Draft Costing</span>
                 </span>
               )}
@@ -1711,7 +1703,7 @@ function NewEstimateForm() {
                   Buat Project Baru untuk Perusahaan Terpilih
                 </div>
                 {projectError && (
-                  <div style={{ color: '#ef4444', fontSize: '12px', marginBottom: '8px' }}>
+                  <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginBottom: '8px' }}>
                     {projectError}
                   </div>
                 )}
@@ -2081,7 +2073,7 @@ function NewEstimateForm() {
                       gridTemplateColumns: 'minmax(150px, 1fr) minmax(200px, 2fr) minmax(150px, 1fr) auto',
                       gap: '10px',
                       alignItems: 'center',
-                      background: 'rgba(255, 255, 255, 0.02)',
+                      background: 'rgb(var(--ink-rgb) / 0.02)',
                       border: person.worker_id === undefined ? '1px dashed var(--border-subtle)' : '1px solid var(--border-subtle)',
                       opacity: person.worker_id === undefined ? 0.8 : 1,
                       borderRadius: '8px',
@@ -2134,10 +2126,10 @@ function NewEstimateForm() {
                       onClick={() => removePerson(key)}
                       title="Hapus orang dari costing"
                       style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--text-tertiary)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-danger)')}
                       onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
                     >
-                      <TrashIcon style={{ width: '14px', height: '14px' }} />
+                      <Trash2 style={{ width: '14px', height: '14px' }} />
                     </button>
                   </div>
                 ))}
@@ -2254,8 +2246,8 @@ function NewEstimateForm() {
                 style={{
                   padding: '20px',
                   marginBottom: '24px',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  background: 'rgba(255, 255, 255, 0.01)',
+                  border: '1px solid rgb(var(--ink-rgb) / 0.08)',
+                  background: 'rgb(var(--ink-rgb) / 0.01)',
                 }}
               >
                 <div
@@ -2280,7 +2272,7 @@ function NewEstimateForm() {
                       </h3>
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                      Subtotal Development: <strong style={{ color: '#10b981' }}>{formatIDR(calculation.total_cost)}</strong> ({calculation.total_hours} Jam)
+                      Subtotal Development: <strong style={{ color: 'var(--color-success)' }}>{formatIDR(calculation.total_cost)}</strong> ({calculation.total_hours} Jam)
                     </div>
                   </div>
 
@@ -2311,7 +2303,7 @@ function NewEstimateForm() {
                   <div
                     style={{
                       padding: '12px 16px',
-                      background: 'rgba(255, 255, 255, 0.03)',
+                      background: 'rgb(var(--ink-rgb) / 0.03)',
                       borderBottom: '1px solid var(--border-subtle)',
                       display: 'flex',
                       alignItems: 'center',
@@ -2354,7 +2346,7 @@ function NewEstimateForm() {
                           {calcMod ? calcMod.total_hours : 0} Jam
                         </span>
                         <span style={{ color: 'var(--text-tertiary)', margin: '0 6px' }}>•</span>
-                        <span className="font-mono-numbers" style={{ fontWeight: 600, color: '#10b981' }}>
+                        <span className="font-mono-numbers" style={{ fontWeight: 600, color: 'var(--color-success)' }}>
                           {calcMod ? formatIDR(calcMod.total_cost) : 'Rp 0'}
                         </span>
                       </div>
@@ -2445,7 +2437,7 @@ function NewEstimateForm() {
                     </table>
                   </div>
 
-                  <div style={{ padding: '8px 16px', background: 'rgba(255, 255, 255, 0.01)' }}>
+                  <div style={{ padding: '8px 16px', background: 'rgb(var(--ink-rgb) / 0.01)' }}>
                     <button
                       type="button"
                       onClick={() => addTask(mIdx)}
@@ -2468,8 +2460,8 @@ function NewEstimateForm() {
                 style={{
                   padding: '20px',
                   marginBottom: '24px',
-                  border: '1px solid rgba(56, 189, 248, 0.15)',
-                  background: 'rgba(56, 189, 248, 0.01)',
+                  border: '1px solid rgb(var(--info-rgb) / 0.15)',
+                  background: 'rgb(var(--info-rgb) / 0.01)',
                 }}
               >
                 <div
@@ -2494,10 +2486,10 @@ function NewEstimateForm() {
                       </h3>
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                      Rate/Bulan: <strong style={{ color: '#38bdf8' }}>{formatIDR(maintCalculation ? maintCalculation.monthly_cost : 0)}/bln</strong>
+                      Rate/Bulan: <strong style={{ color: 'var(--color-info)' }}>{formatIDR(maintCalculation ? maintCalculation.monthly_cost : 0)}/bln</strong>
                       <span style={{ margin: '0 8px' }}>•</span>
                       Total Kontrak ({maintenanceDurationMonths} Bulan):{' '}
-                      <strong style={{ color: '#10b981' }}>{formatIDR(maintCalculation ? maintCalculation.total_cost : 0)}</strong>
+                      <strong style={{ color: 'var(--color-success)' }}>{formatIDR(maintCalculation ? maintCalculation.total_cost : 0)}</strong>
                     </div>
                   </div>
 
@@ -2544,10 +2536,10 @@ function NewEstimateForm() {
                               ? (isBasic ? 'E-Com Basic' : 'E-Com Expert')
                               : (isBasic ? 'Web Basic' : 'Web Expert');
                           const color = isMobile
-                            ? (isBasic ? '#10b981' : '#06b6d4')
+                            ? (isBasic ? 'var(--color-success)' : 'var(--color-info)')
                             : isEcom 
-                              ? (isBasic ? '#f59e0b' : '#ec4899') 
-                              : (isBasic ? '#38bdf8' : '#c084fc');
+                              ? (isBasic ? 'var(--color-warning)' : 'var(--color-violet)')
+                              : (isBasic ? 'var(--color-info)' : 'var(--color-violet)');
 
                           return (
                             <button
@@ -2559,7 +2551,7 @@ function NewEstimateForm() {
                                 padding: '3px 8px',
                                 fontSize: '11px',
                                 minHeight: 'auto',
-                                borderColor: `${color}66`,
+                                borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
                                 color: color,
                               }}
                               title={t.description || t.name}
@@ -2637,7 +2629,7 @@ function NewEstimateForm() {
                               </div>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <div className="excel-cell-static font-mono-numbers" style={{ fontSize: '12px', fontWeight: 600, color: '#38bdf8' }}>
+                              <div className="excel-cell-static font-mono-numbers" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-info)' }}>
                                 {calcTask ? formatIDR(calcTask.monthly_cost) : 'Rp 0'}/bln
                               </div>
                             </td>
@@ -2682,8 +2674,8 @@ function NewEstimateForm() {
                 style={{
                   padding: '20px',
                   marginBottom: '24px',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
-                  background: 'rgba(245, 158, 11, 0.015)',
+                  border: '1px solid rgb(var(--warning-rgb) / 0.25)',
+                  background: 'rgb(var(--warning-rgb) / 0.015)',
                 }}
               >
                 <div
@@ -2709,7 +2701,7 @@ function NewEstimateForm() {
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
                       Biaya operasional lapangan per orang per hari • Subtotal Operasional:{' '}
-                      <strong style={{ color: '#f59e0b' }}>
+                      <strong style={{ color: 'var(--color-warning)' }}>
                         {formatIDR(opCalculation ? opCalculation.grand_total : 0)}
                       </strong>
                     </div>
@@ -2797,7 +2789,7 @@ function NewEstimateForm() {
                                   onChange={(e) => updateOperationalItem(oIdx, { unit_cost_per_day: Math.max(0, parseFloat(e.target.value) || 0) })}
                                 />
                               </td>
-                              <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#10b981', fontWeight: 600, padding: '0 12px' }}>
+                              <td className="font-mono-numbers" style={{ textAlign: 'right', color: 'var(--color-success)', fontWeight: 600, padding: '0 12px' }}>
                                 {formatIDR(lineTotal)}
                               </td>
                               <td>
@@ -2838,8 +2830,8 @@ function NewEstimateForm() {
                 style={{
                   padding: '20px',
                   marginBottom: '24px',
-                  border: '1px solid rgba(245, 158, 11, 0.2)',
-                  background: 'rgba(245, 158, 11, 0.01)',
+                  border: '1px solid rgb(var(--warning-rgb) / 0.2)',
+                  background: 'rgb(var(--warning-rgb) / 0.01)',
                 }}
               >
                 <div
@@ -2870,12 +2862,12 @@ function NewEstimateForm() {
                       </strong>
                       <span style={{ margin: '0 8px' }}>•</span>
                       Subtotal Recurring:{' '}
-                      <strong style={{ color: '#38bdf8' }}>
+                      <strong style={{ color: 'var(--color-info)' }}>
                         {formatIDR(infraCalculation ? infraCalculation.recurring_subtotal : 0)}
                       </strong>
                       <span style={{ margin: '0 8px' }}>•</span>
                       Total Infra:{' '}
-                      <strong style={{ color: '#10b981' }}>
+                      <strong style={{ color: 'var(--color-success)' }}>
                         {formatIDR(infraCalculation ? infraCalculation.grand_total : 0)}
                       </strong>
                     </div>
@@ -2974,7 +2966,7 @@ function NewEstimateForm() {
                               )}
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <div className="excel-cell-static font-mono-numbers" style={{ fontWeight: 600, color: '#10b981' }}>
+                              <div className="excel-cell-static font-mono-numbers" style={{ fontWeight: 600, color: 'var(--color-success)' }}>
                                 {calcItem ? formatIDR(calcItem.total_cost) : 'Rp 0'}
                               </div>
                             </td>
@@ -3053,7 +3045,7 @@ function NewEstimateForm() {
                 gap: '16px',
                 padding: '16px',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.02)',
+                background: 'rgb(var(--ink-rgb) / 0.02)',
                 border: '1px solid var(--border-subtle)',
                 marginBottom: '18px',
               }}
@@ -3092,7 +3084,7 @@ function NewEstimateForm() {
                 <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '4px' }}>
                   Akumulasi Durasi Milestone
                 </div>
-                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: '#38bdf8' }}>
+                <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-info)' }}>
                   {timelineConfig.milestones.reduce((acc, m) => acc + (Number(m.duration_weeks) || 0), 0)} Minggu
                   <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 400, marginLeft: '6px' }}>
                     ({timelineConfig.milestones.length} Tahapan)
@@ -3256,7 +3248,7 @@ function NewEstimateForm() {
                 {/* Monthly / Recurring Charge (Maintenance/bln + Infra/bln) */}
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Monthly / Recurring Charge</div>
-                  <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 700, color: '#38bdf8' }}>
+                  <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-info)' }}>
                     {formatIDR(billingSummary.total_monthly_recurring)}/bln
                   </div>
                   <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '1px' }}>
@@ -3274,7 +3266,7 @@ function NewEstimateForm() {
                     style={{
                       fontSize: '18px',
                       fontWeight: 700,
-                      color: '#10b981',
+                      color: 'var(--color-success)',
                       letterSpacing: '-0.02em',
                     }}
                   >
@@ -3313,7 +3305,7 @@ function NewEstimateForm() {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backgroundColor: 'rgb(8 10 14 / 0.62)',
               backdropFilter: 'blur(4px)',
               display: 'flex',
               alignItems: 'center',
@@ -3332,9 +3324,9 @@ function NewEstimateForm() {
                 maxWidth: '520px',
                 padding: '24px',
                 background: 'var(--bg-elevated)',
-                border: '1px solid rgba(94, 106, 210, 0.35)',
+                border: '1px solid rgb(var(--accent-rgb) / 0.35)',
                 borderRadius: '12px',
-                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25), 0 0 20px rgba(94, 106, 210, 0.15)',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25), 0 0 20px rgb(var(--accent-rgb) / 0.15)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -3345,12 +3337,12 @@ function NewEstimateForm() {
                       width: '36px',
                       height: '36px',
                       borderRadius: '8px',
-                      background: 'rgba(94, 106, 210, 0.15)',
-                      border: '1px solid rgba(94, 106, 210, 0.3)',
+                      background: 'rgb(var(--accent-rgb) / 0.15)',
+                      border: '1px solid rgb(var(--accent-rgb) / 0.3)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#a5b4fc',
+                      color: 'var(--accent-text)',
                     }}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -3393,7 +3385,7 @@ function NewEstimateForm() {
                     lineHeight: '1.5',
                     resize: 'none',
                     background: 'var(--bg-input)',
-                    borderColor: 'rgba(255, 255, 255, 0.12)',
+                    borderColor: 'rgb(var(--ink-rgb) / 0.12)',
                   }}
                   value={revisionReason}
                   onChange={(e) => setRevisionReason(e.target.value)}

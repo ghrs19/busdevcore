@@ -159,9 +159,9 @@ export default function ProfilePage() {
                 fontSize: '11px',
                 padding: '2px 8px',
                 textTransform: 'uppercase',
-                background: profile.role === 'admin' ? 'rgba(94, 106, 210, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                color: profile.role === 'admin' ? '#a5b4fc' : 'var(--text-secondary)',
-                border: `1px solid ${profile.role === 'admin' ? 'rgba(94, 106, 210, 0.4)' : 'var(--border-subtle)'}`,
+                background: profile.role === 'admin' ? 'rgb(var(--accent-rgb) / 0.2)' : 'rgb(var(--ink-rgb) / 0.05)',
+                color: profile.role === 'admin' ? 'var(--accent-text)' : 'var(--text-secondary)',
+                border: `1px solid ${profile.role === 'admin' ? 'rgb(var(--accent-rgb) / 0.4)' : 'var(--border-subtle)'}`,
               }}
             >
               {profile.role}
@@ -179,9 +179,9 @@ export default function ProfilePage() {
           style={{
             padding: '12px 16px',
             borderRadius: '8px',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            color: '#10b981',
+            backgroundColor: 'rgb(var(--success-rgb) / 0.1)',
+            border: '1px solid rgb(var(--success-rgb) / 0.3)',
+            color: 'var(--color-success)',
             fontSize: '13px',
             marginBottom: '20px',
             display: 'flex',
@@ -199,9 +199,9 @@ export default function ProfilePage() {
           style={{
             padding: '12px 16px',
             borderRadius: '8px',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#ef4444',
+            backgroundColor: 'rgb(var(--danger-rgb) / 0.1)',
+            border: '1px solid rgb(var(--danger-rgb) / 0.3)',
+            color: 'var(--color-danger)',
             fontSize: '13px',
             marginBottom: '20px',
             display: 'flex',
@@ -218,7 +218,7 @@ export default function ProfilePage() {
         {/* Card 1: Informasi Profil */}
         <div
           style={{
-            backgroundColor: 'rgba(18, 19, 22, 0.7)',
+            backgroundColor: 'var(--bg-panel)',
             border: '1px solid var(--border-subtle)',
             borderRadius: '10px',
             padding: '24px',
@@ -242,7 +242,7 @@ export default function ProfilePage() {
                   padding: '9px 12px',
                   borderRadius: '6px',
                   border: '1px solid var(--border-subtle)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  backgroundColor: 'rgb(var(--ink-rgb) / 0.02)',
                   color: 'var(--text-tertiary)',
                   fontSize: '13px',
                   cursor: 'not-allowed',
@@ -268,7 +268,7 @@ export default function ProfilePage() {
                   padding: '9px 12px',
                   borderRadius: '6px',
                   border: '1px solid var(--border-color)',
-                  backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                  backgroundColor: 'var(--bg-card)',
                   color: 'var(--text-primary)',
                   fontSize: '13px',
                 }}
@@ -294,7 +294,7 @@ export default function ProfilePage() {
         {/* Card 2: Ubah Password */}
         <div
           style={{
-            backgroundColor: 'rgba(18, 19, 22, 0.7)',
+            backgroundColor: 'var(--bg-panel)',
             border: '1px solid var(--border-subtle)',
             borderRadius: '10px',
             padding: '24px',
@@ -323,7 +323,7 @@ export default function ProfilePage() {
                   padding: '9px 12px',
                   borderRadius: '6px',
                   border: '1px solid var(--border-color)',
-                  backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                  backgroundColor: 'var(--bg-card)',
                   color: 'var(--text-primary)',
                   fontSize: '13px',
                 }}
@@ -346,7 +346,7 @@ export default function ProfilePage() {
                     padding: '9px 12px',
                     borderRadius: '6px',
                     border: '1px solid var(--border-color)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                    backgroundColor: 'var(--bg-card)',
                     color: 'var(--text-primary)',
                     fontSize: '13px',
                   }}
@@ -368,7 +368,7 @@ export default function ProfilePage() {
                     padding: '9px 12px',
                     borderRadius: '6px',
                     border: '1px solid var(--border-color)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                    backgroundColor: 'var(--bg-card)',
                     color: 'var(--text-primary)',
                     fontSize: '13px',
                   }}

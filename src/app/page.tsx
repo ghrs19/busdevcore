@@ -1,19 +1,7 @@
 'use client';
-import {
-  PencilSquareIcon,
-  TrashIcon,
-  XMarkIcon,
-  ExclamationTriangleIcon,
-  ArrowsRightLeftIcon,
-  CheckIcon,
-  BanknotesIcon,
-  ArrowTrendingUpIcon,
-  BriefcaseIcon,
-  ClockIcon,
-  SparklesIcon,
-} from '@heroicons/react/24/outline';
 
 
+import { ArrowLeftRight, Banknote, Briefcase, Check, Clock3, Sparkles, SquarePen, Trash2, TrendingUp, TriangleAlert, X } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -477,7 +465,7 @@ export default function HistoricalEstimatesPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '60px' }}>
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px' }}>
+      <main style={{ maxWidth: 'var(--page-max)', margin: '0 auto', padding: '24px' }}>
         {/* Header with Title & Action */}
         <div
           style={{
@@ -584,7 +572,7 @@ export default function HistoricalEstimatesPage() {
               gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: '12px',
               paddingTop: '8px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+              borderTop: '1px solid rgb(var(--ink-rgb) / 0.05)',
             }}
           >
             {/* Filter Perusahaan */}
@@ -782,7 +770,7 @@ export default function HistoricalEstimatesPage() {
                           className="font-mono-numbers"
                           style={{
                             fontWeight: 600,
-                            color: '#10b981',
+                            color: 'var(--color-success)',
                           }}
                         >
                           {formatIDR(est.total_cost)}
@@ -803,15 +791,15 @@ export default function HistoricalEstimatesPage() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              color: '#38bdf8',
-                              borderColor: 'rgba(56, 189, 248, 0.3)',
+                              color: 'var(--color-info)',
+                              borderColor: 'rgb(var(--info-rgb) / 0.3)',
                               borderRadius: '6px',
                               boxSizing: 'border-box',
                             }}
                             title="Edit / Buat Revisi Estimasi ini"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <PencilSquareIcon style={{ width: "15px", height: "15px" }} />
+                            <SquarePen style={{ width: "15px", height: "15px" }} />
                           </a>
                           <button
                             type="button"
@@ -826,9 +814,9 @@ export default function HistoricalEstimatesPage() {
                               minWidth: '32px',
                               padding: 0,
                               fontSize: '13px',
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              color: '#ef4444',
+                              background: 'rgb(var(--danger-rgb) / 0.1)',
+                              border: '1px solid rgb(var(--danger-rgb) / 0.3)',
+                              color: 'var(--color-danger)',
                               borderRadius: '6px',
                               cursor: 'pointer',
                               display: 'inline-flex',
@@ -838,7 +826,7 @@ export default function HistoricalEstimatesPage() {
                             }}
                             title="Hapus Estimasi"
                           >
-                            <TrashIcon style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
+                            <Trash2 style={{ width: "15px", height: "15px", color: "var(--color-danger)" }} />
                           </button>
                         </div>
                       </td>
@@ -859,7 +847,7 @@ export default function HistoricalEstimatesPage() {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backgroundColor: 'rgb(8 10 14 / 0.62)',
               backdropFilter: 'blur(6px)',
               zIndex: 200,
               display: 'flex',
@@ -915,9 +903,9 @@ export default function HistoricalEstimatesPage() {
                 <div
                   style={{
                     padding: '10px 14px',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#ef4444',
+                    background: 'rgb(var(--danger-rgb) / 0.1)',
+                    border: '1px solid rgb(var(--danger-rgb) / 0.3)',
+                    color: 'var(--color-danger)',
                     borderRadius: '6px',
                     fontSize: '12px',
                     marginBottom: '16px',
@@ -968,7 +956,7 @@ export default function HistoricalEstimatesPage() {
                     onClick={handleDeleteEstimate}
                     disabled={isDeleting}
                     style={{
-                      background: '#ef4444',
+                      background: 'var(--color-danger)',
                       color: '#ffffff',
                       border: 'none',
                       padding: '8px 16px',
@@ -998,7 +986,7 @@ export default function HistoricalEstimatesPage() {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backgroundColor: 'rgb(8 10 14 / 0.62)',
               backdropFilter: 'blur(4px)',
               display: 'flex',
               alignItems: 'center',
@@ -1017,13 +1005,13 @@ export default function HistoricalEstimatesPage() {
                 maxWidth: '480px',
                 padding: '24px',
                 background: 'var(--bg-elevated)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
+                border: '1px solid rgb(var(--info-rgb) / 0.3)',
                 boxShadow: '0 20px 50px rgba(0, 0, 0, 0.25)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <ArrowsRightLeftIcon style={{ width: '22px', height: '22px', color: 'var(--accent-hover)' }} />
+                <ArrowLeftRight style={{ width: '22px', height: '22px', color: 'var(--accent-hover)' }} />
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     Buat Revisi (Fork Versioning)
@@ -1036,7 +1024,7 @@ export default function HistoricalEstimatesPage() {
 
               <div
                 style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: 'rgb(var(--ink-rgb) / 0.03)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: '6px',
                   padding: '12px 14px',
@@ -1048,7 +1036,7 @@ export default function HistoricalEstimatesPage() {
                   <strong>Sumber:</strong> #{forkTarget.id} • {forkTarget.project_name || 'General Project'} ({forkTarget.company_name})
                 </div>
                 <div style={{ color: 'var(--text-secondary)' }}>
-                  <strong>Versi Baru yang Dibuat:</strong> <span style={{ color: '#38bdf8', fontWeight: 600 }}>v{(forkTarget.version || 1) + 1}</span> (Baseline v{forkTarget.version || 1} tetap tersimpan utuh)
+                  <strong>Versi Baru yang Dibuat:</strong> <span style={{ color: 'var(--color-info)', fontWeight: 600 }}>v{(forkTarget.version || 1) + 1}</span> (Baseline v{forkTarget.version || 1} tetap tersimpan utuh)
                 </div>
               </div>
 
@@ -1067,7 +1055,7 @@ export default function HistoricalEstimatesPage() {
               </div>
 
               {forkError && (
-                <div style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', color: '#ef4444', fontSize: '12px', marginBottom: '16px' }}>
+                <div style={{ padding: '8px 12px', background: 'rgb(var(--danger-rgb) / 0.1)', border: '1px solid rgb(var(--danger-rgb) / 0.3)', borderRadius: '6px', color: 'var(--color-danger)', fontSize: '12px', marginBottom: '16px' }}>
                   {forkError}
                 </div>
               )}
@@ -1087,7 +1075,7 @@ export default function HistoricalEstimatesPage() {
                   onClick={handleForkEstimate}
                   disabled={isForking}
                   style={{
-                    background: '#0284c7',
+                    background: 'var(--color-info)',
                     color: '#ffffff',
                     border: 'none',
                     padding: '8px 18px',
@@ -1117,7 +1105,7 @@ export default function HistoricalEstimatesPage() {
               zIndex: 300,
               padding: '12px 20px',
               borderRadius: '8px',
-              backgroundColor: '#10b981',
+              backgroundColor: 'var(--color-success)',
               color: '#ffffff',
               boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
               display: 'flex',

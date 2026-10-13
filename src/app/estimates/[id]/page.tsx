@@ -1,13 +1,7 @@
 'use client';
-import {
-  PencilSquareIcon,
-  TrashIcon,
-  DocumentArrowDownIcon,
-  PrinterIcon,
-  ClockIcon,
-} from '@heroicons/react/24/outline';
 
 
+import { Clock3, FileDown, Printer, SquarePen, Trash2 } from 'lucide-react';
 import React, { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -222,7 +216,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', padding: '40px 24px', textAlign: 'center' }}>
         <div className="linear-card" style={{ maxWidth: '480px', margin: '0 auto', padding: '32px' }}>
-          <h2 style={{ color: '#ef4444', marginBottom: '12px', fontSize: '18px' }}>Terjadi Kesalahan</h2>
+          <h2 style={{ color: 'var(--color-danger)', marginBottom: '12px', fontSize: '18px' }}>Terjadi Kesalahan</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>{errorMsg || 'Data tidak ditemukan.'}</p>
           <Link href="/" className="btn-secondary" style={{ textDecoration: 'none' }}>
             Kembali ke Beranda
@@ -241,7 +235,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px' }}>
+      <main style={{ maxWidth: 'var(--page-max)', margin: '0 auto', padding: '24px' }}>
         
         {/* Top Breadcrumb & Actions Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
@@ -260,8 +254,8 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 height: '32px',
                 padding: '0 12px',
                 textDecoration: 'none',
-                color: '#10b981',
-                borderColor: 'rgba(16, 185, 129, 0.4)',
+                color: 'var(--color-success)',
+                borderColor: 'rgb(var(--success-rgb) / 0.4)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -271,7 +265,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               }}
               title="Download Data Costing Internal Format Excel (.xlsx)"
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><DocumentArrowDownIcon style={{ width: "15px", height: "15px" }} /><span>Export Excel</span></span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FileDown style={{ width: "15px", height: "15px" }} /><span>Export Excel</span></span>
             </a>
 
             <Link
@@ -282,8 +276,8 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 height: '32px',
                 padding: '0 12px',
                 textDecoration: 'none',
-                color: '#38bdf8',
-                borderColor: 'rgba(56, 189, 248, 0.4)',
+                color: 'var(--color-info)',
+                borderColor: 'rgb(var(--info-rgb) / 0.4)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -293,7 +287,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               }}
               title="Buka Lembar Costing Internal untuk Cetak atau Simpan ke PDF"
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><PrinterIcon style={{ width: "15px", height: "15px" }} /><span>Cetak PDF</span></span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Printer style={{ width: "15px", height: "15px" }} /><span>Cetak PDF</span></span>
             </Link>
 
             <Link
@@ -312,7 +306,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               }}
               title="Edit / Buat Revisi Estimasi ini"
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><PencilSquareIcon style={{ width: "15px", height: "15px" }} /><span>Edit Revisi</span></span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><SquarePen style={{ width: "15px", height: "15px" }} /><span>Edit Revisi</span></span>
             </Link>
             <button
               type="button"
@@ -323,9 +317,9 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 minWidth: '32px',
                 padding: 0,
                 fontSize: '13px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#ef4444',
+                background: 'rgb(var(--danger-rgb) / 0.1)',
+                border: '1px solid rgb(var(--danger-rgb) / 0.3)',
+                color: 'var(--color-danger)',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 display: 'inline-flex',
@@ -334,7 +328,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               }}
               title="Hapus Estimasi"
             >
-              <TrashIcon style={{ width: "16px", height: "16px", color: "var(--color-danger)" }} />
+              <Trash2 style={{ width: "16px", height: "16px", color: "var(--color-danger)" }} />
             </button>
           </div>
         </div>
@@ -345,7 +339,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
           style={{
             padding: '24px',
             marginBottom: '20px',
-            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.005) 100%)',
+            background: 'linear-gradient(180deg, rgb(var(--ink-rgb) / 0.02) 0%, rgb(var(--ink-rgb) / 0.005) 100%)',
             border: '1px solid var(--border-subtle)',
           }}
         >
@@ -370,9 +364,9 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       fontWeight: 700,
                       padding: '2px 8px',
                       height: '24px',
-                      color: '#38bdf8',
-                      backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                      color: 'var(--color-info)',
+                      backgroundColor: 'rgb(var(--info-rgb) / 0.12)',
+                      border: '1px solid rgb(var(--info-rgb) / 0.4)',
                       borderRadius: '4px',
                       cursor: 'pointer',
                     }}
@@ -391,9 +385,9 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       fontWeight: 700,
                       padding: '2px 6px',
                       borderRadius: '4px',
-                      background: (estimate.version && estimate.version > 1) ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                      color: (estimate.version && estimate.version > 1) ? '#38bdf8' : 'var(--text-secondary)',
-                      border: (estimate.version && estimate.version > 1) ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      background: (estimate.version && estimate.version > 1) ? 'rgb(var(--info-rgb) / 0.2)' : 'rgb(var(--ink-rgb) / 0.08)',
+                      color: (estimate.version && estimate.version > 1) ? 'var(--color-info)' : 'var(--text-secondary)',
+                      border: (estimate.version && estimate.version > 1) ? '1px solid rgb(var(--info-rgb) / 0.4)' : '1px solid rgb(var(--ink-rgb) / 0.1)',
                     }}
                   >
                     v{estimate.version || 1}
@@ -406,7 +400,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                   </span>
                 )}
                 {estimate.revision_notes && (
-                  <span style={{ fontSize: '11px', color: '#38bdf8', fontStyle: 'italic' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--color-info)', fontStyle: 'italic' }}>
                     &quot;{estimate.revision_notes}&quot;
                   </span>
                 )}
@@ -419,7 +413,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
 
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Grand Total Estimasi Kontrak</div>
-              <div className="font-mono-numbers" style={{ fontSize: '28px', fontWeight: 800, color: '#10b981' }}>
+              <div className="font-mono-numbers" style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-success)' }}>
                 {formatIDR(estimate.total_cost)}
               </div>
             </div>
@@ -495,7 +489,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               style={{
                 marginTop: '16px',
                 padding: '12px 16px',
-                background: 'rgba(255, 255, 255, 0.02)',
+                background: 'rgb(var(--ink-rgb) / 0.02)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '6px',
                 fontSize: '12px',
@@ -512,7 +506,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
             style={{
               marginTop: '12px',
               padding: '12px 16px',
-              background: 'rgba(255, 255, 255, 0.015)',
+              background: 'rgb(var(--ink-rgb) / 0.015)',
               border: '1px solid var(--border-subtle)',
               borderRadius: '6px',
             }}
@@ -531,12 +525,12 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       fontSize: '11px',
                       padding: '3px 8px',
                       borderRadius: '4px',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: 'rgb(var(--ink-rgb) / 0.04)',
                       border: '1px solid var(--border-subtle)',
                       color: 'var(--text-secondary)',
                     }}
                   >
-                    <strong>{name}:</strong> <span style={{ color: '#10b981' }}>{formatIDR(rVal)}/jam</span>
+                    <strong>{name}:</strong> <span style={{ color: 'var(--color-success)' }}>{formatIDR(rVal)}/jam</span>
                   </span>
                 );
               })}
@@ -599,7 +593,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               type="button"
               onClick={() => setActiveTab('HISTORY')}
               className={activeTab === 'HISTORY' ? 'btn-primary' : 'btn-secondary'}
-              style={{ fontSize: '12px', padding: '6px 14px', borderColor: 'rgba(56, 189, 248, 0.4)', color: activeTab === 'HISTORY' ? '#fff' : '#38bdf8' }}
+              style={{ fontSize: '12px', padding: '6px 14px', borderColor: 'rgb(var(--info-rgb) / 0.4)', color: activeTab === 'HISTORY' ? '#fff' : 'var(--color-info)' }}
             >
               Riwayat Versi Revisi ({estimate.version_history.length})
             </button>
@@ -614,7 +608,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 A. WBS Development Breakdown ({estimate.modules.length} Modul)
               </div>
               {estimate.billing_summary && (
-                <span className="font-mono-numbers" style={{ fontSize: '14px', color: '#10b981', fontWeight: 600 }}>
+                <span className="font-mono-numbers" style={{ fontSize: '14px', color: 'var(--color-success)', fontWeight: 600 }}>
                   Total One-Time Dev: {formatIDR(estimate.billing_summary.one_time_dev)}
                 </span>
               )}
@@ -629,7 +623,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 <div
                   style={{
                     padding: '12px 16px',
-                    background: 'rgba(255, 255, 255, 0.03)',
+                    background: 'rgb(var(--ink-rgb) / 0.03)',
                     borderBottom: '1px solid var(--border-subtle)',
                     display: 'flex',
                     alignItems: 'center',
@@ -644,7 +638,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       {Number(mod.total_hours)} Jam
                     </span>
                     <span style={{ color: 'var(--text-tertiary)', margin: '0 6px' }}>•</span>
-                    <span className="font-mono-numbers" style={{ color: '#10b981', fontWeight: 600 }}>
+                    <span className="font-mono-numbers" style={{ color: 'var(--color-success)', fontWeight: 600 }}>
                       {formatIDR(mod.total_cost)}
                     </span>
                   </div>
@@ -715,7 +709,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Biaya Kontrak</div>
-                <span className="font-mono-numbers" style={{ fontSize: '15px', color: '#10b981', fontWeight: 700 }}>
+                <span className="font-mono-numbers" style={{ fontSize: '15px', color: 'var(--color-success)', fontWeight: 700 }}>
                   {formatIDR(estimate.maintenance_config.total_cost)}
                 </span>
               </div>
@@ -757,7 +751,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           <span className="font-mono-numbers">{Number(task.total_hours)}h</span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <span className="font-mono-numbers" style={{ color: '#38bdf8', fontWeight: 600 }}>
+                          <span className="font-mono-numbers" style={{ color: 'var(--color-info)', fontWeight: 600 }}>
                             {formatIDR(task.monthly_cost)}/bln
                           </span>
                         </td>
@@ -788,7 +782,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                   <strong style={{ color: 'var(--text-primary)' }}>{formatIDR(estimate.billing_summary.one_time_infra)}</strong>
                   <span style={{ color: 'var(--text-tertiary)', margin: '0 6px' }}>•</span>
                   <span style={{ color: 'var(--text-tertiary)' }}>Recurring: </span>
-                  <strong style={{ color: '#38bdf8' }}>{formatIDR(estimate.billing_summary.monthly_infra)}</strong>
+                  <strong style={{ color: 'var(--color-info)' }}>{formatIDR(estimate.billing_summary.monthly_infra)}</strong>
                 </div>
               )}
             </div>
@@ -832,7 +826,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                         <td style={{ textAlign: 'center' }} className="font-mono-numbers">
                           {item.billing_type === 'ONE_TIME' ? '1x' : `${item.period_count} ${item.billing_type === 'MONTHLY' ? 'Bln' : 'Thn'}`}
                         </td>
-                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#10b981', fontWeight: 600 }}>
+                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: 'var(--color-success)', fontWeight: 600 }}>
                           {formatIDR(item.total_cost)}
                         </td>
                         <td style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{item.notes || '-'}</td>
@@ -858,7 +852,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 </div>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Subtotal Operational: <strong style={{ color: '#10b981' }}>{formatIDR(estimate.operational_items.reduce((acc, it) => acc + (Number(it.total_cost) || 0), 0))}</strong>
+                Subtotal Operational: <strong style={{ color: 'var(--color-success)' }}>{formatIDR(estimate.operational_items.reduce((acc, it) => acc + (Number(it.total_cost) || 0), 0))}</strong>
               </div>
             </div>
 
@@ -883,7 +877,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{item.people_count} org</td>
                       <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{item.days_count} hari</td>
                       <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatIDR(item.unit_cost_per_day)}</td>
-                      <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#10b981', fontWeight: 600, padding: '0 12px' }}>
+                      <td className="font-mono-numbers" style={{ textAlign: 'right', color: 'var(--color-success)', fontWeight: 600, padding: '0 12px' }}>
                         {formatIDR(item.total_cost)}
                       </td>
                       <td style={{ color: 'var(--text-tertiary)', fontSize: '12px', padding: '6px 12px' }}>{item.notes || '-'}</td>
@@ -932,7 +926,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       <tr
                         key={verItem.id}
                         style={{
-                          background: isCurrent ? 'rgba(56, 189, 248, 0.04)' : undefined,
+                          background: isCurrent ? 'rgb(var(--info-rgb) / 0.04)' : undefined,
                         }}
                       >
                         <td style={{ textAlign: 'center' }}>
@@ -942,9 +936,9 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                               fontWeight: 700,
                               padding: '2px 8px',
                               borderRadius: '4px',
-                              background: isCurrent ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.06)',
-                              color: isCurrent ? '#38bdf8' : 'var(--text-secondary)',
-                              border: isCurrent ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                              background: isCurrent ? 'rgb(var(--info-rgb) / 0.25)' : 'rgb(var(--ink-rgb) / 0.06)',
+                              color: isCurrent ? 'var(--color-info)' : 'var(--text-secondary)',
+                              border: isCurrent ? '1px solid rgb(var(--info-rgb) / 0.5)' : '1px solid rgb(var(--ink-rgb) / 0.1)',
                             }}
                           >
                             v{verItem.version}
@@ -954,7 +948,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           <div style={{ fontWeight: isCurrent ? 600 : 400, color: isCurrent ? '#fff' : 'var(--text-primary)' }}>
                             #{verItem.id} • {verItem.title}
                             {isCurrent && (
-                              <span style={{ fontSize: '10px', color: '#38bdf8', marginLeft: '6px', fontWeight: 600 }}>
+                              <span style={{ fontSize: '10px', color: 'var(--color-info)', marginLeft: '6px', fontWeight: 600 }}>
                                 (Halaman Saat Ini)
                               </span>
                             )}
@@ -972,7 +966,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                         <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
                           {Number(verItem.total_hours)}h
                         </td>
-                        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#10b981' }}>
+                        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-success)' }}>
                           {formatIDR(verItem.total_cost)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
@@ -982,7 +976,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                             <Link
                               href={`/estimates/${verItem.id}`}
                               className="btn-secondary"
-                              style={{ fontSize: '11px', padding: '3px 8px', textDecoration: 'none', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                              style={{ fontSize: '11px', padding: '3px 8px', textDecoration: 'none', color: 'var(--color-info)', borderColor: 'rgb(var(--info-rgb) / 0.3)' }}
                             >
                               Buka Versi Ini
                             </Link>
@@ -1040,7 +1034,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backgroundColor: 'rgb(8 10 14 / 0.62)',
               backdropFilter: 'blur(6px)',
               zIndex: 200,
               display: 'flex',
@@ -1059,7 +1053,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 maxWidth: '440px',
                 padding: '24px',
                 backgroundColor: 'var(--bg-panel)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                border: '1px solid rgb(var(--danger-rgb) / 0.3)',
                 boxShadow: '0 20px 50px rgba(0, 0, 0, 0.25)',
               }}
               onClick={(e) => e.stopPropagation()}
@@ -1084,7 +1078,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                   onClick={handleDelete}
                   disabled={isDeleting}
                   style={{
-                    background: '#ef4444',
+                    background: 'var(--color-danger)',
                     color: '#fff',
                     border: 'none',
                     padding: '8px 16px',

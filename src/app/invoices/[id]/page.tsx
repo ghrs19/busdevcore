@@ -1,22 +1,10 @@
 'use client';
 
+import { ArrowLeft, Banknote, Building2, CalendarDays, CircleCheck, CreditCard, FileText, Paperclip, Printer, SquarePen, Upload } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  PrinterIcon,
-  PaperClipIcon,
-  ArrowUpTrayIcon,
-  ArrowLeftIcon,
-  PencilSquareIcon,
-  CheckCircleIcon,
-  BuildingOfficeIcon,
-  CalendarDaysIcon,
-  CreditCardIcon,
-  DocumentTextIcon,
-  BanknotesIcon,
-} from '@heroicons/react/24/outline';
 
 interface InvoiceDetail {
   id: number;
@@ -60,14 +48,14 @@ const formatIDR = (val: number | string) => {
 const getStatusBadge = (status: string) => {
   switch (status?.toLowerCase()) {
     case 'paid':
-      return { label: 'Paid / Lunas', bg: 'rgba(16, 185, 129, 0.15)', text: '#10b981', border: 'rgba(16, 185, 129, 0.3)' };
+      return { label: 'Paid / Lunas', bg: 'rgb(var(--success-rgb) / 0.15)', text: 'var(--color-success)', border: 'rgb(var(--success-rgb) / 0.3)' };
     case 'invoiced':
-      return { label: 'Invoiced (Pending Tagihan)', bg: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)' };
+      return { label: 'Invoiced (Pending Tagihan)', bg: 'rgb(var(--info-rgb) / 0.15)', text: 'var(--color-info)', border: 'rgb(var(--info-rgb) / 0.3)' };
     case 'overdue':
-      return { label: 'Overdue (Lewat Jatuh Tempo)', bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.3)' };
+      return { label: 'Overdue (Lewat Jatuh Tempo)', bg: 'rgb(var(--danger-rgb) / 0.15)', text: 'var(--color-danger)', border: 'rgb(var(--danger-rgb) / 0.3)' };
     case 'unbilled':
     default:
-      return { label: 'Unbilled (Draft / Belum Ditagih)', bg: 'rgba(255, 255, 255, 0.05)', text: 'var(--text-secondary)', border: 'rgba(255, 255, 255, 0.12)' };
+      return { label: 'Unbilled (Draft / Belum Ditagih)', bg: 'rgb(var(--ink-rgb) / 0.05)', text: 'var(--text-secondary)', border: 'rgb(var(--ink-rgb) / 0.12)' };
   }
 };
 
@@ -212,7 +200,7 @@ function InvoiceDetailPageInner() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 20px' }}>
+      <main style={{ maxWidth: 'var(--page-max)', margin: '0 auto', padding: '24px 20px' }}>
         {/* Navigation Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <Link
@@ -227,7 +215,7 @@ function InvoiceDetailPageInner() {
               transition: 'color 0.15s ease',
             }}
           >
-            <ArrowLeftIcon style={{ width: '14px', height: '14px' }} />
+            <ArrowLeft style={{ width: '14px', height: '14px' }} />
             <span>Kembali ke Invoices Tracker</span>
           </Link>
 
@@ -237,7 +225,7 @@ function InvoiceDetailPageInner() {
               className="btn-secondary"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '6px 14px' }}
             >
-              <PencilSquareIcon style={{ width: '15px', height: '15px' }} />
+              <SquarePen style={{ width: '15px', height: '15px' }} />
               <span>Update Status</span>
             </button>
 
@@ -252,11 +240,11 @@ function InvoiceDetailPageInner() {
                 fontSize: '12.5px',
                 padding: '6px 16px',
                 textDecoration: 'none',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                borderColor: '#10b981',
+                background: 'linear-gradient(135deg, var(--color-success) 0%, var(--color-success) 100%)',
+                borderColor: 'var(--color-success)',
               }}
             >
-              <PrinterIcon style={{ width: '15px', height: '15px' }} />
+              <Printer style={{ width: '15px', height: '15px' }} />
               <span>Cetak PDF Invoice</span>
             </Link>
           </div>
@@ -273,7 +261,7 @@ function InvoiceDetailPageInner() {
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '16px',
-            borderLeft: `4px solid ${isPaid ? '#10b981' : '#38bdf8'}`,
+            borderLeft: `4px solid ${isPaid ? 'var(--color-success)' : 'var(--color-info)'}`,
           }}
         >
           <div>
@@ -308,9 +296,9 @@ function InvoiceDetailPageInner() {
                   fontSize: '11px',
                   fontWeight: 600,
                   padding: '3px 8px',
-                  background: isRecurring ? 'rgba(168, 85, 247, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                  color: isRecurring ? '#c084fc' : '#38bdf8',
-                  border: `1px solid ${isRecurring ? 'rgba(168, 85, 247, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                  background: isRecurring ? 'rgb(var(--violet-rgb) / 0.15)' : 'rgb(var(--info-rgb) / 0.15)',
+                  color: isRecurring ? 'var(--color-violet)' : 'var(--color-info)',
+                  border: `1px solid ${isRecurring ? 'rgb(var(--violet-rgb) / 0.3)' : 'rgb(var(--info-rgb) / 0.3)'}`,
                 }}
               >
                 {isRecurring ? 'Retainer Bulanan' : 'Termin Milestone'}
@@ -331,7 +319,7 @@ function InvoiceDetailPageInner() {
               style={{
                 fontSize: '26px',
                 fontWeight: 800,
-                color: isPaid ? '#10b981' : 'var(--text-primary)',
+                color: isPaid ? 'var(--color-success)' : 'var(--text-primary)',
                 marginTop: '4px',
               }}
             >
@@ -350,7 +338,7 @@ function InvoiceDetailPageInner() {
           {/* Panel Administrasi Penagihan */}
           <div className="linear-card" style={{ padding: '22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <CalendarDaysIcon style={{ width: '18px', height: '18px', color: 'var(--accent-hover)' }} />
+              <CalendarDays style={{ width: '18px', height: '18px', color: 'var(--accent-hover)' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                 Informasi Tanggal & Penagihan
               </h3>
@@ -373,14 +361,14 @@ function InvoiceDetailPageInner() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Jatuh Tempo (Due Date)</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 600, color: invoice.due_date ? '#f59e0b' : 'var(--text-secondary)' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 600, color: invoice.due_date ? 'var(--color-warning)' : 'var(--text-secondary)' }}>
                   {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                 </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Status Realisasi Bayar</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: isPaid ? '#10b981' : 'var(--text-tertiary)' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: isPaid ? 'var(--color-success)' : 'var(--text-tertiary)' }}>
                   {isPaid ? `Lunas (${formatIDR(invoice.paid_amount || invoice.amount)})` : Number(invoice.paid_amount) > 0 ? `Diterima ${formatIDR(Number(invoice.paid_amount) || 0)} · Sisa ${formatIDR(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)))}` : 'Belum Diterima'}
                 </span>
               </div>
@@ -388,7 +376,7 @@ function InvoiceDetailPageInner() {
               {invoice.paid_date && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
                   <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Tanggal Pelunasan</span>
-                  <span style={{ fontSize: '12.5px', color: '#10b981' }}>
+                  <span style={{ fontSize: '12.5px', color: 'var(--color-success)' }}>
                     {new Date(invoice.paid_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
                 </div>
@@ -416,15 +404,15 @@ function InvoiceDetailPageInner() {
                       padding: '4px 10px',
                       fontSize: '11.5px',
                       textDecoration: 'none',
-                      color: '#10b981',
+                      color: 'var(--color-success)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      border: '1px solid rgb(var(--success-rgb) / 0.4)',
                     }}
                     title={`Lihat file: ${invoice.proof_file_name || 'Bukti Transfer'}`}
                   >
-                    <PaperClipIcon style={{ width: '13px', height: '13px' }} />
+                    <Paperclip style={{ width: '13px', height: '13px' }} />
                     <span>Lihat Bukti Bayar</span>
                   </a>
                 ) : (
@@ -440,7 +428,7 @@ function InvoiceDetailPageInner() {
                     }}
                     title="Upload slip transfer / bukti setor ke MinIO Storage"
                   >
-                    <ArrowUpTrayIcon style={{ width: '13px', height: '13px' }} />
+                    <Upload style={{ width: '13px', height: '13px' }} />
                     <span>{uploadingProof ? 'Mengunggah...' : 'Upload Slip Bank'}</span>
                     <input
                       type="file"
@@ -460,7 +448,7 @@ function InvoiceDetailPageInner() {
           {/* Panel Identitas Klien & Kontrak */}
           <div className="linear-card" style={{ padding: '22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <BuildingOfficeIcon style={{ width: '18px', height: '18px', color: 'var(--accent-hover)' }} />
+              <Building2 style={{ width: '18px', height: '18px', color: 'var(--accent-hover)' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                 Data Klien & Proposal Asal
               </h3>
@@ -497,7 +485,7 @@ function InvoiceDetailPageInner() {
               {invoice.coverage_period && (
                 <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
                   <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Periode Layanan Retainer</div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#c084fc', marginTop: '2px' }}>
+                  <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--color-violet)', marginTop: '2px' }}>
                     {invoice.coverage_period}
                   </div>
                 </div>
@@ -544,7 +532,7 @@ function InvoiceDetailPageInner() {
                       <tr
                         key={sib.id}
                         style={{
-                          background: isCurrent ? 'rgba(94, 106, 210, 0.1)' : 'transparent',
+                          background: isCurrent ? 'rgb(var(--accent-rgb) / 0.1)' : 'transparent',
                           borderLeft: isCurrent ? '3px solid var(--accent-hover)' : '3px solid transparent',
                           transition: 'background 0.15s ease',
                         }}
@@ -563,9 +551,9 @@ function InvoiceDetailPageInner() {
                                 style={{
                                   fontSize: '10.5px',
                                   fontWeight: 700,
-                                  background: 'rgba(94, 106, 210, 0.25)',
-                                  color: '#a5b4fc',
-                                  border: '1px solid rgba(94, 106, 210, 0.4)',
+                                  background: 'rgb(var(--accent-rgb) / 0.25)',
+                                  color: 'var(--accent-text)',
+                                  border: '1px solid rgb(var(--accent-rgb) / 0.4)',
                                   padding: '1px 7px',
                                 }}
                               >
@@ -579,7 +567,7 @@ function InvoiceDetailPageInner() {
                             </div>
                           )}
                         </td>
-                        <td style={{ textAlign: 'right', padding: '16px 20px', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13.5px', color: sib.billing_status === 'paid' ? '#10b981' : 'var(--text-primary)' }}>
+                        <td style={{ textAlign: 'right', padding: '16px 20px', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13.5px', color: sib.billing_status === 'paid' ? 'var(--color-success)' : 'var(--text-primary)' }}>
                           {formatIDR(sib.amount)}
                         </td>
                         <td style={{ textAlign: 'center', padding: '16px' }}>
@@ -654,7 +642,7 @@ function InvoiceDetailPageInner() {
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'rgba(0, 0, 0, 0.75)',
+              background: 'rgb(8 10 14 / 0.62)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -677,7 +665,7 @@ function InvoiceDetailPageInner() {
                 Update Status Invoice & Pembayaran
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>
-                {invoice.milestone_name} • Nilai: <strong style={{ color: '#10b981' }}>{formatIDR(invoice.amount)}</strong>
+                {invoice.milestone_name} • Nilai: <strong style={{ color: 'var(--color-success)' }}>{formatIDR(invoice.amount)}</strong>
               </p>
 
               <form onSubmit={handleSaveModal}>

@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { Page, PageHeader } from '@/components/ui/Page';
+import DataGrid from '@/components/ui/DataGrid';
 
 interface AuditLogItem {
   id: number;
@@ -15,10 +17,20 @@ interface AuditLogItem {
   created_at: string;
 }
 
+const ACTION_BADGE: Record<string, string> = {
+  CREATE: 'badge-connected',
+  REVISION: 'badge-accent',
+  STATUS_CHANGE: 'badge-warning',
+  PAYMENT_UPDATE: 'badge-info',
+  DOCUMENT_GENERATE: 'badge-info',
+  DELETE: 'badge-danger',
+};
+
 export default function AuditDashboardPage() {
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterAction, setFilterAction] = useState('ALL');
+  const [open, setOpen] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     async function loadLogs() {
@@ -37,167 +49,105 @@ export default function AuditDashboardPage() {
     loadLogs();
   }, []);
 
-  const filtered = logs.filter((log) => {
-    if (filterAction === 'ALL') return true;
-    return log.action === filterAction;
-  });
+  const actions = useMemo(() => ['ALL', ...Array.from(new Set(logs.map((l) => l.action)))], [logs]);
+  const filtered = logs.filter((log) => filterAction === 'ALL' || log.action === filterAction);
+
+  const toggle = (id: number) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 20px' }}>
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px',
-            marginBottom: '24px',
-            paddingBottom: '20px',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <div>
+    <Page wide>
+      <PageHeader
+        eyebrow="Keamanan & kepatuhan"
+        title="Activity log & audit trail"
+        description="Rekam jejak perubahan status deal, revisi harga, pembayaran, dan konversi dokumen kontrak oleh pengguna."
+      />
 
-            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-              Global Activity Log & Audit Trail
-            </h1>
-            <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Rekam jejak setiap perubahan status deal, revisi harga, dan konversi dokumen kontrak oleh pengguna.
-            </p>
+      <DataGrid
+        title={
+          <div className="pill-group" role="tablist" aria-label="Filter aksi">
+            {actions.map((act) => (
+              <button key={act} type="button" role="tab" aria-selected={filterAction === act} onClick={() => setFilterAction(act)} className={`pill-item${filterAction === act ? ' active' : ''}`}>
+                {act === 'ALL' ? 'Semua log' : act.replaceAll('_', ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+              </button>
+            ))}
           </div>
-        </div>
-
-        {/* Filter Bar */}
-        <div
-          className="linear-card"
-          style={{
-            padding: '14px 20px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginRight: '6px' }}>Filter Aksi:</span>
-          {['ALL', 'STATUS_CHANGE', 'DOCUMENT_GENERATE'].map((act) => (
-            <button
-              key={act}
-              onClick={() => setFilterAction(act)}
-              className={filterAction === act ? 'btn-primary' : 'btn-secondary'}
-              style={{
-                padding: '4px 12px',
-                fontSize: '12px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-              }}
-            >
-              {act === 'ALL' ? 'Semua Log' : act}
-            </button>
-          ))}
-        </div>
-
-        {/* Logs Table */}
-        <div className="linear-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="pro-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '180px', textAlign: 'left' }}>Waktu Kejadian</th>
-                  <th style={{ width: '160px', textAlign: 'left' }}>Pengguna</th>
-                  <th style={{ width: '150px', textAlign: 'center' }}>Entitas</th>
-                  <th style={{ width: '160px', textAlign: 'center' }}>Aksi</th>
-                  <th style={{ minWidth: '320px', textAlign: 'left' }}>Detail Perubahan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
-                      Memuat rekaman audit trail...
+        }
+        actions={<span className="font-mono-numbers text-[12px] text-fg-3">{filtered.length} entri</span>}
+      >
+        <table className="pro-table" style={{ minWidth: 960 }}>
+          <thead>
+            <tr>
+              <th style={{ width: 190 }}>Waktu</th>
+              <th style={{ width: 220 }}>Pengguna</th>
+              <th style={{ width: 190 }}>Entitas</th>
+              <th style={{ width: 170 }}>Aksi</th>
+              <th style={{ minWidth: 360 }}>Detail perubahan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="dg-empty">Memuat rekaman audit trail…</td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="dg-empty">Belum ada rekaman audit log.</td>
+              </tr>
+            ) : (
+              filtered.map((log) => {
+                const d = new Date(log.created_at);
+                const date = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                const time = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const isOpen = open.has(log.id);
+                const json = JSON.stringify(log.details ?? {}, null, isOpen ? 2 : 0);
+                return (
+                  <tr key={log.id}>
+                    <td className="whitespace-nowrap align-top">
+                      <div className="text-[12.5px] text-fg">{date}</div>
+                      <div className="font-mono-numbers text-[11.5px] text-fg-3">{time}</div>
+                    </td>
+                    <td className="align-top">
+                      <div className="cell-strong cell-trunc text-[12.5px]" style={{ maxWidth: '26ch' }}>{log.user_name || 'System / Guest'}</div>
+                      {log.user_email && <div className="cell-trunc text-[11.5px] text-fg-3" style={{ maxWidth: '26ch' }} title={log.user_email}>{log.user_email}</div>}
+                    </td>
+                    <td className="align-top">
+                      <span className="badge badge-neutral font-mono-numbers">
+                        {log.entity_type} #{log.entity_id}
+                      </span>
+                    </td>
+                    <td className="align-top">
+                      <span className={`badge ${ACTION_BADGE[log.action] || 'badge-neutral'}`}>{log.action}</span>
+                    </td>
+                    <td className="align-top">
+                      <button
+                        type="button"
+                        onClick={() => toggle(log.id)}
+                        aria-expanded={isOpen}
+                        className="group flex w-full items-start gap-1.5 rounded-md p-2 text-left transition-colors hover:bg-[var(--row-hover)]"
+                        title={isOpen ? 'Ciutkan detail' : 'Lihat detail lengkap'}
+                      >
+                        <ChevronRight className={`mt-[3px] size-3.5 shrink-0 text-fg-3 transition-transform ${isOpen ? 'rotate-90' : ''}`} aria-hidden />
+                        <code
+                          className="font-mono text-[11.5px] leading-relaxed text-fg-2"
+                          style={isOpen ? { whiteSpace: 'pre-wrap', wordBreak: 'break-word' } : { display: 'block', maxWidth: '56ch', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          {json}
+                        </code>
+                      </button>
                     </td>
                   </tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
-                      Belum ada rekaman audit log.
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((log) => {
-                    const logDate = new Date(log.created_at).toLocaleString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    });
-
-                    return (
-                      <tr key={log.id}>
-                        <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{logDate}</td>
-                        <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '12.5px' }}>
-                            {log.user_name || 'System / Guest'}
-                          </div>
-                          {log.user_email && (
-                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{log.user_email}</div>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px' }}>
-                            {log.entity_type} #{log.entity_id}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span
-                            className="linear-badge font-mono-numbers"
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              background:
-                                log.action === 'STATUS_CHANGE'
-                                  ? 'rgba(245, 158, 11, 0.15)'
-                                  : log.action === 'DOCUMENT_GENERATE'
-                                  ? 'rgba(56, 189, 248, 0.15)'
-                                  : 'rgba(255, 255, 255, 0.05)',
-                              color:
-                                log.action === 'STATUS_CHANGE'
-                                  ? '#f59e0b'
-                                  : log.action === 'DOCUMENT_GENERATE'
-                                  ? '#38bdf8'
-                                  : 'var(--text-primary)',
-                            }}
-                          >
-                            {log.action}
-                          </span>
-                        </td>
-                        <td>
-                          <code
-                            style={{
-                              fontSize: '11.5px',
-                              color: 'var(--text-secondary)',
-                              background: 'rgba(0,0,0,0.2)',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                              display: 'inline-block',
-                            }}
-                          >
-                            {JSON.stringify(log.details)}
-                          </code>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </main>
-    </div>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </DataGrid>
+    </Page>
   );
 }

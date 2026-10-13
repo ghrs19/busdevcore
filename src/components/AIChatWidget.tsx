@@ -1,13 +1,8 @@
 'use client';
 
+import { Send, Sparkles, X, Zap } from 'lucide-react';
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
-import {
-  SparklesIcon,
-  XMarkIcon,
-  PaperAirplaneIcon,
-  BoltIcon,
-} from '@heroicons/react/24/solid';
 
 interface ChatMessage {
   id: string;
@@ -217,7 +212,7 @@ function AIChatWidgetContent() {
               background: 'var(--bg-elevated)',
               border: '1px solid var(--border-hover)',
               borderRadius: '14px',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.25), 0 0 20px rgba(94, 106, 210, 0.25)',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.25), 0 0 20px rgb(var(--accent-rgb) / 0.25)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -241,20 +236,20 @@ function AIChatWidgetContent() {
                     width: '28px',
                     height: '28px',
                     borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #5e6ad2 0%, #7170ff 100%)',
+                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-text) 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
-                    boxShadow: '0 0 10px rgba(94, 106, 210, 0.4)',
+                    boxShadow: '0 0 10px rgb(var(--accent-rgb) / 0.4)',
                   }}
                 >
-                  <BoltIcon style={{ width: '16px', height: '16px' }} />
+                  <Zap style={{ width: '16px', height: '16px' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>BusDev AI Copilot</span>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-success)' }} />
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
                     Terhubung ke Hermes Agent & Database
@@ -279,7 +274,7 @@ function AIChatWidgetContent() {
                 }}
                 title="Tutup Chat"
               >
-                <XMarkIcon style={{ width: '18px', height: '18px' }} />
+                <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
 
@@ -349,14 +344,14 @@ function AIChatWidgetContent() {
                         padding: '10px 14px',
                         borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                         background: isUser
-                          ? 'linear-gradient(135deg, #5e6ad2 0%, #4a54b3 100%)'
+                          ? 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%)'
                           : 'var(--row-hover)',
                         border: isUser ? 'none' : '1px solid var(--border-subtle)',
                         color: isUser ? '#ffffff' : 'var(--text-primary)',
                         fontSize: '12.5px',
                         lineHeight: '1.5',
                         whiteSpace: 'pre-wrap',
-                        boxShadow: isUser ? '0 2px 8px rgba(94, 106, 210, 0.2)' : 'none',
+                        boxShadow: isUser ? '0 2px 8px rgb(var(--accent-rgb) / 0.2)' : 'none',
                       }}
                     >
                       {m.content}
@@ -430,7 +425,7 @@ function AIChatWidgetContent() {
                 }}
               >
                 <span>Kirim</span>
-                <PaperAirplaneIcon style={{ width: '13px', height: '13px' }} />
+                <Send style={{ width: '13px', height: '13px' }} />
               </button>
             </form>
           </div>
@@ -446,26 +441,26 @@ function AIChatWidgetContent() {
             height: '56px',
             borderRadius: '50%',
             background: isOpen
-              ? 'rgba(255, 255, 255, 0.1)'
-              : 'linear-gradient(135deg, #5e6ad2 0%, #7170ff 100%)',
+              ? 'rgb(var(--ink-rgb) / 0.1)'
+              : 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-text) 100%)',
             boxShadow: isOpen
               ? '0 4px 12px rgba(0,0,0,0.4)'
-              : '0 8px 24px rgba(94, 106, 210, 0.4), 0 0 12px rgba(113, 112, 255, 0.3)',
+              : '0 8px 24px rgb(var(--accent-rgb) / 0.4), 0 0 12px rgb(var(--accent-rgb) / 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#ffffff',
             cursor: isDragging ? 'grabbing' : 'pointer',
-            border: isOpen ? '1px solid var(--border-hover)' : '1px solid rgba(255, 255, 255, 0.2)',
+            border: isOpen ? '1px solid var(--border-hover)' : '1px solid rgb(var(--ink-rgb) / 0.2)',
             transition: isDragging ? 'none' : 'transform 0.15s ease, box-shadow 0.15s ease',
             transform: 'scale(1)',
           }}
           title={isOpen ? 'Tutup AI Assistant' : 'Tarik (Drag) atau Klik untuk Chat dengan AI'}
         >
           {isOpen ? (
-            <XMarkIcon style={{ width: '24px', height: '24px', color: '#fff' }} />
+            <X style={{ width: '24px', height: '24px', color: '#fff' }} />
           ) : (
-            <SparklesIcon style={{ width: '26px', height: '26px', color: '#fff' }} />
+            <Sparkles style={{ width: '26px', height: '26px', color: '#fff' }} />
           )}
         </div>
       </div>

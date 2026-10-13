@@ -1,22 +1,8 @@
 'use client';
 
-import {
-  ArrowDownTrayIcon,
-  PaperClipIcon,
-  ArrowUpTrayIcon,
-  PrinterIcon,
-  PencilSquareIcon,
-  BuildingOfficeIcon,
-  DocumentTextIcon,
-  CalendarDaysIcon,
-  CreditCardIcon,
-  CubeIcon,
-  ClockIcon,
-  ClipboardDocumentCheckIcon,
-  BoltIcon,
-} from '@heroicons/react/24/outline';
 
 
+import { Box, Building2, CalendarDays, ClipboardCheck, Clock3, CreditCard, Download, FileText, Paperclip, Printer, SquarePen, Upload, Zap } from 'lucide-react';
 import { Suspense } from 'react';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -126,16 +112,16 @@ const getStatusBadge = (status: string) => {
   const s = status ? status.toLowerCase() : 'draft';
   switch (s) {
     case 'won':
-      return { label: 'Won (Deal)', bg: 'rgba(16, 185, 129, 0.15)', text: '#10b981', border: 'rgba(16, 185, 129, 0.3)' };
+      return { label: 'Won (Deal)', bg: 'rgb(var(--success-rgb) / 0.15)', text: 'var(--color-success)', border: 'rgb(var(--success-rgb) / 0.3)' };
     case 'negotiation':
-      return { label: 'Negotiation', bg: 'rgba(245, 158, 11, 0.15)', text: '#f59e0b', border: 'rgba(245, 158, 11, 0.3)' };
+      return { label: 'Negotiation', bg: 'rgb(var(--warning-rgb) / 0.15)', text: 'var(--color-warning)', border: 'rgb(var(--warning-rgb) / 0.3)' };
     case 'sent':
-      return { label: 'Sent to Client', bg: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)' };
+      return { label: 'Sent to Client', bg: 'rgb(var(--info-rgb) / 0.15)', text: 'var(--color-info)', border: 'rgb(var(--info-rgb) / 0.3)' };
     case 'lost':
-      return { label: 'Lost', bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.3)' };
+      return { label: 'Lost', bg: 'rgb(var(--danger-rgb) / 0.15)', text: 'var(--color-danger)', border: 'rgb(var(--danger-rgb) / 0.3)' };
     case 'draft':
     default:
-      return { label: 'Draft', bg: 'rgba(255, 255, 255, 0.06)', text: 'var(--text-secondary)', border: 'rgba(255, 255, 255, 0.12)' };
+      return { label: 'Draft', bg: 'rgb(var(--ink-rgb) / 0.06)', text: 'var(--text-secondary)', border: 'rgb(var(--ink-rgb) / 0.12)' };
   }
 };
 
@@ -332,7 +318,7 @@ function CommercialProposalDetailContent() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '90px' }}>
-      <main style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 20px' }}>
+      <main style={{ maxWidth: 'var(--page-max)', margin: '0 auto', padding: '24px 20px' }}>
         {/* Top Breadcrumb & Action Header */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -378,8 +364,8 @@ function CommercialProposalDetailContent() {
                     fontSize: '11px',
                     fontWeight: 700,
                     padding: '2px 8px',
-                    background: (proposal.version || 1) > 1 ? 'rgba(94, 106, 210, 0.25)' : 'rgba(255, 255, 255, 0.08)',
-                    color: (proposal.version || 1) > 1 ? '#a5b4fc' : 'var(--text-secondary)',
+                    background: (proposal.version || 1) > 1 ? 'rgb(var(--accent-rgb) / 0.25)' : 'rgb(var(--ink-rgb) / 0.08)',
+                    color: (proposal.version || 1) > 1 ? 'var(--accent-text)' : 'var(--text-secondary)',
                   }}
                 >
                   Versi v{proposal.version || 1}
@@ -418,15 +404,15 @@ function CommercialProposalDetailContent() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  color: '#38bdf8',
-                  borderColor: 'rgba(56, 189, 248, 0.35)',
+                  color: 'var(--color-info)',
+                  borderColor: 'rgb(var(--info-rgb) / 0.35)',
                   padding: '7px 14px',
                   fontSize: '12px',
                   fontWeight: 600,
                 }}
                 title="Download Dokumen Format Word (.docx)"
               >
-                <ArrowDownTrayIcon style={{ width: "15px", height: "15px" }} />
+                <Download style={{ width: "15px", height: "15px" }} />
                 <span>Download Word (.docx)</span>
               </a>
 
@@ -445,7 +431,7 @@ function CommercialProposalDetailContent() {
                 }}
                 title="Buka Lembar Cetak / Export PDF A4 Klien"
               >
-                <PrinterIcon style={{ width: "15px", height: "15px" }} />
+                <Printer style={{ width: "15px", height: "15px" }} />
                 <span>Cetak / PDF</span>
               </Link>
 
@@ -463,7 +449,7 @@ function CommercialProposalDetailContent() {
                 }}
                 title="Edit proposal ini dan simpan sebagai versi terbaru"
               >
-                <PencilSquareIcon style={{ width: "15px", height: "15px" }} />
+                <SquarePen style={{ width: "15px", height: "15px" }} />
                 <span>Edit & Buat Revisi (v{(proposal.version || 1) + 1})</span>
               </Link>
             </div>
@@ -476,7 +462,7 @@ function CommercialProposalDetailContent() {
           style={{
             padding: '16px 20px',
             marginBottom: '24px',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: 'rgb(var(--ink-rgb) / 0.02)',
             border: '1px solid var(--border-subtle)',
           }}
         >
@@ -485,7 +471,7 @@ function CommercialProposalDetailContent() {
               CRM Lifecycle Pipeline Stage
             </div>
             {proposal.deal_status === 'lost' && proposal.lost_reason && (
-              <div style={{ fontSize: '12px', color: '#ef4444' }}>
+              <div style={{ fontSize: '12px', color: 'var(--color-danger)' }}>
                 Alasan Kalah: <strong>{proposal.lost_reason}</strong>
               </div>
             )}
@@ -517,24 +503,24 @@ function CommercialProposalDetailContent() {
                     transition: 'all 0.15s ease',
                     border: isCurrent
                       ? isWonBtn
-                        ? '1px solid #10b981'
+                        ? '1px solid var(--color-success)'
                         : isLostBtn
-                        ? '1px solid #ef4444'
+                        ? '1px solid var(--color-danger)'
                         : '1px solid var(--accent-hover)'
                       : '1px solid var(--border-subtle)',
                     background: isCurrent
                       ? isWonBtn
-                        ? 'rgba(16, 185, 129, 0.2)'
+                        ? 'rgb(var(--success-rgb) / 0.2)'
                         : isLostBtn
-                        ? 'rgba(239, 68, 68, 0.2)'
-                        : 'rgba(94, 106, 210, 0.25)'
-                      : 'rgba(255, 255, 255, 0.03)',
+                        ? 'rgb(var(--danger-rgb) / 0.2)'
+                        : 'rgb(var(--accent-rgb) / 0.25)'
+                      : 'rgb(var(--ink-rgb) / 0.03)',
                     color: isCurrent
                       ? isWonBtn
-                        ? '#10b981'
+                        ? 'var(--color-success)'
                         : isLostBtn
-                        ? '#ef4444'
-                        : '#a5b4fc'
+                        ? 'var(--color-danger)'
+                        : 'var(--accent-text)'
                       : 'var(--text-tertiary)',
                   }}
                 >
@@ -559,14 +545,14 @@ function CommercialProposalDetailContent() {
             className="linear-card"
             style={{
               padding: '18px',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%)',
+              border: '1px solid rgb(var(--success-rgb) / 0.3)',
+              background: 'linear-gradient(180deg, rgb(var(--success-rgb) / 0.08) 0%, rgb(var(--success-rgb) / 0.02) 100%)',
             }}
           >
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#10b981', fontWeight: 700 }}>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-success)', fontWeight: 700 }}>
               Total Penawaran Klien (Quotation)
             </div>
-            <div className="font-mono-numbers" style={{ fontSize: '22px', fontWeight: 800, color: '#10b981', marginTop: '6px' }}>
+            <div className="font-mono-numbers" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-success)', marginTop: '6px' }}>
               {formatIDR(proposal.grand_total)}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
@@ -579,7 +565,7 @@ function CommercialProposalDetailContent() {
             <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600 }}>
               Total Biaya Modal (COGS)
             </div>
-            <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: '#38bdf8', marginTop: '6px' }}>
+            <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-info)', marginTop: '6px' }}>
               {formatIDR(proposal.cogs_amount)}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
@@ -608,7 +594,7 @@ function CommercialProposalDetailContent() {
             <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
               {formatIDR(proposal.base_price)}
             </div>
-            <div style={{ fontSize: '11px', color: discountAmount > 0 ? '#f59e0b' : 'var(--text-tertiary)', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: discountAmount > 0 ? 'var(--color-warning)' : 'var(--text-tertiary)', marginTop: '4px' }}>
               {discountAmount > 0 ? `Diskon: -${formatIDR(discountAmount)}` : 'Tanpa potongan diskon'}
             </div>
           </div>
@@ -637,7 +623,7 @@ function CommercialProposalDetailContent() {
                     return (
                       <tr key={c}>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{CATEGORY_LABELS[c]}</td>
-                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#38bdf8' }}>{formatIDR(l.cogs)}</td>
+                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: 'var(--color-info)' }}>{formatIDR(l.cogs)}</td>
                         <td className="font-mono-numbers" style={{ textAlign: 'right', color: 'var(--accent-hover)' }}>+{l.margin_percent}%</td>
                         <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 600 }}>{formatIDR(l.base_price)}</td>
                       </tr>
@@ -684,7 +670,7 @@ function CommercialProposalDetailContent() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', marginBottom: '24px' }}>
               <section className="linear-card" style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
-                  <BuildingOfficeIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
+                  <Building2 style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                   <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                     Informasi Klien & Entitas
                   </h3>
@@ -709,7 +695,7 @@ function CommercialProposalDetailContent() {
 
               <section className="linear-card" style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
-                  <DocumentTextIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
+                  <FileText style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                   <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                     Administrasi Dokumen Penawaran
                   </h3>
@@ -741,12 +727,12 @@ function CommercialProposalDetailContent() {
               <section className="linear-card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <CalendarDaysIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
+                    <CalendarDays style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                     <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                       Delivery Timeline Setup
                     </h3>
                   </div>
-                  <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600, color: '#38bdf8' }}>
+                  <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-info)' }}>
                     Durasi: {proposal.timeline_config?.total_weeks || 4} Minggu
                   </span>
                 </div>
@@ -768,7 +754,7 @@ function CommercialProposalDetailContent() {
                             <td style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '12px' }}>{idx + 1}</td>
                             <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.phase}</td>
                             <td style={{ textAlign: 'center' }}>
-                              <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', color: '#38bdf8' }}>
+                              <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', color: 'var(--color-info)' }}>
                                 {m.duration_weeks} Mgg
                               </span>
                             </td>
@@ -786,7 +772,7 @@ function CommercialProposalDetailContent() {
               <section className="linear-card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <CreditCardIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
+                    <CreditCard style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                     <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                       Termin Pembayaran (Term of Payment)
                     </h3>
@@ -797,9 +783,9 @@ function CommercialProposalDetailContent() {
                       style={{
                         fontSize: '11px',
                         padding: '3px 8px',
-                        background: proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                        color: proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? '#c084fc' : '#38bdf8',
-                        border: `1px solid ${proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                        background: proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'rgb(var(--violet-rgb) / 0.15)' : 'rgb(var(--info-rgb) / 0.15)',
+                        color: proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'var(--color-violet)' : 'var(--color-info)',
+                        border: `1px solid ${proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'rgb(var(--violet-rgb) / 0.3)' : 'rgb(var(--info-rgb) / 0.3)'}`,
                       }}
                     >
                       {proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' ? 'Mnt: Ditagih Bulanan' : 'Mnt: All-in Proyek'}
@@ -807,12 +793,12 @@ function CommercialProposalDetailContent() {
                     <Link
                       href="/invoices"
                       className="btn-secondary"
-                      style={{ padding: '3px 8px', fontSize: '11px', textDecoration: 'none', color: '#38bdf8' }}
+                      style={{ padding: '3px 8px', fontSize: '11px', textDecoration: 'none', color: 'var(--color-info)' }}
                       title="Buka Invoice & Payment Tracker"
                     >
                       Buka Tracker Invoice →
                     </Link>
-                    <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600, color: '#10b981' }}>
+                    <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-success)' }}>
                       Total: {formatIDR(proposal.grand_total)}
                     </span>
                   </div>
@@ -838,7 +824,7 @@ function CommercialProposalDetailContent() {
                                 {t.percent}%
                               </span>
                             </td>
-                            <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                            <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
                               {formatIDR(t.amount)}
                             </td>
                             <td style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{t.trigger_condition}</td>
@@ -857,7 +843,7 @@ function CommercialProposalDetailContent() {
             <section className="linear-card" style={{ padding: '24px', marginBottom: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <CubeIcon style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
+                  <Box style={{ width: "18px", height: "18px", color: "var(--accent-hover)" }} />
                   <div>
                     <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                       Ruang Lingkup Fitur & Modul (Scope of Work Baseline)
@@ -904,8 +890,8 @@ function CommercialProposalDetailContent() {
                                       fontSize: '11.5px',
                                       padding: '4px 10px',
                                       color: 'var(--text-primary)',
-                                      background: 'rgba(255, 255, 255, 0.04)',
-                                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                                      background: 'rgb(var(--ink-rgb) / 0.04)',
+                                      border: '1px solid rgb(var(--ink-rgb) / 0.08)',
                                     }}
                                   >
                                     {t.name}
@@ -962,12 +948,12 @@ function CommercialProposalDetailContent() {
                 style={{
                   padding: '48px 24px',
                   textAlign: 'center',
-                  background: 'rgba(255, 255, 255, 0.02)',
+                  background: 'rgb(var(--ink-rgb) / 0.02)',
                   borderRadius: '8px',
                   border: '1px dashed var(--border-subtle)',
                 }}
               >
-                <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}><DocumentTextIcon style={{ width: '36px', height: '36px', color: 'var(--accent-hover)' }} /></div>
+                <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}><FileText style={{ width: '36px', height: '36px', color: 'var(--accent-hover)' }} /></div>
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                   Belum ada dokumen turunan kontrak
                 </div>
@@ -1010,8 +996,8 @@ function CommercialProposalDetailContent() {
                               style={{
                                 fontSize: '10.5px',
                                 fontWeight: 700,
-                                background: isSPK ? 'rgba(94, 106, 210, 0.25)' : 'rgba(16, 185, 129, 0.2)',
-                                color: isSPK ? '#a5b4fc' : '#10b981',
+                                background: isSPK ? 'rgb(var(--accent-rgb) / 0.25)' : 'rgb(var(--success-rgb) / 0.2)',
+                                color: isSPK ? 'var(--accent-text)' : 'var(--color-success)',
                               }}
                             >
                               {doc.doc_type}
@@ -1030,7 +1016,7 @@ function CommercialProposalDetailContent() {
                               </div>
                             )}
                           </td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
                             {formatIDR(doc.amount)}
                           </td>
                           <td style={{ textAlign: 'center' }}>
@@ -1048,14 +1034,14 @@ function CommercialProposalDetailContent() {
                                   padding: '4px 10px',
                                   fontSize: '11px',
                                   textDecoration: 'none',
-                                  color: '#38bdf8',
+                                  color: 'var(--color-info)',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '4px',
                                 }}
                                 title="Download Draf Word Resmi"
                               >
-                                <ArrowDownTrayIcon style={{ width: "14px", height: "14px" }} />
+                                <Download style={{ width: "14px", height: "14px" }} />
                                 <span>Draf .docx</span>
                               </a>
 
@@ -1070,16 +1056,16 @@ function CommercialProposalDetailContent() {
                                     padding: '4px 10px',
                                     fontSize: '11px',
                                     textDecoration: 'none',
-                                    color: '#10b981',
+                                    color: 'var(--color-success)',
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '4px',
-                                    border: '1px solid rgba(16, 185, 129, 0.4)',
-                                    background: 'rgba(16, 185, 129, 0.08)',
+                                    border: '1px solid rgb(var(--success-rgb) / 0.4)',
+                                    background: 'rgb(var(--success-rgb) / 0.08)',
                                   }}
                                   title={`Buka file tersimpan: ${doc.file_name || 'Dokumen Bertanda Tangan'}`}
                                 >
-                                  <PaperClipIcon style={{ width: '13px', height: '13px' }} />
+                                  <Paperclip style={{ width: '13px', height: '13px' }} />
                                   <span>Lihat Scan TTD</span>
                                 </a>
                               ) : (
@@ -1096,7 +1082,7 @@ function CommercialProposalDetailContent() {
                                   }}
                                   title="Upload file hasil scan bertanda tangan / bermeterai ke MinIO"
                                 >
-                                  <ArrowUpTrayIcon style={{ width: '13px', height: '13px' }} />
+                                  <Upload style={{ width: '13px', height: '13px' }} />
                                   <span>{uploadingDocId === doc.id ? 'Mengunggah...' : 'Upload Scan TTD'}</span>
                                   <input
                                     type="file"
@@ -1161,7 +1147,7 @@ function CommercialProposalDetailContent() {
                     });
 
                     return (
-                      <tr key={vh.id} style={{ background: isCurrent ? 'rgba(94, 106, 210, 0.08)' : undefined }}>
+                      <tr key={vh.id} style={{ background: isCurrent ? 'rgb(var(--accent-rgb) / 0.08)' : undefined }}>
                         <td style={{ textAlign: 'center' }}>
                           <span
                             className="linear-badge font-mono-numbers"
@@ -1169,19 +1155,19 @@ function CommercialProposalDetailContent() {
                               fontSize: '11px',
                               fontWeight: 700,
                               padding: '3px 8px',
-                              background: isCurrent ? 'rgba(94, 106, 210, 0.3)' : 'rgba(255, 255, 255, 0.04)',
-                              color: isCurrent ? '#a5b4fc' : 'var(--text-secondary)',
+                              background: isCurrent ? 'rgb(var(--accent-rgb) / 0.3)' : 'rgb(var(--ink-rgb) / 0.04)',
+                              color: isCurrent ? 'var(--accent-text)' : 'var(--text-secondary)',
                             }}
                           >
                             v{vh.version} {isCurrent && '●'}
                           </span>
                         </td>
                         <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{vhDate}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
                           {formatIDR(vh.grand_total)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', color: '#10b981' }}>
+                          <span className="linear-badge font-mono-numbers" style={{ fontSize: '11px', color: 'var(--color-success)' }}>
                             +{vh.margin_percent}%
                           </span>
                         </td>
@@ -1270,15 +1256,15 @@ function CommercialProposalDetailContent() {
                                 fontWeight: 700,
                                 background:
                                   log.action === 'STATUS_CHANGE'
-                                    ? 'rgba(245, 158, 11, 0.15)'
+                                    ? 'rgb(var(--warning-rgb) / 0.15)'
                                     : log.action === 'DOCUMENT_GENERATE'
-                                    ? 'rgba(56, 189, 248, 0.15)'
-                                    : 'rgba(255, 255, 255, 0.05)',
+                                    ? 'rgb(var(--info-rgb) / 0.15)'
+                                    : 'rgb(var(--ink-rgb) / 0.05)',
                                 color:
                                   log.action === 'STATUS_CHANGE'
-                                    ? '#f59e0b'
+                                    ? 'var(--color-warning)'
                                     : log.action === 'DOCUMENT_GENERATE'
-                                    ? '#38bdf8'
+                                    ? 'var(--color-info)'
                                     : 'var(--text-primary)',
                               }}
                             >
@@ -1290,7 +1276,7 @@ function CommercialProposalDetailContent() {
                               style={{
                                 fontSize: '11.5px',
                                 color: 'var(--text-secondary)',
-                                background: 'rgba(0,0,0,0.2)',
+                                background: 'var(--bg-card)',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
                               }}
@@ -1317,7 +1303,7 @@ function CommercialProposalDetailContent() {
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'rgba(0, 0, 0, 0.75)',
+              background: 'rgb(8 10 14 / 0.62)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1332,10 +1318,10 @@ function CommercialProposalDetailContent() {
                 maxWidth: '480px',
                 padding: '24px',
                 background: 'var(--bg-surface)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
+                border: '1px solid rgb(var(--danger-rgb) / 0.4)',
               }}
             >
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#ef4444', margin: '0 0 8px 0' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-danger)', margin: '0 0 8px 0' }}>
                 Tandai Proposal Sebagai LOST (Kalah)
               </h3>
               <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
@@ -1368,8 +1354,8 @@ function CommercialProposalDetailContent() {
                   style={{
                     padding: '6px 16px',
                     fontSize: '12px',
-                    background: '#ef4444',
-                    borderColor: '#ef4444',
+                    background: 'var(--color-danger)',
+                    borderColor: 'var(--color-danger)',
                     cursor: !lostReasonInput.trim() ? 'not-allowed' : 'pointer',
                   }}
                 >
