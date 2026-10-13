@@ -332,26 +332,21 @@
   .btn-blue-pill:disabled { opacity: .55; cursor: not-allowed; }
 
   /* Flat two-option capsule toggle, matching the supplied reference. */
-  .density-toggle {
-    display: inline-flex; align-items: center;
-    background: var(--bg-card); color: var(--text-tertiary);
-    border: 2px solid var(--border-subtle); border-radius: 9999px;
-    font-size: 12px; line-height: 1;
-  }
+  .density-toggle { display: inline-flex; align-items: center; gap: 3px; }
   .density-toggle-option {
-    display: inline-flex; align-items: center; gap: 8px;
-    min-height: 34px; padding: 0 14px;
-    border: 0; background: transparent; color: inherit;
-    font: inherit; cursor: pointer;
-    transition: color .3s ease, background-color .3s ease;
+    display: inline-grid; width: 34px; height: 34px; place-items: center;
+    padding: 0; border: 0; border-radius: 9999px;
+    background: transparent; color: var(--text-tertiary);
+    cursor: pointer; box-shadow: none;
+    transition: color .2s ease, background-color .2s ease;
   }
-  .density-toggle-left { border-radius: 9999px 0 0 9999px; }
-  .density-toggle-right { border-radius: 0 9999px 9999px 0; }
-  .density-toggle-option:hover, .density-toggle-option:focus-visible { color: var(--accent-text); }
-  .density-toggle-option.is-active {
-    background: var(--bg-panel); color: var(--accent-text); border-radius: 9999px;
+  .density-toggle-option:hover { color: var(--accent-text); background: var(--accent-light); }
+  .density-toggle-option.is-active,
+  .density-toggle-option.is-active:hover {
+    background: var(--accent-primary); color: var(--on-accent);
   }
-  .density-toggle-option:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 1px; }
+  .density-toggle-option:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+  .density-toggle-option svg { color: inherit; }
 
   /* Icon-only controls retain square geometry, not pill geometry. */
   .btn-icon { width: 36px; min-width: 36px; padding: 0 !important; border-radius: 50% !important; }

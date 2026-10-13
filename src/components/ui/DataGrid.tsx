@@ -88,22 +88,22 @@ export default function DataGrid({
                 <button
                   type="button"
                   onClick={() => changeDensity('comfortable')}
+                  aria-label="Tampilan nyaman"
                   aria-pressed={density === 'comfortable'}
                   title="Nyaman"
                   className={cn('density-toggle-option density-toggle-left', density === 'comfortable' && 'is-active')}
                 >
                   <Rows3 className="size-4 shrink-0" aria-hidden />
-                  <span>Nyaman</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => changeDensity('compact')}
+                  aria-label="Tampilan ringkas"
                   aria-pressed={density === 'compact'}
                   title="Ringkas"
                   className={cn('density-toggle-option density-toggle-right', density === 'compact' && 'is-active')}
                 >
                   <Rows4 className="size-4 shrink-0" aria-hidden />
-                  <span>Ringkas</span>
                 </button>
               </div>
             )}
