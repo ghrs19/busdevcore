@@ -124,7 +124,7 @@ function NavbarContent() {
     <header
       style={{
         position: 'relative',
-        backgroundColor: 'rgba(8, 9, 10, 0.85)',
+        backgroundColor: 'var(--bg-panel)',
         borderBottom: '1px solid var(--border-subtle)',
       }}
     >
