@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 /** Standard page frame: consistent max width, side padding and vertical rhythm. */
-export function Page({ children, wide = false, className }: { children: ReactNode; wide?: boolean; className?: string }) {
+export function Page({ children, className }: { children: ReactNode; wide?: boolean; className?: string }) {
   return (
     <main
       className={cn('mx-auto w-full px-4 pb-20 pt-7 sm:px-6', className)}
-      style={{ maxWidth: wide ? 'var(--page-max)' : '1360px' }}
+      style={{ maxWidth: 'var(--page-max)' }}
     >
       {children}
     </main>

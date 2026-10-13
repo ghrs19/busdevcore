@@ -60,6 +60,18 @@ test('globals.css defines shared modal, tab and label classes', () => {
   }
 });
 
+test('page, navbar and fixed action bars share Master width; audit JSON stays flat', () => {
+  const css = readFileSync('src/app/globals.css', 'utf8');
+  assert.match(css, /--page-max:\s*1360px/);
+  assert.match(css, /\.audit-detail[^\n]*background:\s*transparent;\s*box-shadow:\s*none/);
+  for (const f of ['src/components/ui/Page.tsx', 'src/components/Navbar.tsx', 'src/app/commercial/new/page.tsx', 'src/app/estimates/new/page.tsx']) {
+    assert.match(readFileSync(f, 'utf8'), /maxWidth:\s*'var\(--page-max\)'/, f);
+  }
+  const audit = readFileSync('src/app/audit/page.tsx', 'utf8');
+  assert.match(audit, /className="audit-detail[^\"]*"/);
+  assert.doesNotMatch(audit, /audit-detail[^\"]*hover:bg-/);
+});
+
 test('headings, fixed chrome and status chips use shared classes', () => {
   const offenders = [];
   for (const f of files) {

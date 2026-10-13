@@ -98,7 +98,7 @@
   --font-mono: var(--font-geist-mono), "JetBrains Mono", Menlo, Consolas, monospace;
 
   --nav-h: 56px;
-  --page-max: 1680px;
+  --page-max: 1360px;
   --page-pad: 24px;
 }
 
@@ -369,6 +369,11 @@
   .pill-item.active { background: var(--accent-primary); color: var(--on-accent); font-weight: 600; }
   .pill-item.active * { color: inherit !important; }
   .pill-item:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Audit JSON expands as a flat table cell, never a raised button. */
+  .audit-detail, .audit-detail:hover, .audit-detail:active, .audit-detail[aria-expanded="true"] { appearance: none; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .audit-detail:focus:not(:focus-visible) { outline: none; }
+  .audit-detail:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; border-radius: 0; }
 
   .btn-success { background: var(--color-success); color: #fff; border-color: var(--color-success); }
   .btn-success:hover:not(:disabled) { filter: brightness(.92); }

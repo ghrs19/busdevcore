@@ -1522,7 +1522,7 @@ function NewCommercialProposalForm() {
           >
             <div
               style={{
-                maxWidth: '1360px',
+                maxWidth: 'var(--page-max)',
                 margin: '0 auto',
                 display: 'flex',
                 alignItems: 'center',
