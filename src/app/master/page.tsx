@@ -432,14 +432,14 @@ export default function MasterDataPage() {
                   aria-selected={active}
                   onClick={() => { setActiveTab(tab.id); tab.on(); setErrorMsg(null); setSuccessMsg(null); }}
                   className={cn(
-                    '-mb-px inline-flex h-10 shrink-0 items-center gap-2 border-b-2 px-3.5 text-[13px] font-medium transition-colors',
-                    active ? 'border-[var(--accent-primary)] text-fg' : 'border-transparent text-fg-3 hover:text-fg',
+                    'inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-transparent px-3.5 text-[13px] font-medium transition-colors',
+                    active ? 'bg-brand text-white' : 'text-fg-3 hover:bg-[var(--row-hover)] hover:text-fg',
                   )}
                 >
-                  <Icon className={cn('size-4', active ? 'text-brand-fg' : 'text-fg-3')} aria-hidden />
+                  <Icon className={cn('size-4', active ? 'text-white' : 'text-fg-3')} aria-hidden />
                   {tab.label}
                   {tab.count !== undefined && (
-                    <span className={cn('font-mono-numbers rounded-full px-1.5 text-[11px]', active ? 'bg-[var(--accent-light)] text-brand-fg' : 'bg-surface-2 text-fg-3')}>{tab.count}</span>
+                    <span className={cn('font-mono-numbers rounded-full px-1.5 text-[11px]', active ? 'text-white' : 'bg-surface-2 text-fg-3')}>{tab.count}</span>
                   )}
                 </button>
               );
