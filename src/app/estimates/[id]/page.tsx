@@ -1,10 +1,12 @@
 'use client';
 
 
-import { Clock3, FileDown, Printer, SquarePen, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock3, FileDown, History, Layers, Printer, SquarePen, Timer, Trash2, Wallet, type LucideIcon } from 'lucide-react';
 import React, { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
 import { Page } from '@/components/ui/Page';
+import { StatCard } from '@/components/ui/Cards';
+import { cn } from '@/lib/cn';
 import { useRouter } from 'next/navigation';
 import { compareVersions } from '@/lib/version-diff';
 import { snapshotLabels } from '@/lib/rate-snapshot';
@@ -207,23 +209,21 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
-        Memuat detail estimasi #{estimateId}...
-      </div>
+      <Page>
+        <div className="grid min-h-[50vh] place-items-center text-[13px] text-fg-3" aria-busy="true">Memuat detail estimasi #{estimateId}…</div>
+      </Page>
     );
   }
 
   if (errorMsg || !estimate) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', padding: '40px 24px', textAlign: 'center' }}>
-        <div className="linear-card" style={{ maxWidth: '480px', margin: '0 auto', padding: '32px' }}>
-          <h2 style={{ color: 'var(--color-danger)', marginBottom: '12px', fontSize: '18px' }}>Terjadi Kesalahan</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>{errorMsg || 'Data tidak ditemukan.'}</p>
-          <Link href="/" className="btn-secondary" style={{ textDecoration: 'none' }}>
-            Kembali ke Beranda
-          </Link>
+      <Page>
+        <div className="linear-card mx-auto mt-10 max-w-[480px] p-8 text-center">
+          <h2 className="mb-3 text-[18px] font-semibold text-bad">Terjadi kesalahan</h2>
+          <p className="mb-6 text-[14px] text-fg-2">{errorMsg || 'Data tidak ditemukan.'}</p>
+          <Link href="/" className="btn-secondary">Kembali ke beranda</Link>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -237,368 +237,151 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
   return (
     <Page wide className="pb-[80px]">
         
-        {/* Top Breadcrumb & Actions Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600 }}>
-              Dokumen Costing #{estimate.id}
-            </span>
-          </div>
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-2 text-[12px] text-fg-3">
+          <Link href="/" className="inline-flex items-center gap-1.5 no-underline hover:text-fg">
+            <ArrowLeft className="size-3.5" aria-hidden /> Costing
+          </Link>
+          <span aria-hidden>/</span>
+          <span className="font-mono text-fg-2">#{estimate.id}</span>
+        </nav>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <a
-              href={`/api/estimates/${estimate.id}/export/excel`}
-              download
-              className="btn-secondary"
-              style={{
-                height: '32px',
-                padding: '0 12px',
-                textDecoration: 'none',
-                color: 'var(--color-success)',
-                borderColor: 'rgb(var(--success-rgb) / 0.4)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                fontWeight: 500,
-                borderRadius: '6px',
-              }}
-              title="Download Data Costing Internal Format Excel (.xlsx)"
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FileDown style={{ width: "15px", height: "15px" }} /><span>Export Excel</span></span>
+        {/* Header */}
+        <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-line pb-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-fg">{estimate.project_name || estimate.title}</h1>
+              {estimate.version_history && estimate.version_history.length > 1 ? (
+                <select
+                  aria-label="Pilih versi dokumen"
+                  value={estimate.id}
+                  onChange={(e) => {
+                    const selectedId = Number(e.target.value);
+                    if (selectedId) router.push(`/estimates/${selectedId}`);
+                  }}
+                  className="linear-select font-mono-numbers"
+                  style={{ width: 'auto', minHeight: 28, padding: '2px 28px 2px 10px', fontSize: 12, fontWeight: 600 }}
+                  title="Ganti ke versi lain dari dokumen ini"
+                >
+                  {estimate.version_history.map((vh) => (
+                    <option key={vh.id} value={vh.id}>
+                      v{vh.version} {vh.id === estimate.id ? '(aktif)' : `(#${vh.id})`} — {formatIDR(vh.total_cost)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className={cn('badge font-mono-numbers', (estimate.version || 1) > 1 ? 'badge-accent' : 'badge-neutral')}>v{estimate.version || 1}</span>
+              )}
+            </div>
+            <p className="mt-2 text-[13px] text-fg-3">
+              <span className="text-fg-2">{estimate.company_name}</span> · Dokumen costing #{estimate.id}
+              {estimate.parent_id && <> · asal #{estimate.parent_id}</>}
+              {estimate.revision_notes && <span className="ml-1 italic text-note">“{estimate.revision_notes}”</span>}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href={`/api/estimates/${estimate.id}/export/excel`} download className="btn-secondary" title="Unduh data costing internal (.xlsx)">
+              <FileDown className="size-4" aria-hidden /> Excel
             </a>
-
-            <Link
-              href={`/estimates/${estimate.id}/print`}
-              target="_blank"
-              className="btn-secondary"
-              style={{
-                height: '32px',
-                padding: '0 12px',
-                textDecoration: 'none',
-                color: 'var(--color-info)',
-                borderColor: 'rgb(var(--info-rgb) / 0.4)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                fontWeight: 500,
-                borderRadius: '6px',
-              }}
-              title="Buka Lembar Costing Internal untuk Cetak atau Simpan ke PDF"
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Printer style={{ width: "15px", height: "15px" }} /><span>Cetak PDF</span></span>
+            <Link href={`/estimates/${estimate.id}/print`} target="_blank" className="btn-secondary" title="Buka lembar costing internal untuk cetak / PDF">
+              <Printer className="size-4" aria-hidden /> Cetak PDF
             </Link>
-
-            <Link
-              href={`/estimates/new?edit_id=${estimate.id}`}
-              className="btn-primary"
-              style={{
-                height: '32px',
-                padding: '0 12px',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                fontWeight: 500,
-                borderRadius: '6px',
-              }}
-              title="Edit / Buat Revisi Estimasi ini"
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><SquarePen style={{ width: "15px", height: "15px" }} /><span>Edit Revisi</span></span>
+            <Link href={`/estimates/new?edit_id=${estimate.id}`} className="btn-primary" title="Edit / buat revisi estimasi ini">
+              <SquarePen className="size-4" aria-hidden /> Revisi
             </Link>
-            <button
-              type="button"
-              onClick={() => setIsDeleteModalOpen(true)}
-              style={{
-                width: '32px',
-                height: '32px',
-                minWidth: '32px',
-                padding: 0,
-                fontSize: '13px',
-                background: 'rgb(var(--danger-rgb) / 0.1)',
-                border: '1px solid rgb(var(--danger-rgb) / 0.3)',
-                color: 'var(--color-danger)',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              title="Hapus Estimasi"
-            >
-              <Trash2 style={{ width: "16px", height: "16px", color: "var(--color-danger)" }} />
+            <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="btn-secondary" style={{ width: 34, padding: 0, color: 'var(--color-danger)' }} title="Hapus estimasi" aria-label="Hapus estimasi">
+              <Trash2 className="size-4" aria-hidden />
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Header Document Banner */}
-        <div
-          className="linear-card"
-          style={{
-            padding: '24px',
-            marginBottom: '20px',
-            background: 'linear-gradient(180deg, rgb(var(--ink-rgb) / 0.02) 0%, rgb(var(--ink-rgb) / 0.005) 100%)',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '12px', color: 'var(--accent-hover)', fontWeight: 700, letterSpacing: '0.04em' }}>
-                  ESTIMATE #{estimate.id}
-                </span>
+        {/* KPI row */}
+        <section aria-label="Ringkasan costing" className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Grand total estimasi kontrak" icon={Wallet} tone="ok" value={formatIDR(estimate.total_cost)} hint="Total biaya modal dokumen ini" />
+          <StatCard label="Total jam kerja teknis" icon={Timer} tone="note" value={<>{Number(estimate.total_hours)}<span className="ml-1 text-[13px] font-medium text-fg-3">jam</span></>} hint={`${estimate.modules?.length || 0} modul development`} />
+          <StatCard
+            label="Kategori & tag"
+            icon={Layers}
+            tone="plum"
+            value={<span className="text-[15px] font-semibold">{(Array.isArray(estimate.categories) && estimate.categories.length > 0 ? estimate.categories.map((c) => c.name) : [estimate.category_name]).filter(Boolean).join(' · ') || '—'}</span>}
+            hint={estimate.tag_name ? `Tag: ${estimate.tag_name}` : 'Tanpa tag'}
+          />
+          <StatCard
+            label="Dibuat oleh"
+            icon={Clock3}
+            value={<span className="text-[15px] font-semibold">{estimate.creator_name || '—'}</span>}
+            hint={`Terakhir direvisi: ${estimate.updater_name || '—'}`}
+          />
+        </section>
 
-                {/* Interactive Version Selector Dropdown */}
-                {estimate.version_history && estimate.version_history.length > 1 ? (
-                  <select
-                    value={estimate.id}
-                    onChange={(e) => {
-                      const selectedId = Number(e.target.value);
-                      if (selectedId) router.push(`/estimates/${selectedId}`);
-                    }}
-                    className="input-linear"
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      height: '24px',
-                      color: 'var(--color-info)',
-                      backgroundColor: 'rgb(var(--info-rgb) / 0.12)',
-                      border: '1px solid rgb(var(--info-rgb) / 0.4)',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
-                    title="Ganti ke versi lain dari dokumen ini"
-                  >
-                    {estimate.version_history.map((vh) => (
-                      <option key={vh.id} value={vh.id} style={{ background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}>
-                        Versi v{vh.version} {vh.id === estimate.id ? '(Aktif)' : `(#${vh.id})`} — {formatIDR(vh.total_cost)}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      background: (estimate.version && estimate.version > 1) ? 'rgb(var(--info-rgb) / 0.2)' : 'rgb(var(--ink-rgb) / 0.08)',
-                      color: (estimate.version && estimate.version > 1) ? 'var(--color-info)' : 'var(--text-secondary)',
-                      border: (estimate.version && estimate.version > 1) ? '1px solid rgb(var(--info-rgb) / 0.4)' : '1px solid rgb(var(--ink-rgb) / 0.1)',
-                    }}
-                  >
-                    v{estimate.version || 1}
-                  </span>
-                )}
-
-                {estimate.parent_id && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    • Dokumen Asal: #{estimate.parent_id}
-                  </span>
-                )}
-                {estimate.revision_notes && (
-                  <span style={{ fontSize: '11px', color: 'var(--color-info)', fontStyle: 'italic' }}>
-                    &quot;{estimate.revision_notes}&quot;
-                  </span>
-                )}
+        {/* Notes + rate snapshot */}
+        {(estimate.notes || (estimate.rate_snapshots && Object.keys(estimate.rate_snapshots).length > 0)) && (
+          <section className="linear-card mb-6 divide-y divide-[var(--border-subtle)]">
+            {estimate.notes && (
+              <div className="px-5 py-4 text-[13px] leading-relaxed text-fg-2">
+                <strong className="text-fg">Catatan lingkup kerja & asumsi:</strong> {estimate.notes}
               </div>
-
-              <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                {estimate.project_name || estimate.title}
-              </h1>
-            </div>
-
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Grand Total Estimasi Kontrak</div>
-              <div className="font-mono-numbers" style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-success)' }}>
-                {formatIDR(estimate.total_cost)}
+            )}
+            {estimate.rate_snapshots && Object.keys(estimate.rate_snapshots).length > 0 && (
+              <div className="px-5 py-4">
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-fg-3">Rate snapshot per jam · tersimpan permanen pada dokumen ini</div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(estimate.rate_snapshots).map(([rk, val]) => {
+                    const name = typeof val === 'object' && val ? `${val.code} · ${val.name}` : rk;
+                    const rVal = typeof val === 'object' && val ? val.rate : val;
+                    return (
+                      <span key={rk} className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface-2 px-2.5 py-1 text-[12px] text-fg-2">
+                        <span className="font-medium text-fg">{name}</span>
+                        <span className="font-mono-numbers text-ok">{formatIDR(rVal)}/jam</span>
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+          </section>
+        )}
 
-          {/* Metadata Cards Grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '12px',
-              paddingTop: '16px',
-              borderTop: '1px solid var(--border-subtle)',
-            }}
-          >
-            <div className="linear-card-elevated" style={{ padding: '12px 14px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Perusahaan (Klien)</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '3px' }}>
-                {estimate.company_name}
+        {/* Tabs */}
+        {(() => {
+          const tabs: { id: typeof activeTab; label: string; count?: number; icon?: LucideIcon }[] = [
+            { id: 'ALL', label: 'Semua rincian' },
+            ...(estimate.modules && estimate.modules.length > 0 ? [{ id: 'DEV' as const, label: 'A. Development', count: estimate.modules.length }] : []),
+            ...(estimate.maintenance_config ? [{ id: 'MAINTENANCE' as const, label: 'B. Maintenance', count: estimate.maintenance_config.duration_months }] : []),
+            ...(estimate.infrastructure_items && estimate.infrastructure_items.length > 0 ? [{ id: 'INFRASTRUCTURE' as const, label: 'C. Infrastructure', count: estimate.infrastructure_items.length }] : []),
+            ...(estimate.operational_items && estimate.operational_items.length > 0 ? [{ id: 'OPERATION' as const, label: 'D. Operational', count: estimate.operational_items.length }] : []),
+            ...(estimate.version_history && estimate.version_history.length > 1 ? [{ id: 'HISTORY' as const, label: 'Riwayat versi', count: estimate.version_history.length, icon: History }] : []),
+          ];
+          return (
+            <div className="no-scrollbar -mx-1 mb-6 overflow-x-auto px-1">
+              <div role="tablist" aria-label="Bagian costing" className="flex w-max min-w-full gap-1 border-b border-line">
+                {tabs.map((tab) => {
+                  const active = activeTab === tab.id;
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={cn(
+                        '-mb-px inline-flex h-10 shrink-0 items-center gap-2 border-b-2 px-3.5 text-[13px] font-medium transition-colors',
+                        active ? 'border-[var(--accent-primary)] text-fg' : 'border-transparent text-fg-3 hover:text-fg',
+                      )}
+                    >
+                      {Icon && <Icon className={cn('size-4', active ? 'text-brand-fg' : 'text-fg-3')} aria-hidden />}
+                      {tab.label}
+                      {tab.count !== undefined && (
+                        <span className={cn('font-mono-numbers rounded-full px-1.5 text-[11px]', active ? 'bg-[var(--accent-light)] text-brand-fg' : 'bg-surface-2 text-fg-3')}>{tab.count}</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
-            <div className="linear-card-elevated" style={{ padding: '12px 14px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Project Perusahaan</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '3px' }}>
-                {estimate.project_name || estimate.title}
-              </div>
-            </div>
-
-            <div className="linear-card-elevated" style={{ padding: '12px 14px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Kategori & Tag</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                {Array.isArray(estimate.categories) && estimate.categories.length > 0 ? (
-                  estimate.categories.map((c) => (
-                    <span key={c.id} className="badge badge-accent" style={{ fontSize: '10px' }}>
-                      {c.name}
-                    </span>
-                  ))
-                ) : (
-                  <span className="badge badge-accent" style={{ fontSize: '10px' }}>
-                    {estimate.category_name}
-                  </span>
-                )}
-                {estimate.tag_name && (
-                  <span className="badge badge-draft" style={{ fontSize: '10px' }}>
-                    {estimate.tag_name}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="linear-card-elevated" style={{ padding: '12px 14px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Jam Kerja Teknis</div>
-              <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '3px' }}>
-                {Number(estimate.total_hours)} Jam
-              </div>
-            </div>
-            <div className="linear-card-elevated" style={{ padding: '12px 14px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Dibuat oleh</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '3px' }}>
-                {estimate.creator_name || '-'}{estimate.creator_email ? ` (${estimate.creator_email})` : ''}
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '6px' }}>Terakhir direvisi oleh</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '3px' }}>
-                {estimate.updater_name || '-'}{estimate.updater_email ? ` (${estimate.updater_email})` : ''}
-              </div>
-            </div>
-          </div>
-
-          {/* Project Notes Banner */}
-          {estimate.notes && (
-            <div
-              style={{
-                marginTop: '16px',
-                padding: '12px 16px',
-                background: 'rgb(var(--ink-rgb) / 0.02)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '6px',
-                fontSize: '12px',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.6,
-              }}
-            >
-              <strong style={{ color: 'var(--text-primary)' }}>Catatan Lingkup Kerja & Asumsi:</strong> {estimate.notes}
-            </div>
-          )}
-
-          {/* Rate Snapshot Banner */}
-          <div
-            style={{
-              marginTop: '12px',
-              padding: '12px 16px',
-              background: 'rgb(var(--ink-rgb) / 0.015)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '6px',
-            }}
-          >
-            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: '8px' }}>
-              Master Rate Snapshot per Jam (Tersimpan Permanen pada Dokumen Ini):
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {estimate.rate_snapshots && Object.entries(estimate.rate_snapshots).map(([rk, val]) => {
-                const name = typeof val === 'object' && val ? `${val.code} · ${val.name}` : rk;
-                const rVal = typeof val === 'object' && val ? val.rate : val;
-                return (
-                  <span
-                    key={rk}
-                    style={{
-                      fontSize: '11px',
-                      padding: '3px 8px',
-                      borderRadius: '4px',
-                      background: 'rgb(var(--ink-rgb) / 0.04)',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    <strong>{name}:</strong> <span style={{ color: 'var(--color-success)' }}>{formatIDR(rVal)}/jam</span>
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('ALL')}
-            className={activeTab === 'ALL' ? 'btn-primary' : 'btn-secondary'}
-            style={{ fontSize: '12px', padding: '6px 14px' }}
-          >
-            Semua Rincian Breakdown
-          </button>
-          {estimate.modules && estimate.modules.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('DEV')}
-              className={activeTab === 'DEV' ? 'btn-primary' : 'btn-secondary'}
-              style={{ fontSize: '12px', padding: '6px 14px' }}
-            >
-              A. Development WBS ({estimate.modules.length} Modul)
-            </button>
-          )}
-          {estimate.maintenance_config && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('MAINTENANCE')}
-              className={activeTab === 'MAINTENANCE' ? 'btn-primary' : 'btn-secondary'}
-              style={{ fontSize: '12px', padding: '6px 14px' }}
-            >
-              B. Maintenance WBS ({estimate.maintenance_config.duration_months} Bln)
-            </button>
-          )}
-          {estimate.infrastructure_items && estimate.infrastructure_items.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('INFRASTRUCTURE')}
-              className={activeTab === 'INFRASTRUCTURE' ? 'btn-primary' : 'btn-secondary'}
-              style={{ fontSize: '12px', padding: '6px 14px' }}
-            >
-              C. Infrastructure Items ({estimate.infrastructure_items.length})
-            </button>
-          )}
-          {estimate.operational_items && estimate.operational_items.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('OPERATION')}
-              className={activeTab === 'OPERATION' ? 'btn-primary' : 'btn-secondary'}
-              style={{ fontSize: '12px', padding: '6px 14px' }}
-            >
-              D. Operational Items ({estimate.operational_items.length})
-            </button>
-          )}
-          {estimate.version_history && estimate.version_history.length > 1 && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('HISTORY')}
-              className={activeTab === 'HISTORY' ? 'btn-primary' : 'btn-secondary'}
-              style={{ fontSize: '12px', padding: '6px 14px', borderColor: 'rgb(var(--info-rgb) / 0.4)', color: activeTab === 'HISTORY' ? '#fff' : 'var(--color-info)' }}
-            >
-              Riwayat Versi Revisi ({estimate.version_history.length})
-            </button>
-          )}
-        </div>
+          );
+        })()}
 
         {/* Section A: Development WBS Breakdown */}
         {(activeTab === 'ALL' || activeTab === 'DEV') && estimate.modules && estimate.modules.length > 0 && (
@@ -945,7 +728,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           </span>
                         </td>
                         <td>
-                          <div style={{ fontWeight: isCurrent ? 600 : 400, color: isCurrent ? '#fff' : 'var(--text-primary)' }}>
+                          <div style={{ fontWeight: isCurrent ? 600 : 400, color: 'var(--text-primary)' }}>
                             #{verItem.id} • {verItem.title}
                             {isCurrent && (
                               <span style={{ fontSize: '10px', color: 'var(--color-info)', marginLeft: '6px', fontWeight: 600 }}>

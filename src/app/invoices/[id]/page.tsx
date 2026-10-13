@@ -1,11 +1,13 @@
 'use client';
 
-import { ArrowLeft, Banknote, Building2, CalendarDays, CircleCheck, CreditCard, FileText, Paperclip, Printer, SquarePen, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, CalendarDays, Check, Layers, Paperclip, Printer, Repeat, SquarePen, Upload } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Page } from '@/components/ui/Page';
+import DataGrid from '@/components/ui/DataGrid';
+import { cn } from '@/lib/cn';
 
 interface InvoiceDetail {
   id: number;
@@ -46,19 +48,25 @@ const formatIDR = (val: number | string) => {
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
 };
 
-const getStatusBadge = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case 'paid':
-      return { label: 'Paid / Lunas', bg: 'rgb(var(--success-rgb) / 0.15)', text: 'var(--color-success)', border: 'rgb(var(--success-rgb) / 0.3)' };
-    case 'invoiced':
-      return { label: 'Invoiced (Pending Tagihan)', bg: 'rgb(var(--info-rgb) / 0.15)', text: 'var(--color-info)', border: 'rgb(var(--info-rgb) / 0.3)' };
-    case 'overdue':
-      return { label: 'Overdue (Lewat Jatuh Tempo)', bg: 'rgb(var(--danger-rgb) / 0.15)', text: 'var(--color-danger)', border: 'rgb(var(--danger-rgb) / 0.3)' };
-    case 'unbilled':
-    default:
-      return { label: 'Unbilled (Draft / Belum Ditagih)', bg: 'rgb(var(--ink-rgb) / 0.05)', text: 'var(--text-secondary)', border: 'rgb(var(--ink-rgb) / 0.12)' };
-  }
+const STATUS_BADGE: Record<string, { label: string; cls: string; bar: string }> = {
+  paid: { label: 'Lunas', cls: 'badge-connected', bar: 'var(--color-success)' },
+  invoiced: { label: 'Ditagihkan', cls: 'badge-info', bar: 'var(--color-info)' },
+  overdue: { label: 'Jatuh tempo', cls: 'badge-danger', bar: 'var(--color-danger)' },
+  unbilled: { label: 'Belum ditagih', cls: 'badge-neutral', bar: 'var(--text-tertiary)' },
 };
+const getStatusBadge = (status: string) => STATUS_BADGE[status?.toLowerCase()] || STATUS_BADGE.unbilled;
+
+const fmtDate = (value?: string | null) =>
+  value ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-line py-2.5 last:border-b-0">
+      <dt className="shrink-0 text-[12.5px] text-fg-3">{label}</dt>
+      <dd className="min-w-0 text-right text-[13px] text-fg-2">{children}</dd>
+    </div>
+  );
+}
 
 function InvoiceDetailPageInner() {
   const params = useParams();
@@ -201,239 +209,104 @@ function InvoiceDetailPageInner() {
 
   return (
     <Page wide className="pb-[80px]">
-        {/* Navigation Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-          <Link
-            href="/invoices"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '13px',
-              color: 'var(--text-tertiary)',
-              textDecoration: 'none',
-              transition: 'color 0.15s ease',
-            }}
-          >
-            <ArrowLeft style={{ width: '14px', height: '14px' }} />
-            <span>Kembali ke Invoices Tracker</span>
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-2 text-[12px] text-fg-3">
+          <Link href="/invoices" className="inline-flex items-center gap-1.5 no-underline hover:text-fg">
+            <ArrowLeft className="size-3.5" aria-hidden /> Invoices
           </Link>
+          <span aria-hidden>/</span>
+          <span className="font-mono text-fg-2">{invoice.invoice_number || `Draft #${invoice.id}`}</span>
+        </nav>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              onClick={openEditModal}
-              className="btn-secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '6px 14px' }}
-            >
-              <SquarePen style={{ width: '15px', height: '15px' }} />
-              <span>Update Status</span>
+        {/* Header */}
+        <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-line pb-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="font-mono text-[22px] font-semibold tracking-[-0.02em] text-fg">{invoice.invoice_number || `Draft Invoice #${invoice.id}`}</h1>
+              <span className={cn('badge', badge.cls)}>
+                <span className="badge-dot" /> {badge.label}
+              </span>
+              <span className={cn('badge', isRecurring ? 'badge-accent' : 'badge-neutral')}>
+                {isRecurring ? <Repeat className="size-3" aria-hidden /> : <Layers className="size-3" aria-hidden />}
+                {isRecurring ? 'Retainer bulanan' : 'Termin milestone'}
+              </span>
+            </div>
+            <p className="mt-2 text-[13px] text-fg-3">
+              {invoice.milestone_name} · <span className="text-fg-2">{invoice.company_name}</span> ({invoice.project_name})
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={openEditModal} className="btn-secondary">
+              <SquarePen className="size-4" aria-hidden /> Update status
             </button>
-
-            <Link
-              href={`/invoices/${invoice.id}/print`}
-              target="_blank"
-              className="btn-primary"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12.5px',
-                padding: '6px 16px',
-                textDecoration: 'none',
-                background: 'linear-gradient(135deg, var(--color-success) 0%, var(--color-success) 100%)',
-                borderColor: 'var(--color-success)',
-              }}
-            >
-              <Printer style={{ width: '15px', height: '15px' }} />
-              <span>Cetak PDF Invoice</span>
+            <Link href={`/invoices/${invoice.id}/print`} target="_blank" className="btn-primary">
+              <Printer className="size-4" aria-hidden /> Cetak PDF
             </Link>
           </div>
-        </div>
+        </header>
 
-        {/* Header Invoice Card */}
-        <div
-          className="linear-card"
-          style={{
-            padding: '24px 28px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px',
-            borderLeft: `4px solid ${isPaid ? 'var(--color-success)' : 'var(--color-info)'}`,
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '20px',
-                  fontWeight: 800,
-                  color: 'var(--text-primary)',
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {invoice.invoice_number || `Draft Invoice #${invoice.id}`}
-              </span>
-              <span
-                className="linear-badge"
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  padding: '3px 10px',
-                  background: badge.bg,
-                  color: badge.text,
-                  border: `1px solid ${badge.border}`,
-                }}
-              >
-                {badge.label}
-              </span>
-              <span
-                className="linear-badge"
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  padding: '3px 8px',
-                  background: isRecurring ? 'rgb(var(--violet-rgb) / 0.15)' : 'rgb(var(--info-rgb) / 0.15)',
-                  color: isRecurring ? 'var(--color-violet)' : 'var(--color-info)',
-                  border: `1px solid ${isRecurring ? 'rgb(var(--violet-rgb) / 0.3)' : 'rgb(var(--info-rgb) / 0.3)'}`,
-                }}
-              >
-                {isRecurring ? 'Retainer Bulanan' : 'Termin Milestone'}
-              </span>
+        {/* Amount hero */}
+        <section aria-label="Nominal penagihan" className="hero-card mb-5 p-5 sm:p-6">
+          <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-3">Nominal penagihan</div>
+              <div className={cn('font-mono-numbers mt-2 text-[34px] font-semibold leading-none tracking-[-0.03em] sm:text-[40px]', isPaid ? 'text-ok' : 'text-fg')}>
+                {formatIDR(invoice.amount)}
+              </div>
+              {invoice.percent > 0 && <p className="mt-2 text-[13px] text-fg-3">Bobot termin {invoice.percent}% dari grand total proyek</p>}
             </div>
-
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-              {invoice.milestone_name} • Klien: <strong style={{ color: 'var(--text-primary)' }}>{invoice.company_name}</strong> ({invoice.project_name})
+            <div className="flex flex-wrap gap-x-8 gap-y-3">
+              <div>
+                <div className="text-[11.5px] text-fg-3">Diterima</div>
+                <div className="font-mono-numbers mt-1 text-[15px] font-semibold text-ok">{formatIDR(isPaid ? Number(invoice.paid_amount) || Number(invoice.amount) : Number(invoice.paid_amount) || 0)}</div>
+              </div>
+              <div>
+                <div className="text-[11.5px] text-fg-3">Sisa tagihan</div>
+                <div className={cn('font-mono-numbers mt-1 text-[15px] font-semibold', isPaid ? 'text-fg-2' : 'text-warn')}>
+                  {formatIDR(isPaid ? 0 : Math.max(0, Number(invoice.amount) - (Number(invoice.paid_amount) || 0)))}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11.5px] text-fg-3">Jatuh tempo</div>
+                <div className="mt-1 text-[15px] font-semibold text-fg">{fmtDate(invoice.due_date)}</div>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>
-              Nominal Penagihan
-            </div>
-            <div
-              className="font-mono-numbers"
-              style={{
-                fontSize: '26px',
-                fontWeight: 800,
-                color: isPaid ? 'var(--color-success)' : 'var(--text-primary)',
-                marginTop: '4px',
-              }}
-            >
-              {formatIDR(invoice.amount)}
-            </div>
-            {invoice.percent > 0 && (
-              <div style={{ fontSize: '11.5px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                Bobot Termin: {invoice.percent}% dari Grand Total Proyek
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 2-Columns Grid Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '24px' }}>
-          {/* Panel Administrasi Penagihan */}
-          <div className="linear-card" style={{ padding: '22px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <CalendarDays style={{ width: '18px', height: '18px', color: 'var(--accent-hover)' }} />
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Informasi Tanggal & Penagihan
-              </h3>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Nomor Invoice Resmi</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
-                  {invoice.invoice_number || '(Belum Diterbitkan)'}
+        {/* Detail panels */}
+        <div className="mb-5 grid gap-5 lg:grid-cols-2">
+          <section className="linear-card p-5">
+            <h2 className="mb-2 flex items-center gap-2 text-[14px] font-semibold text-fg">
+              <CalendarDays className="size-4 text-fg-3" aria-hidden /> Tanggal & penagihan
+            </h2>
+            <dl>
+              <InfoRow label="Nomor invoice"><span className="font-mono font-semibold text-fg">{invoice.invoice_number || 'Belum diterbitkan'}</span></InfoRow>
+              <InfoRow label="Tanggal terbit">{fmtDate(invoice.invoice_date)}</InfoRow>
+              <InfoRow label="Jatuh tempo"><span className={invoice.due_date ? 'font-semibold text-warn' : ''}>{fmtDate(invoice.due_date)}</span></InfoRow>
+              <InfoRow label="Status pembayaran">
+                <span className={cn('font-semibold', isPaid ? 'text-ok' : '')}>
+                  {isPaid
+                    ? `Lunas (${formatIDR(invoice.paid_amount || invoice.amount)})`
+                    : Number(invoice.paid_amount) > 0
+                      ? `Diterima ${formatIDR(Number(invoice.paid_amount) || 0)} · sisa ${formatIDR(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)))}`
+                      : 'Belum diterima'}
                 </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Tanggal Terbit Invoice</span>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                  {invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Jatuh Tempo (Due Date)</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 600, color: invoice.due_date ? 'var(--color-warning)' : 'var(--text-secondary)' }}>
-                  {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Status Realisasi Bayar</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: isPaid ? 'var(--color-success)' : 'var(--text-tertiary)' }}>
-                  {isPaid ? `Lunas (${formatIDR(invoice.paid_amount || invoice.amount)})` : Number(invoice.paid_amount) > 0 ? `Diterima ${formatIDR(Number(invoice.paid_amount) || 0)} · Sisa ${formatIDR(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)))}` : 'Belum Diterima'}
-                </span>
-              </div>
-
-              {invoice.paid_date && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Tanggal Pelunasan</span>
-                  <span style={{ fontSize: '12.5px', color: 'var(--color-success)' }}>
-                    {new Date(invoice.paid_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
-                </div>
-              )}
-
-              {invoice.proof_reference && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Ref. Transfer Bank</span>
-                  <span style={{ fontSize: '12.5px', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
-                    {invoice.proof_reference}
-                  </span>
-                </div>
-              )}
-
-              {/* Bukti Fisik / Scan Bukti Bayar */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Bukti Struk / Slip Transfer</span>
+              </InfoRow>
+              {invoice.paid_date && <InfoRow label="Tanggal pelunasan"><span className="text-ok">{fmtDate(invoice.paid_date)}</span></InfoRow>}
+              {invoice.proof_reference && <InfoRow label="Ref. transfer bank"><span className="font-mono text-fg">{invoice.proof_reference}</span></InfoRow>}
+              <InfoRow label="Bukti bayar">
                 {invoice.proof_file_url ? (
-                  <a
-                    href={invoice.proof_file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-secondary"
-                    style={{
-                      padding: '4px 10px',
-                      fontSize: '11.5px',
-                      textDecoration: 'none',
-                      color: 'var(--color-success)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      border: '1px solid rgb(var(--success-rgb) / 0.4)',
-                    }}
-                    title={`Lihat file: ${invoice.proof_file_name || 'Bukti Transfer'}`}
-                  >
-                    <Paperclip style={{ width: '13px', height: '13px' }} />
-                    <span>Lihat Bukti Bayar</span>
+                  <a href={invoice.proof_file_url} target="_blank" rel="noreferrer" className="btn-secondary" style={{ minHeight: 30, padding: '0 10px' }} title={`Lihat file: ${invoice.proof_file_name || 'Bukti transfer'}`}>
+                    <Paperclip className="size-3.5" aria-hidden /> Lihat bukti
                   </a>
                 ) : (
-                  <label
-                    className="btn-secondary"
-                    style={{
-                      padding: '4px 10px',
-                      fontSize: '11.5px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                    title="Upload slip transfer / bukti setor ke MinIO Storage"
-                  >
-                    <Upload style={{ width: '13px', height: '13px' }} />
-                    <span>{uploadingProof ? 'Mengunggah...' : 'Upload Slip Bank'}</span>
+                  <label className="btn-secondary cursor-pointer" style={{ minHeight: 30, padding: '0 10px' }} title="Unggah slip transfer / bukti setor">
+                    <Upload className="size-3.5" aria-hidden /> {uploadingProof ? 'Mengunggah…' : 'Unggah slip'}
                     <input
                       type="file"
                       accept=".jpg,.jpeg,.png,.pdf"
-                      style={{ display: 'none' }}
+                      className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) handleUploadProofFile(file);
@@ -441,196 +314,91 @@ function InvoiceDetailPageInner() {
                     />
                   </label>
                 )}
-              </div>
-            </div>
-          </div>
+              </InfoRow>
+            </dl>
+          </section>
 
-          {/* Panel Identitas Klien & Kontrak */}
-          <div className="linear-card" style={{ padding: '22px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <Building2 style={{ width: '18px', height: '18px', color: 'var(--accent-hover)' }} />
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Data Klien & Proposal Asal
-              </h3>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Nama Perusahaan</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                  {invoice.company_name}
-                </div>
-                {invoice.company_address && (
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {invoice.company_address}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Proyek & Dokumen</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
-                  {invoice.project_name}
-                </div>
-                <div style={{ marginTop: '4px' }}>
-                  <Link
-                    href={`/commercial/${invoice.proposal_id}`}
-                    style={{ fontSize: '12px', color: 'var(--accent-hover)', textDecoration: 'none', fontWeight: 600 }}
-                  >
-                    Buka Dokumen Proposal: {invoice.proposal_number} v{invoice.proposal_version} →
-                  </Link>
-                </div>
-              </div>
-
-              {invoice.coverage_period && (
-                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
-                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Periode Layanan Retainer</div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--color-violet)', marginTop: '2px' }}>
-                    {invoice.coverage_period}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <section className="linear-card p-5">
+            <h2 className="mb-2 flex items-center gap-2 text-[14px] font-semibold text-fg">
+              <Building2 className="size-4 text-fg-3" aria-hidden /> Klien & proposal asal
+            </h2>
+            <dl>
+              <InfoRow label="Perusahaan">
+                <span className="font-semibold text-fg">{invoice.company_name}</span>
+                {invoice.company_address && <span className="mt-0.5 block text-[12px] text-fg-3">{invoice.company_address}</span>}
+              </InfoRow>
+              <InfoRow label="Proyek"><span className="font-semibold text-fg">{invoice.project_name}</span></InfoRow>
+              <InfoRow label="Dokumen proposal">
+                <Link href={`/commercial/${invoice.proposal_id}`} className="inline-flex items-center gap-1 font-semibold text-brand-fg no-underline hover:underline">
+                  {invoice.proposal_number} v{invoice.proposal_version} <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              </InfoRow>
+              {invoice.coverage_period && <InfoRow label="Periode layanan"><span className="font-semibold text-plum">{invoice.coverage_period}</span></InfoRow>}
+            </dl>
+          </section>
         </div>
 
-        {/* Sibling Milestones (Rangkaian Termin Proposal) */}
+        {/* Sibling milestones */}
         {siblings.length > 1 && (
-          <div className="linear-card" style={{ padding: '26px', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+          <DataGrid
+            densityToggle={false}
+            title={
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
-                  Rangkaian Termin & Jadwal Penagihan Kontrak
-                </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                  Alur jadwal penagihan kontrak proposal #{invoice.proposal_number}. Invoice yang sedang aktif ditandai secara khusus.
-                </p>
+                <div className="text-[14px] font-semibold text-fg">Rangkaian termin & jadwal penagihan</div>
+                <div className="mt-0.5 text-[12px] font-normal text-fg-3">Kontrak {invoice.proposal_number} · invoice yang sedang dibuka ditandai.</div>
               </div>
-              <span className="linear-badge" style={{ fontSize: '11.5px', fontWeight: 600 }}>
-                {siblings.length} Tahap Penagihan
-              </span>
-            </div>
-
-            <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '10px' }}>
-              <table className="pro-table" style={{ width: '100%', minWidth: '880px' }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: '70px', textAlign: 'center', padding: '14px 16px' }}>No</th>
-                    <th style={{ textAlign: 'left', padding: '14px 20px' }}>Tahapan Termin / Milestone</th>
-                    <th style={{ width: '170px', textAlign: 'right', padding: '14px 20px' }}>Nominal (IDR)</th>
-                    <th style={{ width: '180px', textAlign: 'center', padding: '14px 16px' }}>Status Penagihan</th>
-                    <th style={{ width: '170px', textAlign: 'left', padding: '14px 18px' }}>No. Invoice</th>
-                    <th style={{ width: '110px', textAlign: 'center', padding: '14px 16px' }}>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {siblings.map((sib, idx) => {
-                    const isCurrent = sib.id === invoice.id;
-                    const sb = getStatusBadge(sib.billing_status);
-
-                    return (
-                      <tr
-                        key={sib.id}
-                        style={{
-                          background: isCurrent ? 'rgb(var(--accent-rgb) / 0.1)' : 'transparent',
-                          borderLeft: isCurrent ? '3px solid var(--accent-hover)' : '3px solid transparent',
-                          transition: 'background 0.15s ease',
-                        }}
-                      >
-                        <td style={{ textAlign: 'center', padding: '16px', fontWeight: isCurrent ? 800 : 500, color: isCurrent ? 'var(--accent-hover)' : 'var(--text-tertiary)' }}>
-                          {idx + 1}
-                        </td>
-                        <td style={{ padding: '16px 20px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontWeight: isCurrent ? 700 : 600, color: isCurrent ? 'var(--text-primary)' : 'var(--text-primary)', fontSize: '13.5px' }}>
-                              {sib.milestone_name}
-                            </span>
-                            {isCurrent && (
-                              <span
-                                className="linear-badge"
-                                style={{
-                                  fontSize: '10.5px',
-                                  fontWeight: 700,
-                                  background: 'rgb(var(--accent-rgb) / 0.25)',
-                                  color: 'var(--accent-text)',
-                                  border: '1px solid rgb(var(--accent-rgb) / 0.4)',
-                                  padding: '1px 7px',
-                                }}
-                              >
-                                Sedang Dibuka
-                              </span>
-                            )}
-                          </div>
-                          {sib.percent > 0 && (
-                            <div style={{ fontSize: '11.5px', color: 'var(--text-tertiary)', marginTop: '3px' }}>
-                              Bobot: {sib.percent}% dari Grand Total Proyek
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'right', padding: '16px 20px', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13.5px', color: sib.billing_status === 'paid' ? 'var(--color-success)' : 'var(--text-primary)' }}>
-                          {formatIDR(sib.amount)}
-                        </td>
-                        <td style={{ textAlign: 'center', padding: '16px' }}>
-                          <span
-                            className="linear-badge"
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '3px 10px',
-                              borderRadius: '6px',
-                              background: sb.bg,
-                              color: sb.text,
-                              border: `1px solid ${sb.border}`,
-                              display: 'inline-block',
-                            }}
-                          >
-                            {sb.label}
+            }
+            actions={<span className="badge badge-neutral font-mono-numbers">{siblings.length} tahap</span>}
+          >
+            <table className="pro-table" style={{ minWidth: 880 }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 64, textAlign: 'center' }}>No</th>
+                  <th style={{ minWidth: 280 }}>Termin / milestone</th>
+                  <th style={{ width: 170, textAlign: 'right' }}>Nominal</th>
+                  <th style={{ width: 160 }}>Status</th>
+                  <th style={{ width: 180 }}>No. invoice</th>
+                  <th style={{ width: 110, textAlign: 'right' }}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {siblings.map((sib, idx) => {
+                  const isCurrent = sib.id === invoice.id;
+                  const sb = getStatusBadge(sib.billing_status);
+                  return (
+                    <tr key={sib.id} style={isCurrent ? { background: 'var(--accent-light)' } : undefined} aria-current={isCurrent ? 'true' : undefined}>
+                      <td className="font-mono-numbers" style={{ textAlign: 'center', color: isCurrent ? 'var(--accent-text)' : undefined, fontWeight: isCurrent ? 700 : 500 }}>{idx + 1}</td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <span className="cell-strong">{sib.milestone_name}</span>
+                          {isCurrent && <span className="badge badge-accent">Sedang dibuka</span>}
+                        </div>
+                        {sib.percent > 0 && <div className="mt-0.5 text-[12px] text-fg-3">Bobot {sib.percent}% dari grand total</div>}
+                      </td>
+                      <td className={cn('cell-num font-mono-numbers cell-strong', sib.billing_status === 'paid' && 'text-ok')}>{formatIDR(sib.amount)}</td>
+                      <td>
+                        <span className={cn('badge', sb.cls)}>
+                          <span className="badge-dot" /> {sb.label}
+                        </span>
+                      </td>
+                      <td className="font-mono text-[12.5px]">{sib.invoice_number ? <span className="cell-strong">{sib.invoice_number}</span> : <span className="text-fg-3">Belum terbit</span>}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {isCurrent ? (
+                          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-brand-fg">
+                            <Check className="size-3.5" aria-hidden /> Aktif
                           </span>
-                        </td>
-                        <td style={{ padding: '16px 18px', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
-                          {sib.invoice_number ? (
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {sib.invoice_number}
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                              (Belum Terbit)
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'center', padding: '16px' }}>
-                          {!isCurrent ? (
-                            <Link
-                              href={`/invoices/${sib.id}`}
-                              className="btn-secondary"
-                              style={{
-                                padding: '5px 12px',
-                                fontSize: '11.5px',
-                                textDecoration: 'none',
-                                borderRadius: '6px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                color: 'var(--text-primary)',
-                              }}
-                              title="Buka Halaman Invoice Termin Ini"
-                            >
-                              <span>Buka</span>
-                              <span>→</span>
-                            </Link>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--accent-hover)', fontWeight: 700, padding: '4px 8px' }}>
-                              ✓ Aktif
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                        ) : (
+                          <Link href={`/invoices/${sib.id}`} className="btn-secondary" style={{ minHeight: 30, padding: '0 10px' }} title="Buka invoice termin ini">
+                            Buka <ArrowRight className="size-3.5" aria-hidden />
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </DataGrid>
         )}
 
         {/* Modal Update Status */}
