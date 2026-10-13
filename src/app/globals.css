@@ -30,6 +30,35 @@
   --font-mono: var(--font-geist-mono), "JetBrains Mono", "Berkeley Mono", Menlo, Consolas, monospace;
 }
 
+[data-theme="light"] {
+  --bg-canvas: #ffffff;
+  --bg-panel: #f9fafb;
+  --bg-card: #f3f4f6;
+  --bg-elevated: #ffffff;
+  --bg-input: #f9fafb;
+  --bg-input-focus: #ffffff;
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.16);
+  --border-focus: #5e6ad2;
+
+  --accent-primary: #5e6ad2;
+  --accent-hover: #4c5fd6;
+  --accent-light: rgba(94, 106, 210, 0.12);
+  --accent-glow: rgba(94, 106, 210, 0.2);
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+
+  --color-success: #059669;
+  --color-success-bg: rgba(5, 150, 105, 0.1);
+  --color-warning: #d97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.1);
+  --color-danger: #dc2626;
+  --color-danger-bg: rgba(220, 38, 38, 0.1);
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -67,6 +96,13 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
 }
 
 /* Monospace numbers helper */

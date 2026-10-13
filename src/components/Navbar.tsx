@@ -4,6 +4,7 @@ import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import ThemeSwitcher from './ThemeSwitcher';
 import {
   ChartBarIcon,
   CalculatorIcon,
@@ -170,6 +171,7 @@ function NavbarContent() {
 
         {/* User Profile & Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ThemeSwitcher />
           {email && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Link
