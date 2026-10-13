@@ -211,6 +211,7 @@ export interface CalculatedOperational {
 export interface BillingSummary {
   one_time_dev: number;
   one_time_infra: number;
+  one_time_operational: number;
   total_one_time: number;
   monthly_maintenance: number;
   total_maintenance: number;
@@ -524,13 +525,18 @@ export function calculateBillingSummary(params: {
     ? params.maintenanceConfig.total_cost
     : 0;
 
-  const total_one_time = one_time_dev + one_time_infra;
+  const one_time_operational = (params.hasOperational && params.operational)
+    ? params.operational.grand_total
+    : 0;
+
+  const total_one_time = one_time_dev + one_time_infra + one_time_operational;
   const total_monthly_recurring = monthly_maintenance + monthly_infra;
   const grand_total = total_one_time + total_maintenance + recurring_infra;
 
   return {
     one_time_dev,
     one_time_infra,
+    one_time_operational,
     total_one_time,
     monthly_maintenance,
     total_maintenance,

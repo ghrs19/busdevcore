@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { publicPriceLines, type CategoryPricing } from '@/lib/commercial-pricing';
 
 interface ProposalDetail {
   id: number;
@@ -31,6 +32,7 @@ interface ProposalDetail {
   is_tax_enabled: boolean;
   tax_amount: string | number;
   grand_total: string | number;
+  category_pricing?: CategoryPricing | null;
   validity_days: number;
   notes?: string;
   creator_name?: string;
@@ -61,6 +63,18 @@ interface ProposalDetail {
   }>;
 }
 
+interface ScheduleRow {
+  billing_type: string;
+  term_index: number;
+  milestone_name: string;
+  percent: string | number;
+  amount: string | number;
+  trigger_condition: string | null;
+  phase: string | null;
+  period_month: number | null;
+  coverage_period: string | null;
+}
+
 interface IssuerSettings {
   company_name: string;
   tagline: string;
@@ -88,6 +102,13 @@ interface ModuleItem {
   tasks: Array<{ id: number; name: string }>;
 }
 
+const CATEGORY_NOTES: Record<string, string> = {
+  DEVELOPMENT: 'Mencakup desain UI/UX, implementasi source code, integrasi sistem, dan deployment.',
+  MAINTENANCE: 'Pemeliharaan sistem berkala, perbaikan bug, dan dukungan teknis sesuai periode kontrak.',
+  OPERATION: 'Biaya operasional proyek seperti perjalanan, akomodasi, dan kegiatan lapangan.',
+  INFRASTRUCTURE: 'Penyediaan dan pengelolaan infrastruktur server, jaringan, dan layanan cloud.',
+};
+
 const formatIDR = (val: number | string) => {
   const num = typeof val === 'string' ? parseFloat(val) : val;
   return `Rp ${(num || 0).toLocaleString('id-ID')}`;
@@ -99,6 +120,7 @@ function CommercialProposalPrintViewContent() {
 
   const [proposal, setProposal] = useState<ProposalDetail | null>(null);
   const [modules, setModules] = useState<ModuleItem[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
   const [issuer, setIssuer] = useState<IssuerSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,6 +135,7 @@ function CommercialProposalPrintViewContent() {
         if (data.success && data.proposal) {
           setProposal(data.proposal);
           setModules(data.modules || []);
+          setSchedule(Array.isArray(data.billing_schedule) ? data.billing_schedule : []);
           if (Array.isArray(data.version_history)) {
             setVersionHistory(data.version_history);
           }
@@ -155,6 +178,10 @@ function CommercialProposalPrintViewContent() {
     );
   }
 
+  const priceLines = publicPriceLines(proposal.category_pricing);
+  const milestoneRows = schedule.filter((r) => r.billing_type === 'milestone');
+  const recurringRows = schedule.filter((r) => r.billing_type === 'recurring_monthly');
+  const recurringTotal = recurringRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
   const createdDate = new Date(proposal.created_at);
   const dateFormatted = createdDate.toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -422,20 +449,35 @@ function CommercialProposalPrintViewContent() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>01</td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#0f172a' }}>
-                      Pengembangan Aplikasi & Solusi Digital ({proposal.project_name})
-                    </div>
-                    <div className="item-note">
-                      Mencakup desain UI/UX, implementasi source code, integrasi sistem, dan deployment.
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }} className="font-mono">
-                    {formatIDR(proposal.base_price)}
-                  </td>
-                </tr>
+                {priceLines.length > 0 ? priceLines.map((line, idx) => (
+                  <tr key={line.category}>
+                    <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>{String(idx + 1).padStart(2, '0')}</td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                        {line.label} ({proposal.project_name})
+                      </div>
+                      <div className="item-note">{CATEGORY_NOTES[line.category]}</div>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }} className="font-mono">
+                      {formatIDR(line.price)}
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>01</td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                        Pengembangan Aplikasi & Solusi Digital ({proposal.project_name})
+                      </div>
+                      <div className="item-note">
+                        Mencakup desain UI/UX, implementasi source code, integrasi sistem, dan deployment.
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }} className="font-mono">
+                      {formatIDR(proposal.base_price)}
+                    </td>
+                  </tr>
+                )}
 
                 {Number(proposal.discount_value) > 0 && (
                   <tr className="discount-row">
@@ -484,14 +526,15 @@ function CommercialProposalPrintViewContent() {
           </div>
         </section>
 
-        {/* Section 4: Term of Payment */}
-        {Array.isArray(proposal.payment_terms) && proposal.payment_terms.length > 0 && (
+        {/* Section 4: Term of Payment + jadwal invoice maintenance */}
+        {(milestoneRows.length > 0 || (Array.isArray(proposal.payment_terms) && proposal.payment_terms.length > 0) || recurringRows.length > 0) && (
           <section className="doc-section">
             <div className="section-title-wrap">
               <span className="section-num">04</span>
               <h2 className="section-title">Skema Termin Pembayaran (Term of Payment)</h2>
             </div>
 
+            {(milestoneRows.length > 0 || (proposal.payment_terms || []).length > 0) && (
             <div className="table-responsive">
               <table className="clean-table">
                 <thead>
@@ -504,7 +547,10 @@ function CommercialProposalPrintViewContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {proposal.payment_terms.map((t, idx) => (
+                  {(milestoneRows.length > 0
+                    ? milestoneRows.map((r) => ({ milestone_name: r.milestone_name, percent: Number(r.percent), amount: Number(r.amount), trigger_condition: r.trigger_condition || '' }))
+                    : (proposal.payment_terms || [])
+                  ).map((t, idx) => (
                     <tr key={idx}>
                       <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>
                         {String(idx + 1).padStart(2, '0')}
@@ -522,6 +568,41 @@ function CommercialProposalPrintViewContent() {
                 </tbody>
               </table>
             </div>
+            )}
+
+            {recurringRows.length > 0 && (
+              <div className="table-responsive" style={{ marginTop: '18px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                  Jadwal Invoice Maintenance Bulanan ({recurringRows.length} Bulan)
+                </div>
+                <table className="clean-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px', textAlign: 'center' }}>No</th>
+                      <th>Invoice</th>
+                      <th style={{ width: '200px' }}>Periode Layanan</th>
+                      <th style={{ width: '180px', textAlign: 'right' }}>Nominal (IDR)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recurringRows.map((r, idx) => (
+                      <tr key={`${r.billing_type}-${r.term_index}`}>
+                        <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>{String(idx + 1).padStart(2, '0')}</td>
+                        <td style={{ fontWeight: 600, color: '#0f172a' }}>{r.milestone_name}</td>
+                        <td style={{ color: '#475569' }}>{r.coverage_period || (r.period_month ? `Bulan ke-${r.period_month}` : '-')}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }} className="font-mono">{formatIDR(r.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>Total Invoice Maintenance</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }} className="font-mono">{formatIDR(recurringTotal)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
           </section>
         )}
 
@@ -957,6 +1038,8 @@ function CommercialProposalPrintViewContent() {
 
         /* Print Media Perfection */
         @media print {
+          .clean-table thead { display: table-header-group; }
+          .clean-table tr { page-break-inside: avoid; break-inside: avoid; }
           @page {
             size: A4 portrait;
             margin: 12mm 15mm;

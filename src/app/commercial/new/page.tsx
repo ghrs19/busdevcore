@@ -4,6 +4,17 @@ import { Suspense } from 'react';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  CATEGORY_ORDER,
+  CATEGORY_LABELS,
+  buildCategoryCogs,
+  priceFromMargin,
+  marginFromPrice,
+  computeTotals,
+  distributeGrandTotal,
+  type CategoryPricing,
+  type PricingCategory,
+} from '@/lib/commercial-pricing';
 
 interface Company {
   id: number;
@@ -23,10 +34,15 @@ interface Estimate {
   project_id: number;
   total_hours: number;
   total_cost: number;
+  category_codes?: string[];
+  operational_items?: Array<{ total_cost?: number }>;
   billing_summary?: {
     total_one_time?: number;
     one_time_dev?: number;
     one_time_infra?: number;
+    one_time_operational?: number;
+    total_maintenance?: number;
+    recurring_infra?: number;
     total_monthly_recurring?: number;
     monthly_maintenance?: number;
     monthly_infra?: number;
@@ -85,13 +101,11 @@ function NewCommercialProposalForm() {
   const [revisionNotes, setRevisionNotes] = useState<string>('');
 
   // Commercial Pricing States (Two-way linked)
-  const [cogsAmount, setCogsAmount] = useState<number>(0);
-  const [marginPercent, setMarginPercent] = useState<number>(30);
-  const [basePrice, setBasePrice] = useState<number>(0);
+  // Harga per kategori (COGS, margin, harga dasar). Diskon & PPN tetap satu untuk total.
+  const [categoryPricing, setCategoryPricing] = useState<CategoryPricing>({});
   const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'NOMINAL'>('PERCENTAGE');
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [isTaxEnabled, setIsTaxEnabled] = useState<boolean>(true);
-  const [grandTotal, setGrandTotal] = useState<number>(0);
 
   // Delivery Timeline States (Prefilled & editable)
   const [totalWeeks, setTotalWeeks] = useState<number>(4);
@@ -118,98 +132,50 @@ function NewCommercialProposalForm() {
 
   // --- TWO-WAY LINKED FINANCIAL CALCULATION ENGINE ---
 
-  // Helper: calculate discount amount from basePrice
-  const calcDiscount = (base: number, type: 'PERCENTAGE' | 'NOMINAL', val: number) => {
-    if (type === 'PERCENTAGE') {
-      return Math.round(base * (Math.min(Math.max(val, 0), 100) / 100));
-    }
-    return Math.min(Math.max(val, 0), base);
+  const discountOpts = { discountType, discountValue, taxEnabled: isTaxEnabled };
+  const totals = computeTotals(categoryPricing, discountOpts);
+  const grandTotal = totals.grand_total;
+  const presentCategories = CATEGORY_ORDER.filter((c) => categoryPricing[c]);
+
+  // Satu pintu untuk semua perubahan harga: hitung ulang total lalu sinkronkan nominal termin.
+  const applyPricing = (next: CategoryPricing, opts = discountOpts) => {
+    setCategoryPricing(next);
+    syncTermsFromGrandTotal(computeTotals(next, opts).grand_total);
   };
 
-  // 1. When Margin % changes (Forward Calculation)
-  const handleMarginChange = (newMargin: number) => {
-    setMarginPercent(newMargin);
-    const mFrac = Math.min(Math.max(newMargin, 0), 99.99) / 100;
-    const newBase = mFrac < 1 ? Math.round(cogsAmount / (1 - mFrac)) : cogsAmount;
-    setBasePrice(newBase);
-
-    const disc = calcDiscount(newBase, discountType, discountValue);
-    const subtotal = Math.max(0, newBase - disc);
-    const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
-    const newGT = subtotal + tax;
-    setGrandTotal(newGT);
-    syncTermsFromGrandTotal(newGT);
+  // 1. Margin satu kategori berubah -> harga dasar kategori itu dihitung maju
+  const handleCategoryMarginChange = (cat: PricingCategory, newMargin: number) => {
+    const line = categoryPricing[cat];
+    if (!line) return;
+    applyPricing({ ...categoryPricing, [cat]: { ...line, margin_percent: newMargin, base_price: priceFromMargin(line.cogs, newMargin) } });
   };
 
-  // 2. When Base Price changes directly (Forward Calculation with reverse Margin)
-  const handleBasePriceChange = (newBase: number) => {
-    setBasePrice(newBase);
-    const calculatedMargin = newBase > 0
-      ? Number((((newBase - cogsAmount) / newBase) * 100).toFixed(2))
-      : 0;
-    setMarginPercent(calculatedMargin);
-
-    const disc = calcDiscount(newBase, discountType, discountValue);
-    const subtotal = Math.max(0, newBase - disc);
-    const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
-    const newGT = subtotal + tax;
-    setGrandTotal(newGT);
-    syncTermsFromGrandTotal(newGT);
+  // 2. Harga dasar satu kategori berubah -> margin kategori itu dihitung mundur
+  const handleCategoryPriceChange = (cat: PricingCategory, newBase: number) => {
+    const line = categoryPricing[cat];
+    if (!line) return;
+    applyPricing({ ...categoryPricing, [cat]: { ...line, base_price: newBase, margin_percent: marginFromPrice(line.cogs, newBase) } });
   };
 
-  // 3. When Grand Total changes directly (Reverse Calculation back to Subtotal, BasePrice & Margin)
+  // 3. Grand total diedit langsung -> semua harga kategori diskalakan proporsional
   const handleGrandTotalChange = (newGT: number) => {
-    setGrandTotal(newGT);
-
-    let subtotal = newGT;
-    if (isTaxEnabled) {
-      subtotal = Math.round(newGT / 1.11);
-    }
-
-    let calculatedBase = subtotal;
-    if (discountType === 'PERCENTAGE' && discountValue > 0 && discountValue < 100) {
-      calculatedBase = Math.round(subtotal / (1 - discountValue / 100));
-    } else if (discountType === 'NOMINAL') {
-      calculatedBase = subtotal + discountValue;
-    }
-    setBasePrice(calculatedBase);
-
-    const calculatedMargin = calculatedBase > 0
-      ? Number((((calculatedBase - cogsAmount) / calculatedBase) * 100).toFixed(2))
-      : 0;
-    setMarginPercent(calculatedMargin);
-    syncTermsFromGrandTotal(newGT);
+    applyPricing(distributeGrandTotal(categoryPricing, newGT, discountOpts));
   };
 
-  // 4. When Discount or Tax toggles change
+  // 4. Diskon dan PPN: satu nilai untuk total
   const handleDiscountTypeChange = (newType: 'PERCENTAGE' | 'NOMINAL') => {
     setDiscountType(newType);
-    const disc = calcDiscount(basePrice, newType, discountValue);
-    const subtotal = Math.max(0, basePrice - disc);
-    const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
-    const newGT = subtotal + tax;
-    setGrandTotal(newGT);
-    syncTermsFromGrandTotal(newGT);
+    syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, discountType: newType }).grand_total);
   };
 
   const handleDiscountValueChange = (newVal: number) => {
     setDiscountValue(newVal);
-    const disc = calcDiscount(basePrice, discountType, newVal);
-    const subtotal = Math.max(0, basePrice - disc);
-    const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
-    const newGT = subtotal + tax;
-    setGrandTotal(newGT);
-    syncTermsFromGrandTotal(newGT);
+    syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, discountValue: newVal }).grand_total);
   };
 
   const handleTaxToggle = (checked: boolean) => {
     setIsTaxEnabled(checked);
-    const disc = calcDiscount(basePrice, discountType, discountValue);
-    const subtotal = Math.max(0, basePrice - disc);
-    const tax = checked ? Math.round(subtotal * 0.11) : 0;
-    const newGT = subtotal + tax;
-    setGrandTotal(newGT);
-    syncTermsFromGrandTotal(newGT);
+    syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, taxEnabled: checked }).grand_total);
   };
 
   // 5. Sync payment terms amounts when Grand Total changes
@@ -245,10 +211,10 @@ function NewCommercialProposalForm() {
   };
 
   // Derived display values
-  const currentDiscountAmount = calcDiscount(basePrice, discountType, discountValue);
-  const currentSubtotal = Math.max(0, basePrice - currentDiscountAmount);
-  const currentTaxAmount = isTaxEnabled ? grandTotal - currentSubtotal : 0;
-  const grossProfit = currentSubtotal - cogsAmount;
+  const currentDiscountAmount = totals.discount;
+  const currentSubtotal = totals.subtotal;
+  const currentTaxAmount = totals.tax;
+  const grossProfit = currentSubtotal - totals.cogs;
   const grossProfitPercent = currentSubtotal > 0
     ? ((grossProfit / currentSubtotal) * 100).toFixed(1)
     : '0';
@@ -295,15 +261,18 @@ function NewCommercialProposalForm() {
           setSelectedProjectId(p.project_id);
           setSelectedEstimateId(p.estimate_id);
 
-          const cogs = Number(p.cogs_amount) || 0;
-          const base = Number(p.base_price) || 0;
-          const gt = Number(p.grand_total) || 0;
-          const mPercent = Number(p.margin_percent) || 30;
-
-          setCogsAmount(cogs);
-          setBasePrice(base);
-          setGrandTotal(gt);
-          setMarginPercent(mPercent);
+          // Revisi: pakai harga per kategori yang tersimpan; proposal lama tanpa data itu jatuh ke satu baris gabungan.
+          if (p.category_pricing && typeof p.category_pricing === 'object') {
+            setCategoryPricing(p.category_pricing as CategoryPricing);
+          } else {
+            setCategoryPricing({
+              DEVELOPMENT: {
+                cogs: Number(p.cogs_amount) || 0,
+                base_price: Number(p.base_price) || 0,
+                margin_percent: Number(p.margin_percent) || 0,
+              },
+            });
+          }
           setDiscountType(p.discount_type || 'PERCENTAGE');
           setDiscountValue(Number(p.discount_value) || 0);
           setIsTaxEnabled(Boolean(p.is_tax_enabled));
@@ -386,9 +355,7 @@ function NewCommercialProposalForm() {
 
     if (!eid) {
       setActiveEstimate(null);
-      setCogsAmount(0);
-      setBasePrice(0);
-      setGrandTotal(0);
+      applyPricing({});
       return;
     }
 
@@ -400,20 +367,25 @@ function NewCommercialProposalForm() {
         const est: Estimate = data.estimate;
         setActiveEstimate(est);
 
-        const baseCogs = est.billing_summary?.grand_total || est.total_cost || 0;
-        setCogsAmount(baseCogs);
-
-        // Calculate initial base and grand total using marginPercent
-        const mFrac = Math.min(Math.max(marginPercent, 0), 99.99) / 100;
-        const newBase = mFrac < 1 ? Math.round(baseCogs / (1 - mFrac)) : baseCogs;
-        setBasePrice(newBase);
-
-        const disc = calcDiscount(newBase, discountType, discountValue);
-        const subtotal = Math.max(0, newBase - disc);
-        const tax = isTaxEnabled ? Math.round(subtotal * 0.11) : 0;
-        const newGT = subtotal + tax;
-        setGrandTotal(newGT);
-        syncTermsFromGrandTotal(newGT);
+        // COGS per kategori diambil dari estimasi; margin awal 30% per kategori.
+        const operationalTotal = est.billing_summary?.one_time_operational
+          ?? (est.operational_items || []).reduce((sum, it) => sum + (Number(it.total_cost) || 0), 0);
+        const cogsByCategory = buildCategoryCogs({
+          billing: est.billing_summary || {},
+          operationalTotal,
+          categories: est.category_codes || ['DEVELOPMENT'],
+        });
+        const initial: CategoryPricing = {};
+        for (const cat of CATEGORY_ORDER) {
+          const cogs = cogsByCategory[cat];
+          if (cogs === undefined) continue;
+          initial[cat] = { cogs, margin_percent: 30, base_price: priceFromMargin(cogs, 30) };
+        }
+        if (Object.keys(initial).length === 0) {
+          const fallback = est.billing_summary?.grand_total || est.total_cost || 0;
+          initial.DEVELOPMENT = { cogs: fallback, margin_percent: 30, base_price: priceFromMargin(fallback, 30) };
+        }
+        applyPricing(initial);
 
         if (est.timeline_config && est.timeline_config.milestones) {
           setTotalWeeks(est.timeline_config.total_weeks || 4);
@@ -501,6 +473,11 @@ function NewCommercialProposalForm() {
       return;
     }
 
+    if (presentCategories.length === 0) {
+      setErrorMessage('Estimasi belum memiliki kategori biaya untuk dihitung.');
+      return;
+    }
+
     if (Math.abs(termDiff) > 100) {
       if (!confirm(`Total akumulasi nominal termin (Rp ${totalTermAmount.toLocaleString('id-ID')}) berbeda dari Grand Total Penawaran (Rp ${grandTotal.toLocaleString('id-ID')}). Apakah yakin ingin melanjutkan?`)) {
         return;
@@ -514,15 +491,10 @@ function NewCommercialProposalForm() {
       company_id: selectedCompanyId,
       project_id: selectedProjectId,
       estimate_id: selectedEstimateId,
-      cogs_amount: cogsAmount,
-      margin_percent: marginPercent,
-      base_price: basePrice,
+      category_pricing: categoryPricing,
       discount_type: discountType,
       discount_value: discountValue,
-      subtotal_after_discount: currentSubtotal,
       is_tax_enabled: isTaxEnabled,
-      tax_amount: currentTaxAmount,
-      grand_total: grandTotal,
       timeline_config: {
         total_weeks: totalWeeks,
         start_date: startDate || null,
@@ -796,7 +768,7 @@ function NewCommercialProposalForm() {
                   <div>
                     <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Total Biaya Modal (COGS Internal)</div>
                     <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 700, color: '#38bdf8' }}>
-                      {formatIDR(cogsAmount)}
+                      {formatIDR(totals.cogs)}
                     </div>
                   </div>
                 </div>
@@ -828,9 +800,73 @@ function NewCommercialProposalForm() {
                   Kalkulasi Komersial (Dua Arah: Rupiah ↔ Persentase)
                 </h2>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                  Edit nilai nominal Rupiah secara langsung atau atur target persentase margin; semua komponen saling tersinkronisasi otomatis
+                  Atur margin atau harga dasar per kategori (Development, Maintenance, Operasional, Infrastruktur). Diskon dan PPN berlaku satu kali untuk total.
                 </div>
               </div>
+            </div>
+
+            {/* Harga per Kategori: margin & harga dasar diatur per kategori */}
+            <div style={{ marginBottom: '20px', overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+              <table className="linear-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>Kategori</th>
+                    <th style={{ textAlign: 'right' }}>COGS Internal</th>
+                    <th style={{ textAlign: 'right', width: '140px' }}>Margin (%)</th>
+                    <th style={{ textAlign: 'right', width: '220px' }}>Harga Dasar (Rp)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {presentCategories.length === 0 && (
+                    <tr><td colSpan={4} style={{ color: 'var(--text-tertiary)' }}>Pilih estimasi untuk menampilkan kategori biaya.</td></tr>
+                  )}
+                  {presentCategories.map((cat) => {
+                    const line = categoryPricing[cat];
+                    if (!line) return null;
+                    return (
+                      <tr key={cat}>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{CATEGORY_LABELS[cat]}</td>
+                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#38bdf8' }}>{formatIDR(line.cogs)}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <input
+                            type="number"
+                            min="0"
+                            max="99.99"
+                            step="any"
+                            aria-label={`Margin ${CATEGORY_LABELS[cat]}`}
+                            value={line.margin_percent}
+                            onChange={(e) => handleCategoryMarginChange(cat, parseFloat(e.target.value) || 0)}
+                            className="linear-input font-mono-numbers"
+                            style={{ textAlign: 'right', fontWeight: 600, width: '110px' }}
+                          />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            aria-label={`Harga dasar ${CATEGORY_LABELS[cat]}`}
+                            value={line.base_price}
+                            onChange={(e) => handleCategoryPriceChange(cat, parseFloat(e.target.value) || 0)}
+                            className="linear-input font-mono-numbers"
+                            style={{ textAlign: 'right', fontWeight: 600, width: '190px' }}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {presentCategories.length > 0 && (
+                  <tfoot>
+                    <tr>
+                      <td style={{ fontWeight: 700 }}>Total</td>
+                      <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>{formatIDR(totals.cogs)}</td>
+                      <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent-hover)' }}>{totals.margin_percent}%</td>
+                      <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700 }}>{formatIDR(totals.base_price)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
             </div>
 
             {/* Input Controls Grid */}
@@ -842,48 +878,7 @@ function NewCommercialProposalForm() {
                 marginBottom: '20px',
               }}
             >
-              {/* Target Margin % */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Target Profit Margin (%)
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="number"
-                    min="0"
-                    max="99.99"
-                    step="any"
-                    value={marginPercent}
-                    onChange={(e) => handleMarginChange(parseFloat(e.target.value) || 0)}
-                    className="linear-input font-mono-numbers"
-                    style={{ textAlign: 'right', fontWeight: 600 }}
-                  />
-                  <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>%</span>
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                  Terkait dengan Harga Dasar
-                </div>
-              </div>
-
-              {/* Harga Dasar (Base Price) - Directly Editable */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Harga Dasar / Base Price (Rp)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={basePrice}
-                  onChange={(e) => handleBasePriceChange(parseFloat(e.target.value) || 0)}
-                  className="linear-input font-mono-numbers"
-                  style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}
-                />
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                  Sebelum diskon & pajak
-                </div>
-              </div>
-
+              {/* Margin & harga dasar diatur per kategori di tabel di atas grid ini */}
               {/* Tipe & Nilai Diskon */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
@@ -947,7 +942,7 @@ function NewCommercialProposalForm() {
                   Total Penawaran Klien / Quotation Grand Total (Dapat Diedit Langsung)
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                  Ketik nominal harga penawaran deal/negosiasi di sini; persentase margin & harga dasar akan terhitung mundur otomatis
+                  Ketik nominal harga deal/negosiasi di sini; harga dasar tiap kategori diskalakan proporsional dan margin dihitung mundur
                 </div>
               </div>
 
@@ -990,7 +985,7 @@ function NewCommercialProposalForm() {
                   Harga Dasar (Base Price)
                 </div>
                 <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
-                  {formatIDR(basePrice)}
+                  {formatIDR(totals.base_price)}
                 </div>
               </div>
 
@@ -1524,7 +1519,7 @@ function NewCommercialProposalForm() {
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>COGS Internal</div>
                   <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 600, color: '#38bdf8' }}>
-                    {formatIDR(cogsAmount)}
+                    {formatIDR(totals.cogs)}
                   </div>
                 </div>
 
@@ -1533,7 +1528,7 @@ function NewCommercialProposalForm() {
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Margin Efektif</div>
                   <div className="font-mono-numbers" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--accent-hover)' }}>
-                    +{marginPercent}%
+                    +{totals.margin_percent}%
                   </div>
                 </div>
 

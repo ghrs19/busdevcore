@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { publicPriceLines } from '@/lib/commercial-pricing';
 import {
   Document,
   Packer,
@@ -62,6 +63,16 @@ export async function GET(
     }
 
     const proposal = propRes.rows[0];
+
+    // Full billing schedule (milestone terms + monthly maintenance invoices), client-safe fields only.
+    const scheduleRes = await pool.query(`
+      SELECT billing_type, term_index, milestone_name, percent, amount, trigger_condition, period_month, coverage_period
+      FROM payment_milestone_invoices WHERE proposal_id = $1
+      ORDER BY CASE billing_type WHEN 'milestone' THEN 0 ELSE 1 END, term_index ASC, id ASC
+    `, [proposalId]);
+    const scheduleRows = scheduleRes.rows as Array<{ billing_type: string; milestone_name: string; percent: string | number; amount: string | number; trigger_condition: string | null; period_month: number | null; coverage_period: string | null }>;
+    const milestoneRows = scheduleRows.filter((r) => r.billing_type === 'milestone');
+    const recurringRows = scheduleRows.filter((r) => r.billing_type === 'recurring_monthly');
 
     // 2. Fetch modules & tasks (Scope of work)
     const modulesRes = await pool.query(`
@@ -267,6 +278,25 @@ export async function GET(
       })
     );
 
+    const priceLines = publicPriceLines(proposal.category_pricing);
+    const categoryInvestmentRows = priceLines.length > 0
+      ? priceLines.map((line, idx) => new TableRow({
+          children: [
+            new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: String(idx + 1), size: 18 })] })] }),
+            new TableCell({ width: { size: 60, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: `${line.label} (${proposal.project_name})`, bold: true, size: 18 })] })] }),
+            new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: formatIDR(line.price), bold: true, size: 18 })] })] }),
+          ],
+        }))
+      : [
+      new TableRow({
+        children: [
+          new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: '1', size: 18 })] })] }),
+          new TableCell({ width: { size: 60, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: `Pengembangan Aplikasi & Solusi Teknologi (${proposal.project_name})`, bold: true, size: 18 })] })] }),
+          new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: formatIDR(proposal.base_price), bold: true, size: 18 })] })] }),
+        ],
+      })
+        ];
+
     const investmentRows = [
       new TableRow({
         children: [
@@ -275,13 +305,7 @@ export async function GET(
           new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: 'JUMLAH (IDR)', bold: true, size: 18 })] })] }),
         ],
       }),
-      new TableRow({
-        children: [
-          new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: '1', size: 18 })] })] }),
-          new TableCell({ width: { size: 60, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: `Pengembangan Aplikasi & Solusi Teknologi (${proposal.project_name})`, bold: true, size: 18 })] })] }),
-          new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: formatIDR(proposal.base_price), bold: true, size: 18 })] })] }),
-        ],
-      }),
+      ...categoryInvestmentRows,
     ];
 
     if (Number(proposal.discount_value) > 0) {
@@ -328,7 +352,10 @@ export async function GET(
     docChildren.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: investmentRows }), new Paragraph({ text: '' }));
 
     // SECTION 4: Termin Pembayaran
-    if (Array.isArray(proposal.payment_terms) && proposal.payment_terms.length > 0) {
+    const paymentTerms: Array<{ milestone_name: string; percent: number; amount: number; trigger_condition?: string }> = milestoneRows.length > 0
+      ? milestoneRows.map((r) => ({ milestone_name: r.milestone_name, percent: Number(r.percent), amount: Number(r.amount), trigger_condition: r.trigger_condition || '' }))
+      : (Array.isArray(proposal.payment_terms) ? proposal.payment_terms : []);
+    if (paymentTerms.length > 0 || recurringRows.length > 0) {
       docChildren.push(
         new Paragraph({
           heading: HeadingLevel.HEADING_2,
@@ -348,7 +375,7 @@ export async function GET(
         }),
       ];
 
-      proposal.payment_terms.forEach((pt: { milestone_name: string; percent: number; amount: number; trigger_condition?: string }, idx: number) => {
+      paymentTerms.forEach((pt, idx) => {
         paymentRows.push(
           new TableRow({
             children: [
@@ -362,7 +389,29 @@ export async function GET(
         );
       });
 
-      docChildren.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: paymentRows }), new Paragraph({ text: '' }));
+      if (paymentTerms.length > 0) {
+        docChildren.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: paymentRows }), new Paragraph({ text: '' }));
+      }
+
+      if (recurringRows.length > 0) {
+        const recurringTotal = recurringRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+        const cell = (w: number, text: string, opts: { bold?: boolean; right?: boolean } = {}) => new TableCell({
+          width: { size: w, type: WidthType.PERCENTAGE }, borders: borderCell,
+          children: [new Paragraph({ alignment: opts.right ? AlignmentType.RIGHT : AlignmentType.LEFT, children: [new TextRun({ text, bold: opts.bold, size: 18 })] })],
+        });
+        const recurringTable = [
+          new TableRow({ children: [cell(10, 'NO', { bold: true }), cell(35, 'INVOICE', { bold: true }), cell(30, 'PERIODE LAYANAN', { bold: true }), cell(25, 'NOMINAL (IDR)', { bold: true, right: true })] }),
+          ...recurringRows.map((r, idx) => new TableRow({
+            children: [cell(10, String(idx + 1)), cell(35, r.milestone_name, { bold: true }), cell(30, r.coverage_period || (r.period_month ? `Bulan ke-${r.period_month}` : '-')), cell(25, formatIDR(r.amount), { right: true })],
+          })),
+          new TableRow({ children: [cell(75, 'TOTAL INVOICE MAINTENANCE', { bold: true, right: true }), cell(25, formatIDR(recurringTotal), { bold: true, right: true })] }),
+        ];
+        docChildren.push(
+          new Paragraph({ children: [new TextRun({ text: `Jadwal Invoice Maintenance Bulanan (${recurringRows.length} Bulan)`, bold: true, size: 20 })] }),
+          new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: recurringTable }),
+          new Paragraph({ text: '' })
+        );
+      }
     }
 
     // SECTION 5: Notes & Syarat

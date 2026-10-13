@@ -56,10 +56,12 @@ export async function GET(
       durationMonths = 12;
     }
 
-    const marginPct = parseFloat(proposal.margin_percent || 0);
-    const multiplier = 1 + (marginPct / 100);
-    const billedMonthlyMnt = Math.round(monthlyMaintenanceCost * multiplier);
-    const billedMonthlyInfra = Math.round(monthlyInfraCost * multiplier);
+    // Retainer maintenance & infra follow the per-category margins when present; older proposals use the combined margin.
+    const catPricing = (proposal.category_pricing && typeof proposal.category_pricing === 'object') ? proposal.category_pricing : null;
+    const marginMnt = parseFloat(catPricing?.MAINTENANCE?.margin_percent ?? proposal.margin_percent ?? 0);
+    const marginInfra = parseFloat(catPricing?.INFRASTRUCTURE?.margin_percent ?? proposal.margin_percent ?? 0);
+    const billedMonthlyMnt = Math.round(monthlyMaintenanceCost * (1 + marginMnt / 100));
+    const billedMonthlyInfra = Math.round(monthlyInfraCost * (1 + marginInfra / 100));
     const totalMonthlyBilled = billedMonthlyMnt + billedMonthlyInfra;
 
     if (billingMode === 'MONTHLY_RETAINER' && durationMonths > 0 && totalMonthlyBilled > 0) {

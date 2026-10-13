@@ -19,6 +19,8 @@ type ScheduleClient = { query: (sql: string, values?: unknown[]) => Promise<{ ro
 type ProposalSchedule = {
   payment_terms?: ScheduleItem[];
   margin_percent?: number;
+  maintenance_margin_percent?: number;
+  infrastructure_margin_percent?: number;
   maintenance_billing_mode?: string;
   created_at?: string | Date;
 };
@@ -95,7 +97,10 @@ export async function persistCommercialSchedule(
   const monthlyInfra = (estimate.infrastructure_items || []).reduce((sum, item) =>
     sum + (item.billing_type === 'MONTHLY' ? 1 : item.billing_type === 'YEARLY' ? 1 / 12 : 0) * (Number(item.unit_cost) || 0) * (Number(item.quantity) || 1), 0);
   const months = duration || (monthlyInfra > 0 ? 12 : 0);
-  const rate = Math.round((monthlyMnt + monthlyInfra) * (1 + Number(proposal.margin_percent || 0) / 100));
+  const fallbackMargin = Number(proposal.margin_percent || 0);
+  const mntMargin = Number(proposal.maintenance_margin_percent ?? fallbackMargin);
+  const infraMargin = Number(proposal.infrastructure_margin_percent ?? fallbackMargin);
+  const rate = Math.round(monthlyMnt * (1 + mntMargin / 100) + monthlyInfra * (1 + infraMargin / 100));
   const recurringEnabled = proposal.maintenance_billing_mode === 'MONTHLY_RETAINER' && months > 0 && rate > 0;
   const recurringDrafts = existing.filter(row => row.billing_type === 'recurring_monthly' && !isProtected(row));
   const recurringProtectedIds = existing.filter(row => row.billing_type === 'recurring_monthly' && isProtected(row)).map(row => row.id);

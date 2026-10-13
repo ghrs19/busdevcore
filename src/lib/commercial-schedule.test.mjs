@@ -135,3 +135,24 @@ test('transaction rolls back all schedule changes when reconciliation fails', as
   await assert.rejects(db.transaction(client => persistCommercialSchedule(client, 7, baseProposal, {}, 9)), /query failed/);
   assert.deepEqual(db.rows(), original);
 });
+
+test('retainer rate uses the Maintenance and Infrastructure category margins', async () => {
+  const db = scheduleDb();
+  await persistCommercialSchedule(db.client, 7, {
+    created_at: '2025-01-20T12:00:00Z', maintenance_billing_mode: 'MONTHLY_RETAINER',
+    margin_percent: 10, maintenance_margin_percent: 50, infrastructure_margin_percent: 20,
+  }, {
+    maintenance_config: { duration_months: 1, monthly_cost: 1000 },
+    infrastructure_items: [{ billing_type: 'MONTHLY', unit_cost: 500, quantity: 1 }],
+  }, 9);
+  // 1000 * 1.50 + 500 * 1.20 = 2100 (not the combined 10% margin)
+  assert.equal(db.rows()[0].amount, 2100);
+});
+
+test('retainer rate falls back to the combined margin for proposals without category pricing', async () => {
+  const db = scheduleDb();
+  await persistCommercialSchedule(db.client, 7, {
+    created_at: '2025-01-20T12:00:00Z', maintenance_billing_mode: 'MONTHLY_RETAINER', margin_percent: 30,
+  }, { maintenance_config: { duration_months: 1, monthly_cost: 1000 } }, 9);
+  assert.equal(db.rows()[0].amount, 1300);
+});

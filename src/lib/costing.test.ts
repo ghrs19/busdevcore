@@ -9,6 +9,8 @@ import {
   normalizeRoleSnapshot,
   calculateMaintenance,
   calculateInfrastructure,
+  calculateOperational,
+  calculateBillingSummary,
   type ModuleInput,
 } from './costing.ts';
 
@@ -492,5 +494,23 @@ describe('Costing Calculation & Business Rules', () => {
     // Grand total: 3292040 + 5902272 + 5400000 = 14762360
     assert.equal(estimate.billing_summary.grand_total, 14762360);
     assert.equal(estimate.total_cost, 14762360);
+  });
+
+  it('billing summary includes operational cost in one-time total and grand total', () => {
+    const op = calculateOperational([{ name: 'Travel', people_count: 2, days_count: 3, unit_cost_per_day: 100000 }]);
+    const s = calculateBillingSummary({
+      hasDevelopment: true, hasMaintenance: false, hasInfrastructure: false, hasOperational: true,
+      devCost: 1_000_000, operational: op,
+    });
+    assert.equal(op.grand_total, 600000);
+    assert.equal(s.one_time_operational, 600000);
+    assert.equal(s.total_one_time, 1_600_000);
+    assert.equal(s.grand_total, 1_600_000);
+  });
+  it('operational is ignored when the category is not selected', () => {
+    const op = calculateOperational([{ name: 'Travel', people_count: 1, days_count: 1, unit_cost_per_day: 500 }]);
+    const s = calculateBillingSummary({ hasDevelopment: true, hasMaintenance: false, hasInfrastructure: false, hasOperational: false, devCost: 100, operational: op });
+    assert.equal(s.one_time_operational, 0);
+    assert.equal(s.grand_total, 100);
   });
 });

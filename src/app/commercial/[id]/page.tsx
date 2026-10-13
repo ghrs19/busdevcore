@@ -20,6 +20,7 @@ import {
 import { Suspense } from 'react';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { CATEGORY_ORDER, CATEGORY_LABELS } from '@/lib/commercial-pricing';
 import Link from 'next/link';
 
 interface ProposalDetail {
@@ -42,6 +43,7 @@ interface ProposalDetail {
   cogs_amount: string | number;
   margin_percent: string | number;
   base_price: string | number;
+  category_pricing?: Partial<Record<string, { cogs: number; margin_percent: number; base_price: number }>> | null;
   discount_type: string;
   discount_value: string | number;
   subtotal_after_discount: string | number;
@@ -611,6 +613,41 @@ function CommercialProposalDetailContent() {
             </div>
           </div>
         </div>
+
+        {/* Harga per Kategori (internal: COGS, margin, harga dasar) */}
+        {proposal.category_pricing && Object.keys(proposal.category_pricing).length > 0 && (
+          <div className="linear-card" style={{ padding: '18px', marginBottom: '24px' }}>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '10px' }}>
+              Harga per Kategori (Internal)
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="linear-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>Kategori</th>
+                    <th style={{ textAlign: 'right' }}>COGS</th>
+                    <th style={{ textAlign: 'right' }}>Margin</th>
+                    <th style={{ textAlign: 'right' }}>Harga Dasar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {CATEGORY_ORDER.filter((c) => proposal.category_pricing?.[c]).map((c) => {
+                    const l = proposal.category_pricing?.[c];
+                    if (!l) return null;
+                    return (
+                      <tr key={c}>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{CATEGORY_LABELS[c]}</td>
+                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: '#38bdf8' }}>{formatIDR(l.cogs)}</td>
+                        <td className="font-mono-numbers" style={{ textAlign: 'right', color: 'var(--accent-hover)' }}>+{l.margin_percent}%</td>
+                        <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 600 }}>{formatIDR(l.base_price)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '24px' }}>

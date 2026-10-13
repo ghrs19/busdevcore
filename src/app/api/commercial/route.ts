@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { persistCommercialSchedule } from '@/lib/commercial-schedule';
+import { resolveCommercialPricing } from '@/lib/commercial-pricing-server';
 // Schedule reconciliation in persistCommercialSchedule: payment_milestone_invoices, FOR UPDATE,
 // billing_status NOT IN ('invoiced', 'paid'), MAX(term_index), nextTermIndex,
 // INSERT ... ON CONFLICT (proposal_id, billing_type, term_index) DO NOTHING.
@@ -79,27 +80,27 @@ export async function POST(req: Request) {
       company_id,
       project_id,
       estimate_id,
-      cogs_amount,
-      margin_percent,
-      base_price,
       discount_type,
       discount_value,
-      subtotal_after_discount,
       is_tax_enabled,
-      tax_amount,
-      grand_total,
       timeline_config,
       payment_terms,
       validity_days,
       notes,
       maintenance_billing_mode,
-    } = body;
+      category_pricing,
+    } = body; // cogs/margin/base/subtotal/tax/grand total dari klien diabaikan; server menghitung ulang dari category_pricing
 
     if (!company_id || !project_id || !estimate_id) {
       return NextResponse.json(
         { success: false, error: 'Perusahaan, Proyek, dan Estimasi wajib dipilih.' },
         { status: 400 }
       );
+    }
+
+    const priced = resolveCommercialPricing({ category_pricing, discount_type, discount_value, is_tax_enabled });
+    if (!priced.ok) {
+      return NextResponse.json({ success: false, error: priced.error }, { status: 400 });
     }
 
     const client = await pool.connect();
@@ -126,7 +127,7 @@ export async function POST(req: Request) {
         discount_type, discount_value, subtotal_after_discount,
         is_tax_enabled, tax_amount, grand_total,
         timeline_config, payment_terms, validity_days, notes,
-        maintenance_billing_mode,
+        maintenance_billing_mode, category_pricing,
         created_by_user_id, created_at, updated_at
       ) VALUES (
         $1, 1, $2, $3, $4,
@@ -134,33 +135,34 @@ export async function POST(req: Request) {
         $8, $9, $10,
         $11, $12, $13,
         $14::jsonb, $15::jsonb, $16, $17,
-        $18, $19, NOW(), NOW()
+        $18, $19::jsonb, $20, NOW(), NOW()
       ) RETURNING id, proposal_number, version, grand_total, maintenance_billing_mode, created_at`,
       [
         proposal_number,
         company_id,
         project_id,
         estimate_id,
-        Number(cogs_amount) || 0,
-        Number(margin_percent) || 0,
-        Number(base_price) || 0,
-        discount_type || 'PERCENTAGE',
-        Number(discount_value) || 0,
-        Number(subtotal_after_discount) || 0,
-        Boolean(is_tax_enabled),
-        Number(tax_amount) || 0,
-        Number(grand_total) || 0,
+        priced.totals.cogs,
+        priced.totals.margin_percent,
+        priced.totals.base_price,
+        priced.discountType,
+        priced.discountValue,
+        priced.totals.subtotal,
+        priced.taxEnabled,
+        priced.totals.tax,
+        priced.totals.grand_total,
         timeline_config ? JSON.stringify(timeline_config) : null,
         payment_terms ? JSON.stringify(payment_terms) : null,
         Number(validity_days) || 30,
         notes?.trim() || null,
         maintenance_billing_mode || 'ALL_IN_PROJECT',
+        JSON.stringify(priced.pricing),
         user.id,
       ]
     );
 
     const estimateRes = await client.query('SELECT maintenance_config, infrastructure_items FROM project_estimates WHERE id = $1', [estimate_id]);
-    await persistCommercialSchedule(client, insertRes.rows[0].id, { payment_terms, margin_percent, maintenance_billing_mode, created_at: insertRes.rows[0].created_at }, estimateRes.rows[0] || {}, user.id);
+    await persistCommercialSchedule(client, insertRes.rows[0].id, { payment_terms, margin_percent: priced.totals.margin_percent, maintenance_margin_percent: priced.pricing.MAINTENANCE?.margin_percent, infrastructure_margin_percent: priced.pricing.INFRASTRUCTURE?.margin_percent, maintenance_billing_mode, created_at: insertRes.rows[0].created_at }, estimateRes.rows[0] || {}, user.id);
     await client.query('COMMIT');
     return NextResponse.json({
       success: true,
