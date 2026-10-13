@@ -294,32 +294,35 @@
   select option { background-color: var(--bg-elevated); color: var(--text-primary); }
   input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-primary); }
 
-  /* Buttons: flat, no glow. Hierarchy comes from fill vs. border vs. text only. */
+  /* Buttons: pill silhouette, light fill, clean hierarchy without heavy box shadows. */
   .btn-primary, .btn-secondary, .btn-ghost {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    min-height: 34px; padding: 0 14px; border-radius: 8px;
-    font-size: 13px; font-weight: 500; line-height: 1.2; white-space: nowrap;
+    min-height: 36px; padding: 0 16px; border-radius: 999px !important;
+    font-size: 13px; font-weight: 550; line-height: 1.2; white-space: nowrap;
     cursor: pointer; user-select: none; text-decoration: none;
-    transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease;
   }
   .btn-primary {
     background: var(--accent-primary); color: var(--on-accent);
     border: 1px solid var(--accent-primary);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+    box-shadow: none;
   }
   .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
-  .btn-primary:active:not(:disabled) { transform: translateY(0.5px); }
+  .btn-primary:active:not(:disabled) { transform: scale(.98); }
   .btn-primary:disabled, .btn-secondary:disabled, .btn-ghost:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 
   .btn-secondary {
-    background: var(--bg-card); color: var(--text-secondary);
-    border: 1px solid var(--border-subtle); font-size: 12.5px;
-    padding: 0 12px; min-height: 32px;
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border-hover); font-size: 12.5px;
+    padding: 0 14px; min-height: 34px;
   }
-  .btn-secondary:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); border-color: var(--border-hover); }
+  .btn-secondary:hover:not(:disabled) { background: var(--accent-light); color: var(--text-primary); border-color: rgb(var(--accent-rgb) / .42); }
 
-  .btn-ghost { background: transparent; color: var(--text-tertiary); border: 1px solid transparent; font-size: 12.5px; padding: 0 10px; min-height: 30px; }
+  .btn-ghost { background: transparent; color: var(--text-tertiary); border: 1px solid transparent; font-size: 12.5px; padding: 0 12px; min-height: 32px; }
   .btn-ghost:hover:not(:disabled) { background: var(--row-hover); color: var(--text-primary); }
+
+  /* Icon-only controls retain square geometry, not pill geometry. */
+  .btn-icon { width: 36px; min-width: 36px; padding: 0 !important; border-radius: 50% !important; }
 
   /* Segmented control / tabs */
   .pill-group {
