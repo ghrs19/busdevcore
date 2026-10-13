@@ -124,7 +124,7 @@ function UserMenu({ email, role }: { email: string; role: string }) {
                 router.replace('/login');
                 router.refresh();
               }}
-              className="btn-blue-pill mt-2 flex h-9 w-full justify-center gap-2.5 text-[13px]"
+              className="mt-1 flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] text-fg-2 transition-colors hover:bg-[var(--row-hover)] hover:text-fg"
             >
               <LogOut className="size-4" aria-hidden /> Keluar
             </button>
