@@ -33,21 +33,38 @@ export async function GET(request: Request) {
       ) AND ($1::timestamptz IS NULL OR updated_at >= $1)
     `, [fromDate]);
 
-    // 2. Cashflow & Billing Health
+    // 2. Cashflow & Billing Health: latest WON version only; drafts and superseded revisions are not commitments.
     const cashflowRes = await pool.query(`
-      SELECT 
-        COALESCE(SUM(amount), 0) as total_contract_committed,
-        COALESCE(SUM(CASE WHEN billing_status = 'paid' THEN paid_amount ELSE 0 END), 0) as total_cash_collected,
-        COALESCE(SUM(CASE WHEN billing_status = 'invoiced' THEN amount ELSE 0 END), 0) as total_invoiced_pending,
-        COALESCE(SUM(CASE WHEN billing_status = 'overdue' THEN amount ELSE 0 END), 0) as total_overdue_amount,
-        COALESCE(SUM(CASE WHEN billing_status = 'unbilled' THEN amount ELSE 0 END), 0) as total_unbilled_schedule,
-        COALESCE(SUM(CASE WHEN billing_type = 'recurring_monthly' AND billing_status != 'paid' THEN amount ELSE 0 END), 0) as recurring_annual_pipeline,
-        COALESCE(ROUND(AVG(CASE WHEN billing_type = 'recurring_monthly' THEN amount ELSE NULL END)), 0) as current_mrr,
-        COUNT(CASE WHEN billing_status = 'paid' THEN 1 END)::int as count_paid,
-        COUNT(CASE WHEN billing_status = 'invoiced' THEN 1 END)::int as count_invoiced,
-        COUNT(CASE WHEN billing_status = 'overdue' THEN 1 END)::int as count_overdue,
-        COUNT(CASE WHEN billing_status = 'unbilled' THEN 1 END)::int as count_unbilled
-      FROM payment_milestone_invoices
+      WITH latest_won AS (
+        SELECT cp.id, cp.grand_total
+        FROM commercial_proposals cp
+        WHERE cp.deal_status = 'won'
+          AND cp.version = (
+            SELECT MAX(cp2.version)
+            FROM commercial_proposals cp2
+            WHERE cp2.proposal_number = cp.proposal_number
+          )
+      ), schedule AS (
+        SELECT pmi.*,
+          CASE WHEN pmi.billing_status = 'overdue'
+                 OR (pmi.billing_status = 'invoiced' AND pmi.due_date < CURRENT_DATE)
+               THEN 'overdue' ELSE pmi.billing_status END AS effective_status
+        FROM payment_milestone_invoices pmi
+        JOIN latest_won lw ON lw.id = pmi.proposal_id
+      )
+      SELECT
+        COALESCE((SELECT SUM(grand_total) FROM latest_won), 0) AS total_contract_committed,
+        COALESCE(SUM(CASE WHEN effective_status = 'paid' THEN COALESCE(paid_amount, amount) ELSE 0 END), 0) AS total_cash_collected,
+        COALESCE(SUM(CASE WHEN effective_status = 'invoiced' THEN amount ELSE 0 END), 0) AS total_invoiced_pending,
+        COALESCE(SUM(CASE WHEN effective_status = 'overdue' THEN amount ELSE 0 END), 0) AS total_overdue_amount,
+        COALESCE(SUM(CASE WHEN effective_status = 'unbilled' THEN amount ELSE 0 END), 0) AS total_unbilled_schedule,
+        COALESCE(SUM(CASE WHEN billing_type = 'recurring_monthly' AND effective_status != 'paid' THEN amount ELSE 0 END), 0) AS recurring_annual_pipeline,
+        COALESCE(ROUND(AVG(CASE WHEN billing_type = 'recurring_monthly' THEN amount END)), 0) AS current_mrr,
+        COUNT(*) FILTER (WHERE effective_status = 'paid')::int AS count_paid,
+        COUNT(*) FILTER (WHERE effective_status = 'invoiced')::int AS count_invoiced,
+        COUNT(*) FILTER (WHERE effective_status = 'overdue')::int AS count_overdue,
+        COUNT(*) FILTER (WHERE effective_status = 'unbilled')::int AS count_unbilled
+      FROM schedule
     `);
 
     // 3. Costing & Estimation Insights
