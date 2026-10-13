@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRateSnapshotInput, personInitials, snapshotLabels, nextPersonKey, assignRoleHoursToPeople, sanitizeTaskHours } from './rate-snapshot.ts';
+import { parseRateSnapshotInput, personInitials, snapshotLabels, nextPersonKey, assignRoleHoursToPeople, sanitizeTaskHours, seedPeopleFromRoles, filledPeople } from './rate-snapshot.ts';
 import { calculateModule, calculateMaintenance, calculateEstimate } from './costing.ts';
 
 const ROLES = ['WEB_DEV', 'QC_DOCS', 'UI_UX'];
@@ -115,5 +115,30 @@ describe('rate snapshot (role - person - rate)', () => {
     }, ROLES, reg);
     assert.equal(r.ok, true);
     if (r.ok) assert.deepEqual(snapshotLabels(r.snapshot), { P1: 'WEB_DEV · AIA', P2: 'UI_UX · AIA' });
+  });
+
+  it('seeds one empty row per role, in role order, with sequential person keys', () => {
+    const seeded = seedPeopleFromRoles(['PM', 'WEB_DEV', 'UI_UX']);
+    assert.deepEqual(Object.keys(seeded), ['P1', 'P2', 'P3']);
+    assert.deepEqual(seeded.P2, { code: 'WEB_DEV', name: '', rate: 0 });
+    assert.deepEqual(seedPeopleFromRoles([]), {});
+  });
+  it('filledPeople keeps only rows with a chosen worker; unfilled role rows are ignored', () => {
+    const snap = {
+      P1: { code: 'PM', name: '', rate: 0 },
+      P2: { code: 'WEB_DEV', name: 'Ade Isman Aji', rate: 42771, worker_id: 1 },
+      P3: { code: 'UI_UX', name: '', rate: 0 },
+    };
+    assert.deepEqual(Object.keys(filledPeople(snap)), ['P2']);
+    assert.deepEqual(filledPeople({}), {});
+  });
+  it('template hours only go to people whose worker is chosen', () => {
+    const snap = {
+      P1: { code: 'WEB_DEV', name: '', rate: 0 },
+      P2: { code: 'WEB_DEV', name: 'Bain', rate: 35818, worker_id: 2 },
+    };
+    const r = assignRoleHoursToPeople({ WEB_DEV: 4 }, filledPeople(snap));
+    assert.deepEqual(r.hours, { P2: 4 });
+    assert.deepEqual(assignRoleHoursToPeople({ WEB_DEV: 4 }, filledPeople({ P1: snap.P1 })).dropped, ['WEB_DEV']);
   });
 });

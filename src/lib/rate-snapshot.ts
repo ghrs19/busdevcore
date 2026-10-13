@@ -129,3 +129,19 @@ export function sanitizeTasks(
     return { name: String((t as { name?: unknown })?.name ?? ''), role_hours: rh };
   });
 }
+
+// Default for a fresh/reset costing form: one empty row per master role, so the user only has to pick workers.
+export function seedPeopleFromRoles(roleCodes: string[]): PersonRateSnapshot {
+  const seeded: PersonRateSnapshot = {};
+  for (const code of roleCodes) seeded[nextPersonKey(Object.keys(seeded))] = { code, name: '', rate: 0 };
+  return seeded;
+}
+
+// A row only counts once a worker is chosen. Unfilled role rows are neither costed nor saved.
+export function filledPeople(snapshot: PersonRateSnapshot): PersonRateSnapshot {
+  const out: PersonRateSnapshot = {};
+  for (const [key, entry] of Object.entries(snapshot)) {
+    if (entry && entry.worker_id !== undefined && entry.name.trim()) out[key] = entry;
+  }
+  return out;
+}

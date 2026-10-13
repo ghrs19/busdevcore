@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 
-import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -28,7 +28,7 @@ import {
   type OperationalItemInput,
 
 } from '@/lib/costing';
-import { nextPersonKey, personInitials, snapshotLabels, assignRoleHoursToPeople, type PersonRateSnapshot } from '@/lib/rate-snapshot';
+import { nextPersonKey, snapshotLabels, assignRoleHoursToPeople, seedPeopleFromRoles, filledPeople, type PersonRateSnapshot } from '@/lib/rate-snapshot';
 
 interface Company {
   id: number;
@@ -98,7 +98,11 @@ function NewEstimateForm() {
   const [roles, setRoles] = useState<RoleMaster[]>([]);
   const [people, setPeople] = useState<PersonRateSnapshot>({});
   const [workers, setWorkers] = useState<Array<{ id: number; name: string; hourly_rate: number }>>([]);
-  const rates = useMemo<RoleRateMap>(() => Object.fromEntries(Object.entries(people).map(([k, v]) => [k, v.rate])), [people]);
+  const editRoleCodesRef = useRef<string[]>([]);
+  const rolesReady = roles.length > 0;
+  // Hanya baris yang workernya sudah dipilih yang dihitung, disimpan, dan dipakai sebagai kolom costing.
+  const costingPeople = useMemo(() => filledPeople(people), [people]);
+  const rates = useMemo<RoleRateMap>(() => Object.fromEntries(Object.entries(costingPeople).map(([k, v]) => [k, v.rate])), [costingPeople]);
 
   // Project states
   const [projects, setProjects] = useState<Project[]>([]);
@@ -130,10 +134,10 @@ function NewEstimateForm() {
   const [isRateExpanded, setIsRateExpanded] = useState(true);
 
   // Kolom costing = orang di Rate Snapshot. Label tampil sebagai "KODE · INISIAL".
-  const personLabels = useMemo(() => snapshotLabels(people), [people]);
+  const personLabels = useMemo(() => snapshotLabels(costingPeople), [costingPeople]);
   const activeCostingRoles = useMemo(
-    () => Object.keys(people).map((key) => ({ code: key, name: personLabels[key] || key })),
-    [people, personLabels]
+    () => Object.keys(costingPeople).map((key) => ({ code: key, name: personLabels[key] || key })),
+    [costingPeople, personLabels]
   );
   const excludedRoles: Array<{ code: string; name: string }> = [];
 
@@ -353,7 +357,7 @@ function NewEstimateForm() {
       const aiDropped = new Set<string>();
       const toPeople = (tasks: Array<{ name?: string; task_name?: string; role_hours?: Record<string, number | undefined> }>) =>
         (tasks || []).map((task) => {
-          const r = assignRoleHoursToPeople(task.role_hours, people);
+          const r = assignRoleHoursToPeople(task.role_hours, costingPeople);
           r.dropped.forEach((c) => aiDropped.add(c));
           return { name: task.name || task.task_name || '', role_hours: r.hours };
         });
@@ -422,6 +426,9 @@ function NewEstimateForm() {
         activeRoles = data.roles;
       }
       setRoles(activeRoles);
+      editRoleCodesRef.current = activeRoles.map((r) => r.code);
+      // Default form baru: tampilkan semua role, user tinggal memilih worker.
+      if (!editId) setPeople(seedPeopleFromRoles(activeRoles.map((r) => r.code)));
 
       if (data.success) {
         setCompanies(data.companies || []);
@@ -529,7 +536,7 @@ function NewEstimateForm() {
 
   // Prefill Form when edit_id is provided
   useEffect(() => {
-    if (!editId) return;
+    if (!editId || !rolesReady) return;
 
     let isMounted = true;
     setIsEditLoading(true);
@@ -594,7 +601,13 @@ function NewEstimateForm() {
             }
           });
         }
-        setPeople(loadedPeople);
+        // Orang tersimpan ditampilkan lebih dulu; role master yang belum punya orang ditambahkan sebagai baris kosong.
+        const merged: PersonRateSnapshot = { ...loadedPeople };
+        const usedCodes = new Set(Object.values(loadedPeople).map((p) => p.code));
+        for (const code of editRoleCodesRef.current) {
+          if (!usedCodes.has(code)) merged[nextPersonKey(Object.keys(merged))] = { code, name: '', rate: 0 };
+        }
+        setPeople(merged);
 
         // 6. Development Modules & Tasks
         if (Array.isArray(est.modules) && est.modules.length > 0) {
@@ -650,7 +663,7 @@ function NewEstimateForm() {
     return () => {
       isMounted = false;
     };
-  }, [editId]);
+  }, [editId, rolesReady]);
 
   // Derived multi-classification
   const selectedCategories = categories.filter((c) => selectedCategoryIds.includes(c.id));
@@ -855,7 +868,7 @@ function NewEstimateForm() {
   const mapTasksToPeople = <T extends { name: string; role_hours?: Record<string, number | undefined> }>(tasks: T[]) => {
     const dropped = new Set<string>();
     const mapped = tasks.map((t) => {
-      const r = assignRoleHoursToPeople(t.role_hours, people);
+      const r = assignRoleHoursToPeople(t.role_hours, costingPeople);
       r.dropped.forEach((c) => dropped.add(c));
       return { name: t.name, role_hours: r.hours };
     });
@@ -871,7 +884,7 @@ function NewEstimateForm() {
         && Object.values(hours).every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0));
     };
     if (!payload.length || !payload.every(isTask)) { setErrorMsg('Template Development kosong atau formatnya tidak valid.'); return; }
-    if (Object.keys(people).length === 0) { setErrorMsg('Tambahkan minimal 1 orang di Rate Snapshot sebelum memakai template.'); return; }
+    if (Object.keys(costingPeople).length === 0) { setErrorMsg('Pilih minimal 1 worker di Rate Snapshot sebelum memakai template.'); return; }
     const { mapped, dropped } = mapTasksToPeople(payload as TaskInput[]);
     if (!mapped.length) { setErrorMsg('Template Development kosong atau formatnya tidak valid.'); return; }
     if (modules.some(module => module.tasks.length > 0) && !window.confirm('Template akan mengganti seluruh modul Development saat ini. Lanjutkan?')) return;
@@ -951,7 +964,7 @@ function NewEstimateForm() {
     if (typeof window !== 'undefined' && !window.confirm('Reset seluruh isi form ke kondisi bersih/awal?')) {
       return;
     }
-    setPeople({});
+    setPeople(seedPeopleFromRoles(roles.map((r) => r.code)));
     setTitle('');
     if (companies.length > 0) setSelectedCompanyId(companies[0].id);
     else setSelectedCompanyId('');
@@ -989,7 +1002,7 @@ function NewEstimateForm() {
 
   const applyMaintenanceTemplate = (tplPayload: unknown) => {
     if (!Array.isArray(tplPayload) || tplPayload.length === 0) return;
-    if (Object.keys(people).length === 0) { setErrorMsg('Tambahkan minimal 1 orang di Rate Snapshot sebelum memakai template.'); return; }
+    if (Object.keys(costingPeople).length === 0) { setErrorMsg('Pilih minimal 1 worker di Rate Snapshot sebelum memakai template.'); return; }
     const { mapped, dropped } = mapTasksToPeople(
       tplPayload.map((t: MaintenanceTaskInput) => ({ name: t.name || 'Maintenance Task', role_hours: t.role_hours || {} }))
     );
@@ -1137,7 +1150,7 @@ function NewEstimateForm() {
         category_id: selectedCategoryIds[0],
         tag_id: isDevelopment && selectedTagId ? Number(selectedTagId) : null,
         notes: notes.trim() || null,
-        rate_snapshots: people,
+        rate_snapshots: costingPeople,
         modules: isDevelopment ? modules : [],
         maintenance_config: isMaintenance ? {
           duration_months: maintenanceDurationMonths,
@@ -1214,6 +1227,11 @@ function NewEstimateForm() {
 
     if (!isDevelopment && selectedTagId) {
       setErrorMsg("Tag HANYA berlaku jika kategori menyertakan Development.");
+      return;
+    }
+
+    if (Object.keys(costingPeople).length === 0) {
+      setErrorMsg('Pilih minimal 1 worker di Master Rate Per Jam (Rate Snapshot).');
       return;
     }
 
@@ -2009,11 +2027,11 @@ function NewEstimateForm() {
                       Master Rate Per Jam (Rate Snapshot)
                     </h2>
                     <span className="linear-badge" style={{ fontSize: '11px' }}>
-                      {activeCostingRoles.length} Orang
+                      {activeCostingRoles.length} Worker dipilih
                     </span>
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                    Pilih kode role dan worker dari Master Worker; rate per jam terisi otomatis dan bisa disesuaikan. Disimpan independen pada tiap estimate.
+                    Semua role tampil di sini: pilih worker dari Master Worker di tiap baris yang dipakai (rate terisi otomatis, bisa disesuaikan). Baris tanpa worker tidak dihitung dan tidak disimpan. Role yang sama boleh punya beberapa worker via + Tambah Orang.
                   </p>
                 </div>
               </div>
@@ -2052,7 +2070,7 @@ function NewEstimateForm() {
               >
                 {Object.keys(people).length === 0 && (
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '8px 0' }}>
-                    Belum ada orang. Klik &quot;+ Tambah Orang&quot;, pilih kode role, lalu pilih worker dari Master Worker.
+                    Belum ada role. Klik &quot;+ Tambah Orang&quot; untuk menambah baris.
                   </div>
                 )}
                 {Object.entries(people).map(([key, person]) => (
@@ -2064,7 +2082,8 @@ function NewEstimateForm() {
                       gap: '10px',
                       alignItems: 'center',
                       background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-subtle)',
+                      border: person.worker_id === undefined ? '1px dashed var(--border-subtle)' : '1px solid var(--border-subtle)',
+                      opacity: person.worker_id === undefined ? 0.8 : 1,
                       borderRadius: '8px',
                       padding: '10px 12px',
                     }}
