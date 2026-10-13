@@ -90,7 +90,7 @@ export default function DataGrid({
                   onClick={() => changeDensity('comfortable')}
                   aria-pressed={density === 'comfortable'}
                   title="Nyaman"
-                  className={cn('grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:text-fg', density === 'comfortable' && 'bg-surface text-fg')}
+                  className={cn('grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:bg-[var(--accent-hover)] hover:text-white', density === 'comfortable' && 'bg-brand text-white')}
                 >
                   <Rows3 className="size-4" aria-hidden />
                 </button>
@@ -99,7 +99,7 @@ export default function DataGrid({
                   onClick={() => changeDensity('compact')}
                   aria-pressed={density === 'compact'}
                   title="Ringkas"
-                  className={cn('grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:text-fg', density === 'compact' && 'bg-surface text-fg')}
+                  className={cn('grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:bg-[var(--accent-hover)] hover:text-white', density === 'compact' && 'bg-brand text-white')}
                 >
                   <Rows4 className="size-4" aria-hidden />
                 </button>
