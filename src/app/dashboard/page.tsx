@@ -2,10 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import CorporateDashboardTemplate from '@/components/CorporateDashboardTemplate';
-import { resolveDashboardTemplate } from '@/lib/dashboard-template.mjs';
-
-type DashboardTemplateId = 'classic' | 'corporate';
 import {
   BanknotesIcon,
   ArrowTrendingUpIcon,
@@ -56,11 +52,6 @@ export default function DashboardPage() {
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('all');
-  const [dashboardTemplate, setDashboardTemplate] = useState<DashboardTemplateId>('classic');
-
-  useEffect(() => {
-    setDashboardTemplate(resolveDashboardTemplate(window.localStorage.getItem('busdevcore-dashboard-template')) as DashboardTemplateId);
-  }, []);
 
   useEffect(() => {
     async function loadAnalytics() {
@@ -93,10 +84,6 @@ export default function DashboardPage() {
   const crm = stats?.crm || {};
   const cashflow = stats?.cashflow || {};
   const costing = stats?.costing || {};
-
-  if (dashboardTemplate === 'corporate') {
-    return <CorporateDashboardTemplate crm={crm} cashflow={cashflow} topClients={topClients} recentActivities={recentActivities} range={range} onRangeChange={setRange} />;
-  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', paddingBottom: '80px' }}>
