@@ -703,8 +703,7 @@ export default function HistoricalEstimatesPage() {
                 <thead>
                   <tr>
                     <th style={{ width: '5%' }}>ID</th>
-                    <th style={{ width: '18%' }}>Company</th>
-                    <th style={{ width: '22%' }}>Project</th>
+                    <th style={{ width: '40%' }}>Project</th>
                     <th style={{ width: '16%' }}>Kategori</th>
                     <th style={{ width: '9%' }}>Tag</th>
                     <th style={{ width: '10%', textAlign: 'right' }}>Total Hours</th>
@@ -731,11 +730,11 @@ export default function HistoricalEstimatesPage() {
                         </span>
                       </td>
                       <td>
-                        <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{est.company_name}</span>
-                      </td>
-                      <td>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                           {est.project_name || est.title || '-'}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '2px' }}>
+                          {est.company_name}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
                           {new Date(est.created_at).toLocaleDateString('id-ID', {
