@@ -703,8 +703,8 @@ export default function HistoricalEstimatesPage() {
                 <thead>
                   <tr>
                     <th style={{ width: '5%' }}>ID</th>
-                    <th style={{ width: '40%' }}>Project</th>
-                    <th style={{ width: '16%' }}>Kategori</th>
+                    <th style={{ width: '32%' }}>Project</th>
+                    <th style={{ width: '24%' }}>Kategori</th>
                     <th style={{ width: '9%' }}>Tag</th>
                     <th style={{ width: '10%', textAlign: 'right' }}>Total Hours</th>
                     <th style={{ width: '13%', textAlign: 'right' }}>Total Cost</th>
