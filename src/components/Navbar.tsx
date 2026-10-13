@@ -162,7 +162,7 @@ function NavbarContent() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-pentacode.png" alt="PT Penta Code Digital" className="brand-logo-dark h-[26px] w-auto object-contain" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-pentacode-light.jpg" alt="PT Penta Code Digital" className="brand-logo-light h-[26px] w-auto object-contain" />
+          <img src="/logo-pentacode-pdf.png" alt="PT Penta Code Digital" className="brand-logo-light h-[26px] w-auto object-contain" />
         </Link>
 
         <span className="hidden h-5 w-px shrink-0 bg-[var(--border-subtle)] sm:block" aria-hidden />

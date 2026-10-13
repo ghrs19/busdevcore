@@ -85,7 +85,7 @@ export default async function PrintCostingPage({ params }: { params: Promise<{ i
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '8px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo-pentacode-pdf.jpg"
+            src="/logo-pentacode-pdf.png"
             alt="PT Penta Code Digital"
             style={{ height: '28px', width: 'auto', objectFit: 'contain' }}
           />

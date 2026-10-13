@@ -132,7 +132,7 @@ function InvoicePrintViewInner() {
           <div className="brand-group">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-pentacode-pdf.jpg"
+              src="/logo-pentacode-pdf.png"
               alt="PT Penta Code Digital"
               style={{
                 height: '32px',

@@ -49,7 +49,7 @@ export default function LoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-pentacode.png" alt="PT Penta Code Digital" className="brand-logo-dark h-8 w-auto object-contain" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-pentacode-light.jpg" alt="PT Penta Code Digital" className="brand-logo-light h-8 w-auto object-contain" />
+          <img src="/logo-pentacode-pdf.png" alt="PT Penta Code Digital" className="brand-logo-light h-8 w-auto object-contain" />
         </div>
 
         <div className="relative max-w-[460px]">
@@ -78,7 +78,7 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="relative text-[12px] text-fg-3">© 2024 PT Penta Code Digital</p>
+        <p className="relative text-[12px] text-fg-3">© 2026 PT Penta Code Digital</p>
       </aside>
 
       {/* Form */}
@@ -88,7 +88,7 @@ export default function LoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-pentacode.png" alt="PT Penta Code Digital" className="brand-logo-dark h-7 w-auto object-contain" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-pentacode-light.jpg" alt="PT Penta Code Digital" className="brand-logo-light h-7 w-auto object-contain" />
+            <img src="/logo-pentacode-pdf.png" alt="PT Penta Code Digital" className="brand-logo-light h-7 w-auto object-contain" />
           </div>
           <ThemeSwitcher />
         </div>
