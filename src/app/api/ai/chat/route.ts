@@ -25,6 +25,32 @@ function isProhibitedAction(prompt: string): string | null {
   return null;
 }
 
+// Helper: Extract potential search keywords from user message
+function extractSearchKeywords(message: string): string[] {
+  const normalized = message.toLowerCase();
+  
+  // Extract quoted phrases first
+  const quotedMatches = message.match(/"([^"]+)"/g);
+  if (quotedMatches) {
+    return quotedMatches.map(q => q.replace(/"/g, '').trim());
+  }
+
+  // Extract company-like patterns (PT, CV, etc.)
+  const companyPatterns = /\b(PT|CV|UD|Yayasan|Koperasi|Universitas)\s+[A-Z][a-zA-Z\s&]+/gi;
+  const companyMatches = message.match(companyPatterns);
+  if (companyMatches && companyMatches.length > 0) {
+    return companyMatches.map(c => c.trim());
+  }
+
+  // Extract capitalized words (likely proper nouns) - limit to 3 to avoid noise
+  const capitalizedWords = message.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g);
+  if (capitalizedWords && capitalizedWords.length > 0 && capitalizedWords.length <= 3) {
+    return capitalizedWords;
+  }
+
+  return [];
+}
+
 export async function POST(req: Request) {
   try {
     const user = await currentUser();
@@ -61,31 +87,54 @@ export async function POST(req: Request) {
       });
     }
 
+    // Dynamic query: extract potential search keywords
+    const searchKeywords = extractSearchKeywords(message);
+    const hasSearch = searchKeywords.length > 0;
+
+    // Increased limits + dynamic filtering based on user query
+    const companyLimit = 50;
+    const projectLimit = 30;
+    const estimateLimit = 20;
+    const proposalLimit = 20;
+
+    let companyFilter = '';
+    let projectFilter = '';
+    let estimateFilter = '';
+    let proposalFilter = '';
+
+    if (hasSearch) {
+      // Use regex case-insensitive search
+      const regexPattern = searchKeywords.map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      companyFilter = ` WHERE c.name ~* '${regexPattern}'`;
+      projectFilter = ` WHERE (p.name ~* '${regexPattern}' OR c.name ~* '${regexPattern}')`;
+      estimateFilter = ` WHERE (pe.title ~* '${regexPattern}' OR c.name ~* '${regexPattern}' OR p.name ~* '${regexPattern}')`;
+      proposalFilter = ` WHERE (cp.proposal_number ~* '${regexPattern}' OR c.name ~* '${regexPattern}' OR p.name ~* '${regexPattern}')`;
+    }
+
     // 1. Fetch live system summary context from PostgreSQL busdevcore (Read-Only)
-    // Admin-only, minimized PII: company names without contact details
     const [companiesRes, projectsRes, estimatesRes, proposalsRes, rolesRes, settingsRes] = await Promise.all([
-      pool.query('SELECT id, name FROM companies ORDER BY name ASC LIMIT 20'),
+      pool.query(`SELECT id, name FROM companies${companyFilter} ORDER BY name ASC LIMIT ${companyLimit}`),
       pool.query(`
         SELECT p.id, p.name, c.name as company_name 
         FROM projects p 
-        JOIN companies c ON p.company_id = c.id 
-        ORDER BY p.id DESC LIMIT 15
+        JOIN companies c ON p.company_id = c.id${projectFilter}
+        ORDER BY p.id DESC LIMIT ${projectLimit}
       `),
       pool.query(`
         SELECT pe.id, pe.title, pe.version, pe.total_cost, pe.total_hours, c.name as company_name, p.name as project_name 
         FROM project_estimates pe 
         JOIN companies c ON pe.company_id = c.id 
-        JOIN projects p ON pe.project_id = p.id 
-        ORDER BY pe.id DESC LIMIT 10
+        JOIN projects p ON pe.project_id = p.id${estimateFilter}
+        ORDER BY pe.id DESC LIMIT ${estimateLimit}
       `),
       pool.query(`
         SELECT cp.id, cp.proposal_number, cp.version, cp.grand_total, cp.margin_percent, cp.deal_status, c.name as company_name, p.name as project_name 
         FROM commercial_proposals cp 
         JOIN companies c ON cp.company_id = c.id 
-        JOIN projects p ON cp.project_id = p.id 
-        ORDER BY cp.id DESC LIMIT 10
+        JOIN projects p ON cp.project_id = p.id${proposalFilter}
+        ORDER BY cp.id DESC LIMIT ${proposalLimit}
       `),
-      pool.query('SELECT code, name, default_hourly_rate FROM role_masters WHERE is_active = TRUE ORDER BY id ASC LIMIT 15'),
+      pool.query('SELECT code, name, default_hourly_rate FROM role_masters WHERE is_active = TRUE ORDER BY id ASC'),
       pool.query('SELECT ai_system_prompt FROM company_settings WHERE id = 1 LIMIT 1'),
     ]);
 
@@ -94,6 +143,17 @@ export async function POST(req: Request) {
     const estimates = estimatesRes.rows.map((e) => `- #${e.id} [${e.company_name} - ${e.project_name}] ${e.title} v${e.version}: Total Jam ${e.total_hours}h, Total Biaya Rp ${Number(e.total_cost).toLocaleString('id-ID')}`).join('\n') || '-';
     const proposals = proposalsRes.rows.map((pr) => `- ${pr.proposal_number} v${pr.version} [${pr.company_name} - ${pr.project_name}]: Penawaran Rp ${Number(pr.grand_total).toLocaleString('id-ID')} (Margin: +${pr.margin_percent}%, Status: ${pr.deal_status || 'draft'})`).join('\n') || '-';
     const roles = rolesRes.rows.map((r) => `- ${r.name} (${r.code}): Rp ${Number(r.default_hourly_rate).toLocaleString('id-ID')}/jam`).join('\n') || '-';
+
+    // Pagination hint
+    const companiesCount = companiesRes.rows.length;
+    const projectsCount = projectsRes.rows.length;
+    const estimatesCount = estimatesRes.rows.length;
+    const proposalsCount = proposalsRes.rows.length;
+
+    let paginationNote = '';
+    if (companiesCount >= companyLimit || projectsCount >= projectLimit || estimatesCount >= estimateLimit || proposalsCount >= proposalLimit) {
+      paginationNote = `\n\n📊 **Catatan Data**: Saya menampilkan ${companiesCount} perusahaan, ${projectsCount} proyek, ${estimatesCount} estimasi, dan ${proposalsCount} proposal (dari yang terbaru${hasSearch ? '/relevan dengan pencarian' : ''}). Jika butuh data spesifik yang tidak terlihat, sebutkan nama perusahaan/proyek dengan lebih detail atau gunakan tanda kutip ("PT Nama Perusahaan").`;
+    }
 
     const historyText = boundedHistory.length > 0
       ? boundedHistory.map((m: { role: string; content: string }) => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n')
@@ -113,26 +173,27 @@ ATURAN KEAMANAN & BATASAN SISTEM WAJIB (SECURITY POLICY):
    - Kamu DILARANG KERAS dan TIDAK DAPAT mengubah, memanipulasi, atau menghapus riwayat Activity Log / Audit Trail.
    - Audit log bersifat permanen, akuntabel, dan tidak boleh dimodifikasi oleh siapapun termasuk AI.
 
-DATA TERKINI SISTEM BUSDEVCORE:
-1. Daftar Klien / Perusahaan:
+DATA TERKINI SISTEM BUSDEVCORE${hasSearch ? ` (Filtered: ${searchKeywords.join(', ')})` : ''}:
+1. Daftar Klien / Perusahaan (${companiesCount} ditampilkan):
 ${companies}
 
-2. Daftar Proyek Aktif:
+2. Daftar Proyek Aktif (${projectsCount} ditampilkan):
 ${projects}
 
-3. Dokumen Estimasi Costing Teknis (COGS):
+3. Dokumen Estimasi Costing Teknis (COGS) (${estimatesCount} ditampilkan):
 ${estimates}
 
-4. Proposal Komersial & Status Deal (Quotation):
+4. Proposal Komersial & Status Deal (Quotation) (${proposalsCount} ditampilkan):
 ${proposals}
 
-5. Master Tarif Role per Jam:
-${roles}
+5. Master Tarif Role per Jam (semua active):
+${roles}${paginationNote}
 
 PANDUAN JAWABAN:
 - Gunakan Bahasa Indonesia yang natural, lugas, santai namun profesional (terse, no fluff, to the point).
 - Sebutkan angka nominal rupiah, status deal (Draft, Won, Lost, Sent, Negotiation), atau jam kerja dengan jelas jika ditanyakan.
 - Format nominal gunakan pemisah ribuan (contoh: Rp 72.150.000).
+- Jika data yang diminta tidak terlihat dalam daftar, sarankan user untuk menyebutkan nama perusahaan/proyek yang lebih spesifik atau gunakan tanda kutip untuk pencarian exact.
 
 ${historyText ? `RIWAYAT PERCAKAPAN SEBELUMNYA:\n${historyText}\n` : ''}
 PERTANYAAN PENGGUNA TERBARU:
