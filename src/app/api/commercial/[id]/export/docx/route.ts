@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
-import { publicPriceLines } from '@/lib/commercial-pricing';
+import { publicMarketingFeeLines, publicPriceLines } from '@/lib/commercial-pricing';
 import {
   Document,
   Packer,
@@ -278,7 +278,13 @@ export async function GET(
       })
     );
 
-    const priceLines = publicPriceLines(proposal.category_pricing, Number(proposal.marketing_fee_percent) || 0, Array.isArray(proposal.marketing_fee_categories) ? proposal.marketing_fee_categories : []);
+    const showMarketingFee = proposal.show_marketing_fee_in_client_docs === true;
+    const priceLines = publicPriceLines(proposal.category_pricing, showMarketingFee);
+    const marketingFeeLines = publicMarketingFeeLines(proposal.category_pricing, showMarketingFee);
+    const preDiscountTotal = priceLines.length > 0
+      ? priceLines.reduce((sum, line) => sum + line.price, 0) + marketingFeeLines.reduce((sum, line) => sum + line.amount, 0)
+      : Number(proposal.base_price) || 0;
+    const discountAmount = Math.max(0, preDiscountTotal - Number(proposal.subtotal_after_discount));
     const categoryInvestmentRows = priceLines.length > 0
       ? priceLines.map((line, idx) => new TableRow({
           children: [
@@ -297,6 +303,14 @@ export async function GET(
       })
         ];
 
+    categoryInvestmentRows.push(...marketingFeeLines.map((fee, idx) => new TableRow({
+      children: [
+        new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: String(priceLines.length + idx + 1), size: 18 })] })] }),
+        new TableCell({ width: { size: 60, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: fee.label, size: 18 })] })] }),
+        new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: formatIDR(fee.amount), size: 18 })] })] }),
+      ],
+    })));
+
     const investmentRows = [
       new TableRow({
         children: [
@@ -314,7 +328,7 @@ export async function GET(
           children: [
             new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: '-', size: 18 })] })] }),
             new TableCell({ width: { size: 60, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ children: [new TextRun({ text: `Potongan Diskon (${proposal.discount_type === 'PERCENTAGE' ? `${proposal.discount_value}%` : 'Diskon Tetap'})`, size: 18, color: 'B45309' })] })] }),
-            new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `-${formatIDR(Number(proposal.base_price) - Number(proposal.subtotal_after_discount))}`, size: 18, color: 'B45309' })] })] }),
+            new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, borders: borderCell, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `-${formatIDR(discountAmount)}`, size: 18, color: 'B45309' })] })] }),
           ],
         })
       );

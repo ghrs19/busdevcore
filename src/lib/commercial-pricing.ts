@@ -18,6 +18,8 @@ export interface CategoryLine {
   cogs: number;
   margin_percent: number;
   base_price: number;
+  marketing_fee_type?: 'PERCENTAGE' | 'NOMINAL';
+  marketing_fee_value?: number;
 }
 export type CategoryPricing = Partial<Record<PricingCategory, CategoryLine>>;
 
@@ -25,9 +27,6 @@ export interface DiscountOptions {
   discountType: 'PERCENTAGE' | 'NOMINAL';
   discountValue: number;
   taxEnabled: boolean;
-  marketingFeePercent?: number;
-  marketingFeeCategories?: PricingCategory[];
-  marketingFeeMode?: 'ALL_PROPORTIONAL' | 'SELECTED_ONLY';
 }
 
 export interface Totals {
@@ -84,18 +83,20 @@ export function discountAmount(base: number, type: 'PERCENTAGE' | 'NOMINAL', val
   return Math.min(Math.max(value, 0), base);
 }
 
-export function marketingFeeAllocations(lines: CategoryPricing, percent: number, selected: PricingCategory[]): Partial<Record<PricingCategory, number>> {
-  const cats = CATEGORY_ORDER.filter((c) => lines[c] && selected.includes(c));
-  const fee = Math.round(CATEGORY_ORDER.reduce((sum, c) => sum + (lines[c]?.base_price || 0), 0) * (Math.min(Math.max(percent, 0), 100) / 100));
-  const weightTotal = cats.reduce((sum, c) => sum + (lines[c]?.base_price || 0), 0);
-  const allocation: Partial<Record<PricingCategory, number>> = {};
-  if (!cats.length) return allocation;
-  const exact = cats.map((c) => fee * (weightTotal > 0 ? (lines[c]?.base_price || 0) / weightTotal : 1 / cats.length));
-  const rounded = exact.map(Math.floor);
-  let rem = fee - rounded.reduce((a, b) => a + b, 0);
-  exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac).forEach(({ i }) => { if (rem > 0) { rounded[i]++; rem--; } });
-  cats.forEach((c, i) => { allocation[c] = rounded[i]; });
-  return allocation;
+export function marketingFeeForCategory(line: CategoryLine): number {
+  const value = Math.max(0, Number(line.marketing_fee_value) || 0);
+  return line.marketing_fee_type === 'NOMINAL'
+    ? Math.round(value)
+    : Math.round(line.base_price * (Math.min(value, 100) / 100));
+}
+
+export function marketingFeeAllocations(lines: CategoryPricing): Partial<Record<PricingCategory, number>> {
+  const out: Partial<Record<PricingCategory, number>> = {};
+  for (const cat of CATEGORY_ORDER) {
+    const line = lines[cat];
+    if (line) out[cat] = marketingFeeForCategory(line);
+  }
+  return out;
 }
 
 export function computeTotals(lines: CategoryPricing, opts: DiscountOptions): Totals {
@@ -107,7 +108,8 @@ export function computeTotals(lines: CategoryPricing, opts: DiscountOptions): To
     cogs += l.cogs;
     base += l.base_price;
   }
-  const marketingFee = Math.round(base * (Math.min(Math.max(opts.marketingFeePercent ?? 0, 0), 100) / 100));
+  const allocations = marketingFeeAllocations(lines);
+  const marketingFee = Object.values(allocations).reduce((sum, value) => sum + (value || 0), 0);
 
   const priceBeforeDiscount = base + marketingFee;
   const discount = discountAmount(priceBeforeDiscount, opts.discountType, opts.discountValue);
@@ -138,7 +140,12 @@ export function distributeGrandTotal(lines: CategoryPricing, grandTotal: number,
   } else if (opts.discountType === 'NOMINAL') {
     targetBase = subtotal + Math.max(opts.discountValue, 0);
   }
-  targetBase = Math.round(targetBase / (1 + Math.min(Math.max(opts.marketingFeePercent ?? 0, 0), 100) / 100));
+  const weightSum = cats.reduce((sum, c) => sum + (lines[c]?.base_price || 0), 0);
+  const fixedFee = cats.reduce((sum, c) => sum + (lines[c]?.marketing_fee_type === 'NOMINAL' ? Math.max(0, lines[c]?.marketing_fee_value || 0) : 0), 0);
+  const weightedRate = weightSum > 0
+    ? cats.reduce((sum, c) => sum + (lines[c]?.marketing_fee_type !== 'NOMINAL' ? ((lines[c]?.marketing_fee_value || 0) / 100) * ((lines[c]?.base_price || 0) / weightSum) : 0), 0)
+    : 0;
+  targetBase = Math.max(0, Math.round((targetBase - fixedFee) / (1 + weightedRate)));
 
   const currentSum = cats.reduce((acc, c) => acc + (lines[c] as CategoryLine).base_price, 0);
   const weights = cats.map((c) => (currentSum > 0 ? (lines[c] as CategoryLine).base_price / currentSum : c === cats[0] ? 1 : 0));
@@ -155,7 +162,7 @@ export function distributeGrandTotal(lines: CategoryPricing, grandTotal: number,
   const out: CategoryPricing = {};
   cats.forEach((c, idx) => {
     const l = lines[c] as CategoryLine;
-    out[c] = { cogs: l.cogs, base_price: floors[idx], margin_percent: marginFromPrice(l.cogs, floors[idx]) };
+    out[c] = { ...l, cogs: l.cogs, base_price: floors[idx], margin_percent: marginFromPrice(l.cogs, floors[idx]) };
   });
   return out;
 }
@@ -175,20 +182,30 @@ export function parseCategoryPricing(input: unknown): ParseResult {
     const cogs = typeof r.cogs === 'number' ? r.cogs : Number.NaN;
     const margin = typeof r.margin_percent === 'number' ? r.margin_percent : Number.NaN;
     const base = typeof r.base_price === 'number' ? r.base_price : Number.NaN;
-    if (![cogs, base].every((v) => Number.isFinite(v) && v >= 0 && v <= MAX_AMOUNT)) return { ok: false, error: `Nominal kategori ${key} tidak valid.` };
+    if (r.marketing_fee_type !== undefined && r.marketing_fee_type !== 'NOMINAL' && r.marketing_fee_type !== 'PERCENTAGE') return { ok: false, error: `Tipe fee marketing kategori ${key} tidak valid.` };
+    const feeType = r.marketing_fee_type === 'NOMINAL' ? 'NOMINAL' : 'PERCENTAGE';
+    const feeValue = r.marketing_fee_value === undefined ? 0 : Number(r.marketing_fee_value);
+    if (![cogs, base, feeValue].every((v) => Number.isFinite(v) && v >= 0 && v <= MAX_AMOUNT)) return { ok: false, error: `Nominal kategori ${key} tidak valid.` };
+    if (feeType === 'PERCENTAGE' && feeValue > 100) return { ok: false, error: `Fee marketing kategori ${key} harus 0 sampai 100%.` };
     if (!Number.isFinite(margin) || margin < 0 || margin > 100) return { ok: false, error: `Margin kategori ${key} harus 0 sampai 100.` };
-    out[key as PricingCategory] = { cogs: Math.round(cogs), margin_percent: Number(margin.toFixed(2)), base_price: Math.round(base) };
+    out[key as PricingCategory] = { cogs: Math.round(cogs), margin_percent: Number(margin.toFixed(2)), base_price: Math.round(base), marketing_fee_type: feeType, marketing_fee_value: feeType === 'PERCENTAGE' ? Number(feeValue.toFixed(2)) : Math.round(feeValue) };
   }
   return { ok: true, pricing: out };
 }
 
 // What the client may see: category name and price only. No COGS, no margin.
-export function publicPriceLines(lines: CategoryPricing | null | undefined, marketingFeePercent = 0, marketingFeeCategories: PricingCategory[] = []): Array<{ category: PricingCategory; label: string; price: number }> {
+export function publicPriceLines(lines: CategoryPricing | null | undefined, showMarketingFeeSeparately = false): Array<{ category: PricingCategory; label: string; price: number }> {
   if (!lines) return [];
-  const allocations = marketingFeeAllocations(lines, marketingFeePercent, marketingFeeCategories);
+  const allocations = marketingFeeAllocations(lines);
   return CATEGORY_ORDER.filter((c) => lines[c]).map((c) => ({
     category: c,
     label: CATEGORY_LABELS[c],
-    price: (lines[c] as CategoryLine).base_price + (allocations[c] || 0),
+    price: (lines[c] as CategoryLine).base_price + (showMarketingFeeSeparately ? 0 : (allocations[c] || 0)),
   }));
+}
+
+export function publicMarketingFeeLines(lines: CategoryPricing | null | undefined, showMarketingFeeSeparately = false): Array<{ category: PricingCategory; label: string; amount: number }> {
+  if (!lines || !showMarketingFeeSeparately) return [];
+  const allocations = marketingFeeAllocations(lines);
+  return CATEGORY_ORDER.filter((c) => (allocations[c] || 0) > 0).map((c) => ({ category: c, label: `Fee Marketing - ${CATEGORY_LABELS[c]}`, amount: allocations[c] || 0 }));
 }

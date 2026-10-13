@@ -10,7 +10,7 @@ import {
   distributeGrandTotal,
   parseCategoryPricing,
   publicPriceLines,
-  marketingFeeAllocations,
+  publicMarketingFeeLines,
   type CategoryPricing,
 } from './commercial-pricing.ts';
 
@@ -113,49 +113,51 @@ describe('commercial pricing per category', () => {
   });
 
 
-  it('allocates configurable marketing fee proportionally to all category base prices', () => {
-    const lines: CategoryPricing = {
-      DEVELOPMENT: { cogs: 50, margin_percent: 50, base_price: 100 },
-      MAINTENANCE: { cogs: 50, margin_percent: 50, base_price: 100 },
-    };
-    const allocations = marketingFeeAllocations(lines, 15, ['DEVELOPMENT', 'MAINTENANCE']);
-    assert.deepEqual(allocations, { DEVELOPMENT: 15, MAINTENANCE: 15 });
-    const totals = computeTotals(lines, { discountType: 'PERCENTAGE', discountValue: 0, taxEnabled: false, marketingFeePercent: 15, marketingFeeCategories: ['DEVELOPMENT', 'MAINTENANCE'] });
-    assert.equal(totals.marketing_fee, 30);
-    assert.equal(totals.subtotal, 230);
-    assert.deepEqual(publicPriceLines(lines, 15, ['DEVELOPMENT', 'MAINTENANCE']).map(x => x.price), [115, 115]);
-  });
-
-  it('puts the full marketing fee on selected categories only, weighted by selected base price', () => {
-    const lines: CategoryPricing = {
-      DEVELOPMENT: { cogs: 10, margin_percent: 50, base_price: 100 },
-      MAINTENANCE: { cogs: 10, margin_percent: 50, base_price: 100 },
-      OPERATION: { cogs: 10, margin_percent: 50, base_price: 100 },
-    };
-    const allocations = marketingFeeAllocations(lines, 15, ['DEVELOPMENT', 'OPERATION']);
-    assert.deepEqual(allocations, { DEVELOPMENT: 23, OPERATION: 22 });
-    assert.deepEqual(publicPriceLines(lines, 15, ['DEVELOPMENT', 'OPERATION']).map(x => x.price), [123, 100, 122]);
-  });
-
-  it('server defaults fee to proportional across all active categories', () => {
+  it('server recomputes independent percentage and nominal fees from category pricing', () => {
     const result = resolveCommercialPricing({
-      category_pricing: { DEVELOPMENT: { cogs: 50, margin_percent: 50, base_price: 100 }, MAINTENANCE: { cogs: 50, margin_percent: 50, base_price: 100 } },
-      marketing_fee_percent: 15,
+      category_pricing: {
+        DEVELOPMENT: { cogs: 50, margin_percent: 50, base_price: 100, marketing_fee_type: 'PERCENTAGE', marketing_fee_value: 10 },
+        MAINTENANCE: { cogs: 50, margin_percent: 50, base_price: 100, marketing_fee_type: 'NOMINAL', marketing_fee_value: 25 },
+      },
+      discount_type: 'PERCENTAGE', discount_value: 0, is_tax_enabled: false,
     });
     assert.equal(result.ok, true);
     if (!result.ok) return;
-    assert.equal(result.marketingFeeMode, 'ALL_PROPORTIONAL');
-    assert.deepEqual(result.marketingFeeCategories, ['DEVELOPMENT', 'MAINTENANCE']);
-    assert.equal(result.totals.marketing_fee, 30);
+    assert.equal(result.totals.marketing_fee, 35);
+    assert.equal(result.totals.subtotal, 235);
+    assert.deepEqual(publicPriceLines(result.pricing).map(x => x.price), [110, 125]);
+    assert.deepEqual(publicPriceLines(result.pricing, true).map(x => x.price), [100, 100]);
+    assert.deepEqual(publicMarketingFeeLines(result.pricing, true).map(x => x.amount), [10, 25]);
+    assert.deepEqual(publicMarketingFeeLines(result.pricing), []);
   });
 
-  it('server restricts fee to selected category and rejects empty selection', () => {
-    const category_pricing = { DEVELOPMENT: { cogs: 50, margin_percent: 50, base_price: 100 }, MAINTENANCE: { cogs: 50, margin_percent: 50, base_price: 100 } };
-    const result = resolveCommercialPricing({ category_pricing, marketing_fee_percent: 15, marketing_fee_mode: 'SELECTED_ONLY', marketing_fee_categories: ['DEVELOPMENT'] });
-    assert.equal(result.ok, true);
-    if (!result.ok) return;
-    assert.deepEqual(result.marketingFeeCategories, ['DEVELOPMENT']);
-    assert.deepEqual(publicPriceLines(result.pricing, 15, result.marketingFeeCategories).map(x => x.price), [130, 100]);
-    assert.equal(resolveCommercialPricing({ category_pricing, marketing_fee_percent: 15, marketing_fee_mode: 'SELECTED_ONLY', marketing_fee_categories: [] }).ok, false);
+  it('rejects invalid category fee values', () => {
+    assert.equal(parseCategoryPricing({ DEVELOPMENT: { cogs: 1, margin_percent: 1, base_price: 2, marketing_fee_type: 'PERCENTAGE', marketing_fee_value: 100.01 } }).ok, false);
+    assert.equal(parseCategoryPricing({ DEVELOPMENT: { cogs: 1, margin_percent: 1, base_price: 2, marketing_fee_type: 'NOMINAL', marketing_fee_value: -1 } }).ok, false);
+  });
+
+  it('calculates independent percentage and nominal marketing fees per category', () => {
+    const lines: CategoryPricing = {
+      DEVELOPMENT: { cogs: 50, margin_percent: 50, base_price: 100, marketing_fee_type: 'PERCENTAGE', marketing_fee_value: 10 },
+      MAINTENANCE: { cogs: 50, margin_percent: 50, base_price: 100, marketing_fee_type: 'NOMINAL', marketing_fee_value: 25 },
+    };
+    const totals = computeTotals(lines, { discountType: 'PERCENTAGE', discountValue: 0, taxEnabled: false });
+    assert.equal(totals.marketing_fee, 35);
+    assert.equal(totals.subtotal, 235);
+    assert.deepEqual(publicPriceLines(lines).map(x => x.price), [110, 125]);
+  });
+
+  it('grand-total edit preserves distinct category marketing fees', () => {
+    const lines: CategoryPricing = {
+      DEVELOPMENT: { cogs: 50, margin_percent: 50, base_price: 100, marketing_fee_type: 'PERCENTAGE', marketing_fee_value: 10 },
+      MAINTENANCE: { cogs: 50, margin_percent: 50, base_price: 100, marketing_fee_type: 'NOMINAL', marketing_fee_value: 25 },
+    };
+    const opts = { discountType: 'PERCENTAGE' as const, discountValue: 0, taxEnabled: true };
+    const adjusted = distributeGrandTotal(lines, 261, opts);
+    const totals = computeTotals(adjusted, opts);
+    assert.equal(totals.grand_total, 261);
+    assert.equal(totals.marketing_fee, 35);
+    assert.equal(adjusted.DEVELOPMENT?.marketing_fee_value, 10);
+    assert.equal(adjusted.MAINTENANCE?.marketing_fee_value, 25);
   });
 });

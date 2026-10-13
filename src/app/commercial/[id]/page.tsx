@@ -44,9 +44,6 @@ interface ProposalDetail {
   margin_percent: string | number;
   base_price: string | number;
   category_pricing?: Partial<Record<string, { cogs: number; margin_percent: number; base_price: number }>> | null;
-  marketing_fee_percent?: number | string;
-  marketing_fee_categories?: string[];
-  marketing_fee_mode?: 'ALL_PROPORTIONAL' | 'SELECTED_ONLY';
   discount_type: string;
   discount_value: string | number;
   subtotal_after_discount: string | number;

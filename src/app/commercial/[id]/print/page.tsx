@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { publicPriceLines, type CategoryPricing, type PricingCategory } from '@/lib/commercial-pricing';
+import { publicMarketingFeeLines, publicPriceLines, type CategoryPricing } from '@/lib/commercial-pricing';
 
 interface ProposalDetail {
   id: number;
@@ -33,9 +33,7 @@ interface ProposalDetail {
   tax_amount: string | number;
   grand_total: string | number;
   category_pricing?: CategoryPricing | null;
-  marketing_fee_percent?: number | string;
-  marketing_fee_categories?: PricingCategory[];
-  marketing_fee_mode?: 'ALL_PROPORTIONAL' | 'SELECTED_ONLY';
+  show_marketing_fee_in_client_docs?: boolean;
   validity_days: number;
   notes?: string;
   creator_name?: string;
@@ -181,7 +179,13 @@ function CommercialProposalPrintViewContent() {
     );
   }
 
-  const priceLines = publicPriceLines(proposal.category_pricing, Number(proposal.marketing_fee_percent) || 0, proposal.marketing_fee_categories || []);
+  const showMarketingFee = proposal.show_marketing_fee_in_client_docs === true;
+  const priceLines = publicPriceLines(proposal.category_pricing, showMarketingFee);
+  const marketingFeeLines = publicMarketingFeeLines(proposal.category_pricing, showMarketingFee);
+  const preDiscountTotal = priceLines.length > 0
+    ? priceLines.reduce((sum, line) => sum + line.price, 0) + marketingFeeLines.reduce((sum, line) => sum + line.amount, 0)
+    : Number(proposal.base_price) || 0;
+  const discountAmount = Math.max(0, preDiscountTotal - Number(proposal.subtotal_after_discount));
   const milestoneRows = schedule.filter((r) => r.billing_type === 'milestone');
   const recurringRows = schedule.filter((r) => r.billing_type === 'recurring_monthly');
   const recurringTotal = recurringRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
@@ -452,7 +456,8 @@ function CommercialProposalPrintViewContent() {
                 </tr>
               </thead>
               <tbody>
-                {priceLines.length > 0 ? priceLines.map((line, idx) => (
+                {priceLines.length > 0 ? <>
+                  {priceLines.map((line, idx) => (
                   <tr key={line.category}>
                     <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>{String(idx + 1).padStart(2, '0')}</td>
                     <td>
@@ -465,7 +470,15 @@ function CommercialProposalPrintViewContent() {
                       {formatIDR(line.price)}
                     </td>
                   </tr>
-                )) : (
+                  ))}
+                  {marketingFeeLines.map((fee, idx) => (
+                    <tr key={`fee-${fee.category}`}>
+                      <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>{String(priceLines.length + idx + 1).padStart(2, '0')}</td>
+                      <td><div style={{ fontWeight: 500, color: '#475569' }}>{fee.label}</div></td>
+                      <td style={{ textAlign: 'right', fontWeight: 500, color: '#475569' }} className="font-mono">{formatIDR(fee.amount)}</td>
+                    </tr>
+                  ))}
+                </> : (
                   <tr>
                     <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>01</td>
                     <td>
@@ -491,7 +504,7 @@ function CommercialProposalPrintViewContent() {
                       </div>
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#b45309' }} className="font-mono">
-                      -{formatIDR(Number(proposal.base_price) - Number(proposal.subtotal_after_discount))}
+                      -{formatIDR(discountAmount)}
                     </td>
                   </tr>
                 )}

@@ -105,9 +105,7 @@ function NewCommercialProposalForm() {
   const [categoryPricing, setCategoryPricing] = useState<CategoryPricing>({});
   const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'NOMINAL'>('PERCENTAGE');
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const [marketingFeePercent, setMarketingFeePercent] = useState<number>(0);
-  const [marketingFeeMode, setMarketingFeeMode] = useState<'ALL_PROPORTIONAL' | 'SELECTED_ONLY'>('ALL_PROPORTIONAL');
-  const [marketingFeeCategories, setMarketingFeeCategories] = useState<PricingCategory[]>([]);
+  const [showMarketingFeeInClientDocs, setShowMarketingFeeInClientDocs] = useState(false);
   const [isTaxEnabled, setIsTaxEnabled] = useState<boolean>(true);
 
   // Delivery Timeline States (Prefilled & editable)
@@ -136,8 +134,7 @@ function NewCommercialProposalForm() {
   // --- TWO-WAY LINKED FINANCIAL CALCULATION ENGINE ---
 
   const presentCategories = CATEGORY_ORDER.filter((c) => categoryPricing[c]);
-  const effectiveMarketingFeeCategories = marketingFeeMode === 'ALL_PROPORTIONAL' ? presentCategories : marketingFeeCategories.filter((c) => categoryPricing[c]);
-  const discountOpts = { discountType, discountValue, taxEnabled: isTaxEnabled, marketingFeePercent, marketingFeeCategories: effectiveMarketingFeeCategories };
+  const discountOpts = { discountType, discountValue, taxEnabled: isTaxEnabled };
   const totals = computeTotals(categoryPricing, discountOpts);
   const grandTotal = totals.grand_total;
 
@@ -159,6 +156,15 @@ function NewCommercialProposalForm() {
     const line = categoryPricing[cat];
     if (!line) return;
     applyPricing({ ...categoryPricing, [cat]: { ...line, base_price: newBase, margin_percent: marginFromPrice(line.cogs, newBase) } });
+  };
+
+  const handleCategoryMarketingFee = (cat: PricingCategory, field: 'marketing_fee_type' | 'marketing_fee_value', value: 'PERCENTAGE' | 'NOMINAL' | number) => {
+    const line = categoryPricing[cat];
+    if (!line) return;
+    const nextLine = field === 'marketing_fee_type'
+      ? { ...line, marketing_fee_type: value as 'PERCENTAGE' | 'NOMINAL' }
+      : { ...line, marketing_fee_value: Math.max(0, Number(value) || 0) };
+    applyPricing({ ...categoryPricing, [cat]: nextLine });
   };
 
   // 3. Grand total diedit langsung -> semua harga kategori diskalakan proporsional
@@ -279,9 +285,7 @@ function NewCommercialProposalForm() {
           }
           setDiscountType(p.discount_type || 'PERCENTAGE');
           setDiscountValue(Number(p.discount_value) || 0);
-          setMarketingFeePercent(Number(p.marketing_fee_percent) || 0);
-          setMarketingFeeMode(p.marketing_fee_mode === 'SELECTED_ONLY' ? 'SELECTED_ONLY' : 'ALL_PROPORTIONAL');
-          setMarketingFeeCategories(Array.isArray(p.marketing_fee_categories) ? p.marketing_fee_categories : []);
+          setShowMarketingFeeInClientDocs(Boolean(p.show_marketing_fee_in_client_docs));
           setIsTaxEnabled(Boolean(p.is_tax_enabled));
           setValidityDays(Number(p.validity_days) || 30);
           if (p.notes) setNotes(p.notes);
@@ -484,11 +488,6 @@ function NewCommercialProposalForm() {
       setErrorMessage('Estimasi belum memiliki kategori biaya untuk dihitung.');
       return;
     }
-    if (marketingFeePercent > 0 && effectiveMarketingFeeCategories.length === 0) {
-      setErrorMessage('Pilih kategori untuk memasukkan fee marketing.');
-      return;
-    }
-
     if (Math.abs(termDiff) > 100) {
       if (!confirm(`Total akumulasi nominal termin (Rp ${totalTermAmount.toLocaleString('id-ID')}) berbeda dari Grand Total Penawaran (Rp ${grandTotal.toLocaleString('id-ID')}). Apakah yakin ingin melanjutkan?`)) {
         return;
@@ -503,9 +502,7 @@ function NewCommercialProposalForm() {
       project_id: selectedProjectId,
       estimate_id: selectedEstimateId,
       category_pricing: categoryPricing,
-      marketing_fee_percent: marketingFeePercent,
-      marketing_fee_mode: marketingFeeMode,
-      marketing_fee_categories: effectiveMarketingFeeCategories,
+      show_marketing_fee_in_client_docs: showMarketingFeeInClientDocs,
       discount_type: discountType,
       discount_value: discountValue,
       is_tax_enabled: isTaxEnabled,
@@ -814,7 +811,7 @@ function NewCommercialProposalForm() {
                   Kalkulasi Komersial (Dua Arah: Rupiah ↔ Persentase)
                 </h2>
                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                  Atur margin atau harga dasar per kategori (Development, Maintenance, Operasional, Infrastruktur). Diskon dan PPN berlaku satu kali untuk total.
+                  Atur margin, harga dasar, dan fee marketing (% atau Rp) per kategori. Diskon dan PPN berlaku satu kali untuk total.
                 </div>
               </div>
             </div>
@@ -828,11 +825,13 @@ function NewCommercialProposalForm() {
                     <th style={{ textAlign: 'right' }}>COGS Internal</th>
                     <th style={{ textAlign: 'right', width: '140px' }}>Margin (%)</th>
                     <th style={{ textAlign: 'right', width: '220px' }}>Harga Dasar (Rp)</th>
+                    <th style={{ width: '100px' }}>Tipe Fee</th>
+                    <th style={{ textAlign: 'right', width: '145px' }}>Fee Marketing</th>
                   </tr>
                 </thead>
                 <tbody>
                   {presentCategories.length === 0 && (
-                    <tr><td colSpan={4} style={{ color: 'var(--text-tertiary)' }}>Pilih estimasi untuk menampilkan kategori biaya.</td></tr>
+                    <tr><td colSpan={6} style={{ color: 'var(--text-tertiary)' }}>Pilih estimasi untuk menampilkan kategori biaya.</td></tr>
                   )}
                   {presentCategories.map((cat) => {
                     const line = categoryPricing[cat];
@@ -866,6 +865,31 @@ function NewCommercialProposalForm() {
                             style={{ textAlign: 'right', fontWeight: 600, width: '190px' }}
                           />
                         </td>
+                        <td>
+                          <select
+                            aria-label={`Tipe fee marketing ${CATEGORY_LABELS[cat]}`}
+                            className="linear-select"
+                            value={line.marketing_fee_type || 'PERCENTAGE'}
+                            onChange={(e) => handleCategoryMarketingFee(cat, 'marketing_fee_type', e.target.value as 'PERCENTAGE' | 'NOMINAL')}
+                            style={{ width: '100%' }}
+                          >
+                            <option value="PERCENTAGE">%</option>
+                            <option value="NOMINAL">Rp</option>
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            max={line.marketing_fee_type === 'NOMINAL' ? undefined : 100}
+                            step="any"
+                            aria-label={`Fee marketing ${CATEGORY_LABELS[cat]}`}
+                            value={line.marketing_fee_value ?? 0}
+                            onChange={(e) => handleCategoryMarketingFee(cat, 'marketing_fee_value', Number(e.target.value) || 0)}
+                            className="linear-input font-mono-numbers"
+                            style={{ textAlign: 'right', width: '130px' }}
+                          />
+                        </td>
                       </tr>
                     );
                   })}
@@ -877,6 +901,8 @@ function NewCommercialProposalForm() {
                       <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>{formatIDR(totals.cogs)}</td>
                       <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent-hover)' }}>{totals.margin_percent}%</td>
                       <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700 }}>{formatIDR(totals.base_price)}</td>
+                      <td />
+                      <td className="font-mono-numbers" style={{ textAlign: 'right', fontWeight: 700 }}>{formatIDR(totals.marketing_fee)}</td>
                     </tr>
                   </tfoot>
                 )}
@@ -892,59 +918,6 @@ function NewCommercialProposalForm() {
                 marginBottom: '20px',
               }}
             >
-              {/* Configurable marketing fee, calculated on total category base price */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Fee Marketing (% dari total harga dasar)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="any"
-                  value={marketingFeePercent}
-                  onChange={(e) => {
-                    const value = Math.min(100, Math.max(0, Number(e.target.value) || 0));
-                    setMarketingFeePercent(value);
-                    syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, marketingFeePercent: value }).grand_total);
-                  }}
-                  className="linear-input font-mono-numbers"
-                  aria-label="Fee marketing persentase"
-                />
-                <select
-                  className="linear-select"
-                  aria-label="Mode fee marketing"
-                  value={marketingFeeMode}
-                  onChange={(e) => {
-                    const mode = e.target.value as 'ALL_PROPORTIONAL' | 'SELECTED_ONLY';
-                    setMarketingFeeMode(mode);
-                    const cats = mode === 'ALL_PROPORTIONAL' ? presentCategories : marketingFeeCategories;
-                    syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, marketingFeeCategories: cats }).grand_total);
-                  }}
-                  style={{ width: '100%', marginTop: '8px' }}
-                >
-                  <option value="ALL_PROPORTIONAL">Proporsional ke semua kategori</option>
-                  <option value="SELECTED_ONLY">Pasang di kategori tertentu</option>
-                </select>
-                {marketingFeeMode === 'SELECTED_ONLY' && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px' }}>
-                    {presentCategories.map((cat) => (
-                      <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        <input
-                          type="checkbox"
-                          checked={marketingFeeCategories.includes(cat)}
-                          onChange={(e) => {
-                            const cats = e.target.checked ? [...marketingFeeCategories, cat] : marketingFeeCategories.filter((c) => c !== cat);
-                            setMarketingFeeCategories(cats);
-                            syncTermsFromGrandTotal(computeTotals(categoryPricing, { ...discountOpts, marketingFeeCategories: cats }).grand_total);
-                          }}
-                        />
-                        {CATEGORY_LABELS[cat]}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
               {/* Tipe & Nilai Diskon */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
@@ -969,6 +942,21 @@ function NewCommercialProposalForm() {
                     style={{ textAlign: 'right', flex: 1 }}
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Dokumen Klien
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-primary)' }}>
+                  <input
+                    type="checkbox"
+                    checked={showMarketingFeeInClientDocs}
+                    onChange={(e) => setShowMarketingFeeInClientDocs(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--accent-hover)' }}
+                  />
+                  <span>Tampilkan rincian fee marketing di PDF/DOCX</span>
+                </label>
               </div>
 
               {/* Toggle PPN 11% */}
