@@ -3331,10 +3331,10 @@ function NewEstimateForm() {
                 width: '100%',
                 maxWidth: '520px',
                 padding: '24px',
-                background: '#121417',
+                background: 'var(--bg-elevated)',
                 border: '1px solid rgba(94, 106, 210, 0.35)',
                 borderRadius: '12px',
-                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 20px rgba(94, 106, 210, 0.15)',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25), 0 0 20px rgba(94, 106, 210, 0.15)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -3392,7 +3392,7 @@ function NewEstimateForm() {
                     padding: '10px 14px',
                     lineHeight: '1.5',
                     resize: 'none',
-                    background: '#0b0c0e',
+                    background: 'var(--bg-input)',
                     borderColor: 'rgba(255, 255, 255, 0.12)',
                   }}
                   value={revisionReason}

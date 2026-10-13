@@ -214,10 +214,10 @@ function AIChatWidgetContent() {
               height: '520px',
               maxWidth: 'calc(100vw - 40px)',
               maxHeight: 'calc(100vh - 120px)',
-              background: '#0d1117',
+              background: 'var(--bg-elevated)',
               border: '1px solid var(--border-hover)',
               borderRadius: '14px',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.6), 0 0 20px rgba(94, 106, 210, 0.25)',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.25), 0 0 20px rgba(94, 106, 210, 0.25)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -228,7 +228,7 @@ function AIChatWidgetContent() {
             <div
               style={{
                 padding: '14px 18px',
-                background: 'rgba(255, 255, 255, 0.03)',
+                background: 'var(--row-hover)',
                 borderBottom: '1px solid var(--border-subtle)',
                 display: 'flex',
                 alignItems: 'center',
@@ -287,8 +287,8 @@ function AIChatWidgetContent() {
             <div
               style={{
                 padding: '10px 14px',
-                borderBottom: '1px solid rgba(255,255,255,0.04)',
-                background: 'rgba(0,0,0,0.15)',
+                borderBottom: '1px solid var(--border-subtle)',
+                background: 'var(--row-hover)',
                 display: 'flex',
                 gap: '6px',
                 overflowX: 'auto',
@@ -308,7 +308,7 @@ function AIChatWidgetContent() {
                     fontSize: '11px',
                     padding: '3px 8px',
                     borderRadius: '12px',
-                    background: 'rgba(255,255,255,0.05)',
+                    background: 'var(--row-hover)',
                     border: '1px solid var(--border-subtle)',
                     color: 'var(--text-secondary)',
                     cursor: 'pointer',
@@ -328,7 +328,7 @@ function AIChatWidgetContent() {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
-                background: 'rgba(0, 0, 0, 0.2)',
+                background: 'var(--row-hover)',
               }}
             >
               {messages.map((m) => {
@@ -350,7 +350,7 @@ function AIChatWidgetContent() {
                         borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                         background: isUser
                           ? 'linear-gradient(135deg, #5e6ad2 0%, #4a54b3 100%)'
-                          : 'rgba(255, 255, 255, 0.05)',
+                          : 'var(--row-hover)',
                         border: isUser ? 'none' : '1px solid var(--border-subtle)',
                         color: isUser ? '#ffffff' : 'var(--text-primary)',
                         fontSize: '12.5px',
@@ -392,7 +392,7 @@ function AIChatWidgetContent() {
               }}
               style={{
                 padding: '12px 14px',
-                background: 'rgba(255, 255, 255, 0.02)',
+                background: 'var(--row-hover-faint)',
                 borderTop: '1px solid var(--border-subtle)',
                 display: 'flex',
                 gap: '8px',

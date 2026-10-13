@@ -404,7 +404,7 @@ export default function InvoicesTrackerPage() {
                 width: '100%',
                 maxWidth: '520px',
                 padding: '24px',
-                background: '#0d1117',
+                background: 'var(--bg-elevated)',
                 border: '1px solid var(--border-hover)',
                 borderRadius: '12px',
               }}

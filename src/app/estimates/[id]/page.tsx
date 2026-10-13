@@ -379,7 +379,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                     title="Ganti ke versi lain dari dokumen ini"
                   >
                     {estimate.version_history.map((vh) => (
-                      <option key={vh.id} value={vh.id} style={{ background: '#13161a', color: '#fff' }}>
+                      <option key={vh.id} value={vh.id} style={{ background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}>
                         Versi v{vh.version} {vh.id === estimate.id ? '(Aktif)' : `(#${vh.id})`} — {formatIDR(vh.total_cost)}
                       </option>
                     ))}
@@ -1060,7 +1060,7 @@ function EstimateDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 padding: '24px',
                 backgroundColor: 'var(--bg-panel)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.25)',
               }}
               onClick={(e) => e.stopPropagation()}
             >

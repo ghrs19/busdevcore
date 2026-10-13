@@ -880,9 +880,9 @@ export default function HistoricalEstimatesPage() {
                 width: '100%',
                 maxWidth: '480px',
                 padding: '24px',
-                background: '#121417',
+                background: 'var(--bg-elevated)',
                 border: '1px solid var(--border-subtle)',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1016,9 +1016,9 @@ export default function HistoricalEstimatesPage() {
                 width: '100%',
                 maxWidth: '480px',
                 padding: '24px',
-                background: '#0d0f11',
+                background: 'var(--bg-elevated)',
                 border: '1px solid rgba(56, 189, 248, 0.3)',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.25)',
               }}
               onClick={(e) => e.stopPropagation()}
             >

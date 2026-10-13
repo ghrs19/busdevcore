@@ -1502,11 +1502,11 @@ function NewCommercialProposalForm() {
               left: 0,
               right: 0,
               zIndex: 40,
-              background: 'rgba(15, 16, 17, 0.95)',
+              background: 'var(--bg-panel)',
               backdropFilter: 'blur(16px)',
               borderTop: '1px solid var(--border-subtle)',
               padding: '14px 24px',
-              boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.6)',
+              boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.12)',
             }}
           >
             <div
