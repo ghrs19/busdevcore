@@ -89,8 +89,8 @@
   --color-info-bg: rgb(var(--info-rgb) / 0.14);
   --color-violet-bg: rgb(var(--violet-rgb) / 0.14);
 
-  --shadow-card: 0 1px 0 rgb(0 0 0 / 0.25);
-  --shadow-pop: 0 12px 32px -8px rgb(0 0 0 / 0.55), 0 0 0 1px var(--border-subtle);
+  --shadow-card: none;
+  --shadow-pop: none;
   --scroll-thumb: rgb(var(--ink-rgb) / 0.16);
   --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.28);
 
@@ -145,8 +145,8 @@
   --color-info-bg: rgb(var(--info-rgb) / 0.1);
   --color-violet-bg: rgb(var(--violet-rgb) / 0.1);
 
-  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.05), 0 0 0 1px rgb(16 24 40 / 0.02);
-  --shadow-pop: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 0 0 1px var(--border-subtle);
+  --shadow-card: none;
+  --shadow-pop: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -308,7 +308,7 @@
     box-shadow: none;
   }
   .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
-  .btn-primary:active:not(:disabled) { transform: scale(.98); }
+  .btn-primary:active:not(:disabled) { transform: none; }
   .btn-primary:disabled, .btn-secondary:disabled, .btn-ghost:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 
   .btn-secondary {
@@ -339,7 +339,7 @@
   .density-toggle-option svg { color: inherit; }
 
   /* Icon-only controls retain square geometry, not pill geometry. */
-  .btn-icon { width: 36px; min-width: 36px; padding: 0 !important; border-radius: 50% !important; }
+  .btn-icon { width: 36px; min-width: 36px; height: 36px; flex: 0 0 36px; aspect-ratio: 1; padding: 0 !important; border-radius: 50% !important; }
 
   /* Segmented control / tabs */
   .pill-group {
@@ -355,7 +355,7 @@
     cursor: pointer; user-select: none; transition: color .15s ease, background-color .15s ease;
   }
   .pill-item:hover:not(.active):not(:disabled) { color: var(--text-primary); background: var(--row-hover); }
-  .pill-item.active { background: var(--bg-elevated); color: var(--text-primary); border-color: var(--border-subtle); box-shadow: 0 1px 2px rgb(0 0 0 / 0.14); font-weight: 600; }
+  .pill-item.active { background: var(--bg-elevated); color: var(--text-primary); border-color: transparent; box-shadow: none; font-weight: 600; }
   .pill-item:disabled { opacity: .4; cursor: not-allowed; }
 
   /* Badges: tinted fill + same-hue text. Meaning, not decoration. */

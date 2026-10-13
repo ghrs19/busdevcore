@@ -412,7 +412,7 @@ export default function MasterDataPage() {
 
         {/* Tabs */}
         <div className="no-scrollbar -mx-1 mb-6 overflow-x-auto px-1">
-          <div role="tablist" aria-label="Bagian master data" className="flex w-max min-w-full gap-1 border-b border-line">
+          <div role="tablist" aria-label="Bagian master data" className="flex w-max min-w-full gap-1">
             {([
               { id: 'ROLES', label: 'Roles & Rates', icon: Briefcase, count: roles.length, on: () => {} },
               { id: 'WORKERS', label: 'Worker', icon: HardHat, count: workers.length, on: () => fetchWorkers() },
@@ -432,8 +432,8 @@ export default function MasterDataPage() {
                   aria-selected={active}
                   onClick={() => { setActiveTab(tab.id); tab.on(); setErrorMsg(null); setSuccessMsg(null); }}
                   className={cn(
-                    '-mb-px inline-flex h-10 shrink-0 items-center gap-2 border-b-2 px-3.5 text-[13px] font-medium transition-colors',
-                    active ? 'border-[var(--accent-primary)] bg-brand text-white' : 'border-transparent text-fg-3 hover:text-fg',
+                    'inline-flex h-10 shrink-0 items-center gap-2 border-0 rounded-none px-3.5 text-[13px] font-medium shadow-none transition-colors',
+                    active ? 'bg-brand text-white shadow-none' : 'text-fg-3 hover:text-fg',
                   )}
                 >
                   <Icon className={cn('size-4', active ? 'text-white' : 'text-fg-3')} aria-hidden />
