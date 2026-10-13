@@ -139,6 +139,50 @@ export default function DashboardPage() {
         }
       />
 
+      {/* Hero: contract collection progress */}
+      {(() => {
+        const committed = Number(cashflow.total_contract_committed) || 0;
+        const segs = [
+          { key: 'collected', label: 'Terkumpul', value: Number(cashflow.total_cash_collected) || 0, bar: 'bg-ok', text: 'text-ok' },
+          { key: 'pending', label: 'Menunggu bayar', value: Number(cashflow.total_invoiced_pending) || 0, bar: 'bg-note', text: 'text-note' },
+          { key: 'overdue', label: 'Jatuh tempo', value: Number(cashflow.total_overdue_amount) || 0, bar: 'bg-bad', text: 'text-bad' },
+          { key: 'unbilled', label: 'Belum ditagih', value: Number(cashflow.total_unbilled_schedule) || 0, bar: 'bg-fg-3', text: 'text-fg-2' },
+        ];
+        const base = Math.max(committed, segs.reduce((a, s) => a + s.value, 0));
+        const pct = (v: number) => (base > 0 ? (v / base) * 100 : 0);
+        const collectedPct = Math.round(pct(segs[0].value));
+        return (
+          <section aria-label="Progres penagihan kontrak" className="hero-card mb-5 p-5 sm:p-6">
+            <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-3">Komitmen kontrak aktif</div>
+                <div className="font-mono-numbers mt-2 text-[32px] font-semibold leading-none tracking-[-0.03em] text-fg sm:text-[38px]">
+                  {formatIDR(committed)}
+                </div>
+                <p className="mt-2 text-[13px] text-fg-3">
+                  <span className="font-semibold text-ok">{collectedPct}%</span> sudah terkumpul dari {crm.won_count || 0} kontrak yang disepakati.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-x-7 gap-y-3">
+                {segs.map((s) => (
+                  <div key={s.key} className="min-w-[120px]">
+                    <div className="flex items-center gap-1.5 text-[11.5px] text-fg-3">
+                      <span className={`size-2 rounded-full ${s.bar}`} aria-hidden /> {s.label}
+                    </div>
+                    <div className={`font-mono-numbers mt-1 text-[15px] font-semibold ${s.text}`}>{formatIDR(s.value)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="relative mt-5 flex h-2.5 overflow-hidden rounded-full bg-surface-2" role="img" aria-label={`Terkumpul ${collectedPct}% dari komitmen kontrak`}>
+              {segs.map((s) =>
+                s.value > 0 ? <div key={s.key} className={`${s.bar} h-full`} style={{ width: `${pct(s.value)}%` }} title={`${s.label}: ${formatIDR(s.value)}`} /> : null,
+              )}
+            </div>
+          </section>
+        );
+      })()}
+
       {/* KPI row */}
       <section aria-label="Metrik utama" className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -146,16 +190,17 @@ export default function DashboardPage() {
           icon={Handshake}
           tone="ok"
           value={formatIDR(crm.total_won_value)}
-          hint={
-            <span className="flex items-center justify-between gap-3">
-              <span>{crm.won_count} proposal disepakati</span>
-              <span className="text-fg-2">Win rate {crm.win_rate}%</span>
-            </span>
-          }
+          hint={`${crm.won_count || 0} proposal disepakati · win rate ${crm.win_rate || 0}%`}
         />
-        <StatCard label="Kas masuk diterima" icon={Banknote} tone="note" value={formatIDR(cashflow.total_cash_collected)} hint={`Dari ${cashflow.count_paid} invoice terbayar`} />
-        <StatCard label="Piutang berjalan" icon={Clock3} tone="warn" value={formatIDR(cashflow.total_invoiced_pending)} hint={`${cashflow.count_invoiced} invoice terbit menunggu pembayaran`} />
-        <StatCard label="Pipeline aktif" icon={TrendingUp} tone="plum" value={formatIDR(crm.active_pipeline_value)} hint={`${openProposals} proposal di tahap penawaran & negosiasi`} />
+        <StatCard label="Kas masuk diterima" icon={Banknote} tone="note" value={formatIDR(cashflow.total_cash_collected)} hint={`Dari ${cashflow.count_paid || 0} invoice terbayar`} />
+        <StatCard
+          label="Piutang berjalan"
+          icon={Clock3}
+          tone={Number(cashflow.total_overdue_amount) > 0 ? 'bad' : 'warn'}
+          value={formatIDR(cashflow.total_invoiced_pending)}
+          hint={`${cashflow.count_invoiced || 0} invoice menunggu · ${cashflow.count_overdue || 0} jatuh tempo`}
+        />
+        <StatCard label="Pipeline aktif" icon={TrendingUp} tone="plum" value={formatIDR(crm.active_pipeline_value)} hint={`${openProposals} proposal di penawaran & negosiasi`} />
       </section>
 
       {/* Analytics row */}

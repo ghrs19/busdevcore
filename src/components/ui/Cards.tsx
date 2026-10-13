@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -24,9 +24,23 @@ const toneChip: Record<Tone, string> = {
   plum: 'bg-[var(--color-violet-bg)] text-plum',
 };
 
+const toneRgb: Record<Tone, string> = {
+  neutral: 'var(--ink-rgb)',
+  ok: 'var(--success-rgb)',
+  warn: 'var(--warning-rgb)',
+  bad: 'var(--danger-rgb)',
+  note: 'var(--info-rgb)',
+  brand: 'var(--accent-rgb)',
+  plum: 'var(--violet-rgb)',
+};
+
 /** Card surface. Padding is explicit so dense and roomy cards share one component. */
-export function Card({ children, className, padded = true }: { children: ReactNode; className?: string; padded?: boolean }) {
-  return <section className={cn('linear-card', padded && 'p-5', className)}>{children}</section>;
+export function Card({ children, className, padded = true, style }: { children: ReactNode; className?: string; padded?: boolean; style?: CSSProperties }) {
+  return (
+    <section className={cn('linear-card', padded && 'p-5', className)} style={style}>
+      {children}
+    </section>
+  );
 }
 
 /**
@@ -53,19 +67,19 @@ export function StatCard({
   className?: string;
 }) {
   return (
-    <Card className={cn('flex min-w-0 flex-col gap-3', className)}>
-      <div className="flex items-start justify-between gap-3">
+    <Card className={cn('kpi flex min-w-0 flex-col gap-3.5', className)} style={{ ['--kpi-rgb' as string]: toneRgb[tone] }}>
+      <div className="relative flex items-start justify-between gap-3">
         <span className="text-[12px] font-medium leading-snug text-fg-3">{label}</span>
         {badge ? (
           badge
         ) : Icon ? (
-          <span className={cn('grid size-8 shrink-0 place-items-center rounded-lg', toneChip[tone])}>
-            <Icon className="size-4" aria-hidden />
+          <span className={cn('grid size-9 shrink-0 place-items-center rounded-xl', toneChip[tone])}>
+            <Icon className="size-[18px]" aria-hidden />
           </span>
         ) : null}
       </div>
-      <div className={cn('font-mono-numbers text-[24px] font-semibold leading-none tracking-[-0.02em]', toneText[valueTone ?? 'neutral'])}>{value}</div>
-      {hint && <div className="text-[12px] leading-snug text-fg-3">{hint}</div>}
+      <div className={cn('font-mono-numbers relative truncate text-[26px] font-semibold leading-none tracking-[-0.025em]', toneText[valueTone ?? 'neutral'])}>{value}</div>
+      {hint && <div className="relative text-[12px] leading-snug text-fg-3">{hint}</div>}
     </Card>
   );
 }

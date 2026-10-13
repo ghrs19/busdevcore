@@ -184,6 +184,47 @@
 [data-theme="light"] .brand-logo-dark { display: none !important; }
 [data-theme="light"] .brand-logo-light { display: block !important; }
 
+/* Auth (login) brand panel: soft accent glow + fine grid, theme-aware */
+.auth-panel {
+  background:
+    radial-gradient(900px 520px at 12% -8%, rgb(var(--accent-rgb) / 0.2), transparent 62%),
+    radial-gradient(700px 480px at 108% 108%, rgb(var(--violet-rgb) / 0.1), transparent 60%),
+    var(--bg-panel);
+}
+.auth-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgb(var(--ink-rgb) / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(var(--ink-rgb) / 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 30% 30%, #000 8%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse at 30% 30%, #000 8%, transparent 72%);
+}
+
+/* Dashboard hero card */
+.hero-card {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(640px 220px at 0% 0%, rgb(var(--accent-rgb) / 0.16), transparent 70%),
+    radial-gradient(520px 200px at 100% 100%, rgb(var(--success-rgb) / 0.08), transparent 70%),
+    var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+/* KPI tile accent: thin top rule tinted by tone, set via --kpi-rgb */
+.kpi { position: relative; overflow: hidden; }
+.kpi::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, rgb(var(--kpi-rgb, var(--accent-rgb)) / 0.9), rgb(var(--kpi-rgb, var(--accent-rgb)) / 0));
+}
+.kpi::after {
+  content: ''; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 9999px;
+  background: radial-gradient(closest-side, rgb(var(--kpi-rgb, var(--accent-rgb)) / 0.12), transparent);
+  pointer-events: none;
+}
+
 /* Thin, theme-aware scrollbars (important for wide tables) */
 * { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
