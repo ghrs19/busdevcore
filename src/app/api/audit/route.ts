@@ -5,14 +5,17 @@ import { currentUser } from '@/lib/auth';
 export async function GET(req: Request) {
   try {
     const user = await currentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const entityType = searchParams.get('entity_type');
     const entityId = searchParams.get('entity_id');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const requestedLimit = Number.parseInt(searchParams.get('limit') || '50', 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(200, Math.max(1, requestedLimit)) : 50;
+    if (entityId && (! /^[0-9]+$/.test(entityId) || Number(entityId) < 1 || !entityType)) {
+      return NextResponse.json({ success: false, error: 'entity_id harus integer positif dan membutuhkan entity_type.' }, { status: 400 });
+    }
 
     let query = `
       SELECT 

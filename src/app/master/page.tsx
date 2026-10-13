@@ -11,6 +11,9 @@ import {
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { DASHBOARD_TEMPLATES, resolveDashboardTemplate } from '@/lib/dashboard-template.mjs';
+type DashboardTemplateId = 'classic' | 'corporate';
+const DASHBOARD_TEMPLATE_KEY = 'busdevcore-dashboard-template';
 
 type TemplateCategory = 'DEVELOPMENT' | 'MAINTENANCE' | 'INFRASTRUCTURE' | 'OPERATION';
 
@@ -39,7 +42,7 @@ interface WBSTemplate {
 }
 
 export default function MasterDataPage() {
-  const [activeTab, setActiveTab] = useState<'ROLES' | 'WORKERS' | 'TEMPLATES' | 'USERS' | 'COMPANIES_CLIENT' | 'COMPANY_ISSUER' | 'AI_PROMPT'>('ROLES');
+  const [activeTab, setActiveTab] = useState<'ROLES' | 'WORKERS' | 'TEMPLATES' | 'USERS' | 'COMPANIES_CLIENT' | 'COMPANY_ISSUER' | 'AI_PROMPT' | 'DASHBOARD_TEMPLATE'>('ROLES');
   // Company Issuer Settings State
   const [issuerSettings, setIssuerSettings] = useState<IssuerSettings | null>(null);
   const [loadingIssuer, setLoadingIssuer] = useState(false);
@@ -183,6 +186,7 @@ export default function MasterDataPage() {
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<WBSTemplate | null>(null);
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
+  const [dashboardTemplate, setDashboardTemplate] = useState<DashboardTemplateId>('classic');
 
   // New Template form state
   const [tplName, setTplName] = useState('');
@@ -222,6 +226,17 @@ export default function MasterDataPage() {
     } finally {
       setLoadingTemplates(false);
     }
+  };
+
+  useEffect(() => {
+    setDashboardTemplate(resolveDashboardTemplate(window.localStorage.getItem(DASHBOARD_TEMPLATE_KEY)) as DashboardTemplateId);
+  }, []);
+
+  const selectDashboardTemplate = (template: DashboardTemplateId) => {
+    window.localStorage.setItem(DASHBOARD_TEMPLATE_KEY, template);
+    setDashboardTemplate(template);
+    setSuccessMsg(`Template dashboard “${DASHBOARD_TEMPLATES.find((item) => item.id === template)?.name}” aktif untuk browser ini.`);
+    setErrorMsg(null);
   };
 
   useEffect(() => {
@@ -453,6 +468,7 @@ export default function MasterDataPage() {
               >
                 Master Template WBS ({templates.length})
               </button>
+              <button type="button" onClick={() => { setActiveTab('DASHBOARD_TEMPLATE'); setErrorMsg(null); setSuccessMsg(null); }} className={activeTab === 'DASHBOARD_TEMPLATE' ? 'btn-primary' : 'btn-ghost'} style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}>Template Dashboard</button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('COMPANIES_CLIENT'); fetchClientCompanies(); setErrorMsg(null); setSuccessMsg(null); }}
@@ -718,6 +734,39 @@ export default function MasterDataPage() {
               </table>
             </div>
           </div>
+        )}
+
+        {activeTab === 'DASHBOARD_TEMPLATE' && (
+          <section className="linear-card" style={{ padding: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', color: 'var(--text-tertiary)', marginBottom: 7 }}>PREFERENSI TAMPILAN</div>
+                <h2 style={{ fontSize: 20, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-.03em' }}>Template dashboard</h2>
+                <p style={{ maxWidth: 660, fontSize: 13, color: 'var(--text-tertiary)', marginTop: 6 }}>Pilih tampilan untuk dashboard bisnis. Perubahan tersimpan di browser ini dan langsung berlaku saat membuka Dashboard.</p>
+              </div>
+              <Link href="/dashboard" className="btn-secondary" style={{ padding: '9px 14px', textDecoration: 'none', fontSize: 12 }}>Buka dashboard ↗</Link>
+            </div>
+            <div role="group" aria-label="Pilih template dashboard" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 16 }}>
+              {DASHBOARD_TEMPLATES.map((template) => {
+                const selected = dashboardTemplate === template.id;
+                const corporate = template.id === 'corporate';
+                return (
+                  <button key={template.id} type="button" aria-pressed={selected} onClick={() => selectDashboardTemplate(template.id as DashboardTemplateId)} style={{ textAlign: 'left', cursor: 'pointer', padding: 0, color: 'inherit', background: 'transparent', border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`, borderRadius: 11, overflow: 'hidden', boxShadow: selected ? '0 0 0 2px var(--accent-light)' : 'none', transition: 'border-color .16s ease, box-shadow .16s ease' }}>
+                    <div aria-hidden="true" style={{ height: 160, padding: 13, background: corporate ? '#f4f6f8' : '#101114', display: 'grid', gridTemplateRows: '20px 1fr', gap: 9 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: corporate ? '#173956' : '#6976de' }} /><span style={{ width: 50, height: 4, borderRadius: 5, background: corporate ? '#788697' : '#62656e' }} /></div>
+                      {corporate ? <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 7 }}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>{[0,1,2,3].map((n) => <i key={n} style={{ border: '1px solid #e0e5eb', borderRadius: 5, background: '#fff' }} />)}</div><div style={{ display: 'grid', gridTemplateColumns: '1.15fr .85fr', gap: 6 }}><i style={{ border: '1px solid #e0e5eb', borderRadius: 5, background: '#fff' }} /><i style={{ border: '1px solid #e0e5eb', borderRadius: 5, background: '#fff' }} /></div></div> : <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 7 }}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>{[0,1,2,3].map((n) => <i key={n} style={{ border: '1px solid #292b33', borderRadius: 5, background: '#1a1c21' }} />)}</div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>{[0,1,2].map((n) => <i key={n} style={{ border: '1px solid #292b33', borderRadius: 5, background: '#1a1c21' }} />)}</div></div>}
+                    </div>
+                    <div style={{ padding: '16px 17px 18px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}><span style={{ fontSize: 14, fontWeight: 650 }}>{template.name}</span><span style={{ fontSize: 10, fontWeight: 650, color: selected ? 'var(--color-success)' : 'var(--text-tertiary)' }}>{selected ? 'AKTIF' : 'PILIH'}</span></div>
+                      <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.55 }}>{template.description}</p>
+                      {corporate && <ul style={{ listStyle: 'none', display: 'grid', gap: 5, marginTop: 13, fontSize: 11, color: 'var(--text-secondary)' }}><li>✓ Fokus pada metrik kontrak dan arus kas</li><li>✓ Layout ringkas, responsif, mudah dipindai</li><li>✓ Tidak menampilkan margin atau tarif role</li></ul>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text-tertiary)', fontSize: 11, lineHeight: 1.6 }}>Preferensi ini tersimpan per browser. Template Classic tetap tersedia sebagai pilihan kembali.</div>
+          </section>
         )}
 
         {/* TAB 2: MASTER TEMPLATES */}

@@ -159,16 +159,16 @@ interface RawDraftStructure {
 // Helper: Parse spreadsheets (.xlsx, .xls, .csv)
 async function parseSpreadsheet(buffer: Buffer, filename: string): Promise<string> {
   try {
-    const ExcelJS = require('exceljs');
+    const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
-    
+    await workbook.xlsx.load(Buffer.from(buffer) as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+
     let text = `[Spreadsheet: ${filename}]\n`;
-    workbook.eachSheet((sheet: any) => {
+    workbook.eachSheet((sheet) => {
       text += `--- Sheet: ${sheet.name} ---\n`;
-      sheet.eachRow((row: any, rowNumber: number) => {
-        const values = row.values.slice(1); // Skip index 0 (Excel row metadata)
-        text += values.map((v: any) => v ?? '').join(',') + '\n';
+      sheet.eachRow((row) => {
+        const values = row.values as unknown[];
+        text += values.slice(1).map((value) => String(value ?? '')).join(',') + '\n';
       });
       text += '\n';
     });

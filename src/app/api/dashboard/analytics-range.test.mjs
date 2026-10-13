@@ -9,8 +9,12 @@ test('cashflow metrics only count schedules from latest won proposals', () => {
   const cashflowQuery = dashboardSource.split('// 2. Cashflow & Billing Health')[1]?.split('// 3. Costing & Estimation Insights')[0] || '';
   assert.match(cashflowQuery, /latest_won\s+AS\s*\(/);
   assert.match(cashflowQuery, /cp\.deal_status\s*=\s*'won'/);
-  assert.match(cashflowQuery, /JOIN latest_won lw ON lw\.id = pmi\.proposal_id/);
+  assert.match(cashflowQuery, /JOIN latest_won lw ON lw\.proposal_number = cp\.proposal_number/);
+  assert.match(cashflowQuery, /WHERE \(lw\.id = cp\.id AND NOT EXISTS/);
+  assert.match(cashflowQuery, /history\.billing_type = pmi\.billing_type AND history\.term_index = pmi\.term_index/);
+  assert.match(cashflowQuery, /OR pmi\.billing_status IN \('invoiced', 'paid', 'overdue'\)/);
   assert.match(cashflowQuery, /SELECT SUM\(grand_total\) FROM latest_won/);
+  assert.match(cashflowQuery, /GREATEST\(pmi\.amount - COALESCE\(pmi\.paid_amount, 0\), 0\) AS outstanding_amount/);
 });
 
 test('accepts supported dashboard ranges and leaves all-time unbounded', () => {

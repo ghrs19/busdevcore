@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { latestEstimateFilter } from '@/lib/commercial-workflow';
 import { getDashboardRange } from '../analytics-range.mjs';
 
 export async function GET(request: Request) {
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
     // 2. Cashflow & Billing Health: latest WON version only; drafts and superseded revisions are not commitments.
     const cashflowRes = await pool.query(`
       WITH latest_won AS (
-        SELECT cp.id, cp.grand_total
+        SELECT cp.id, cp.proposal_number, cp.grand_total
         FROM commercial_proposals cp
         WHERE cp.deal_status = 'won'
           AND cp.version = (
@@ -45,21 +46,29 @@ export async function GET(request: Request) {
             WHERE cp2.proposal_number = cp.proposal_number
           )
       ), schedule AS (
-        SELECT pmi.*,
-          CASE WHEN pmi.billing_status = 'overdue'
-                 OR (pmi.billing_status = 'invoiced' AND pmi.due_date < CURRENT_DATE)
-               THEN 'overdue' ELSE pmi.billing_status END AS effective_status
-        FROM payment_milestone_invoices pmi
-        JOIN latest_won lw ON lw.id = pmi.proposal_id
+        SELECT pmi.*, (lw.id = cp.id) AS is_current,
+          CASE WHEN pmi.billing_status = 'paid' THEN 'paid'
+               WHEN pmi.billing_status = 'overdue' OR (pmi.billing_status = 'invoiced' AND pmi.due_date < CURRENT_DATE) THEN 'overdue'
+               ELSE pmi.billing_status END AS effective_status,
+          GREATEST(pmi.amount - COALESCE(pmi.paid_amount, 0), 0) AS outstanding_amount
+        FROM payment_milestone_invoices pmi JOIN commercial_proposals cp ON cp.id = pmi.proposal_id
+        JOIN latest_won lw ON lw.proposal_number = cp.proposal_number
+        WHERE (lw.id = cp.id AND NOT EXISTS (
+          SELECT 1 FROM payment_milestone_invoices history
+          JOIN commercial_proposals older ON older.id = history.proposal_id
+          WHERE older.proposal_number = cp.proposal_number AND older.id <> cp.id
+            AND history.billing_type = pmi.billing_type AND history.term_index = pmi.term_index
+            AND history.billing_status IN ('invoiced', 'paid', 'overdue')
+        )) OR pmi.billing_status IN ('invoiced', 'paid', 'overdue')
       )
       SELECT
         COALESCE((SELECT SUM(grand_total) FROM latest_won), 0) AS total_contract_committed,
-        COALESCE(SUM(CASE WHEN effective_status = 'paid' THEN COALESCE(paid_amount, amount) ELSE 0 END), 0) AS total_cash_collected,
-        COALESCE(SUM(CASE WHEN effective_status = 'invoiced' THEN amount ELSE 0 END), 0) AS total_invoiced_pending,
-        COALESCE(SUM(CASE WHEN effective_status = 'overdue' THEN amount ELSE 0 END), 0) AS total_overdue_amount,
+        COALESCE(SUM(CASE WHEN effective_status IN ('paid', 'invoiced', 'overdue') THEN COALESCE(paid_amount, CASE WHEN effective_status = 'paid' THEN amount ELSE 0 END) ELSE 0 END), 0) AS total_cash_collected,
+        COALESCE(SUM(CASE WHEN effective_status = 'invoiced' THEN outstanding_amount ELSE 0 END), 0) AS total_invoiced_pending,
+        COALESCE(SUM(CASE WHEN effective_status = 'overdue' THEN outstanding_amount ELSE 0 END), 0) AS total_overdue_amount,
         COALESCE(SUM(CASE WHEN effective_status = 'unbilled' THEN amount ELSE 0 END), 0) AS total_unbilled_schedule,
-        COALESCE(SUM(CASE WHEN billing_type = 'recurring_monthly' AND effective_status != 'paid' THEN amount ELSE 0 END), 0) AS recurring_annual_pipeline,
-        COALESCE(ROUND(AVG(CASE WHEN billing_type = 'recurring_monthly' THEN amount END)), 0) AS current_mrr,
+        COALESCE(SUM(CASE WHEN billing_type = 'recurring_monthly' AND effective_status != 'paid' THEN outstanding_amount ELSE 0 END), 0) AS recurring_annual_pipeline,
+        COALESCE(ROUND(AVG(CASE WHEN billing_type = 'recurring_monthly' AND is_current THEN amount END)), 0) AS current_mrr,
         COUNT(*) FILTER (WHERE effective_status = 'paid')::int AS count_paid,
         COUNT(*) FILTER (WHERE effective_status = 'invoiced')::int AS count_invoiced,
         COUNT(*) FILTER (WHERE effective_status = 'overdue')::int AS count_overdue,
@@ -74,7 +83,7 @@ export async function GET(request: Request) {
         COALESCE(SUM(total_hours), 0) as total_manhours_quoted,
         COALESCE(SUM(total_cost), 0) as total_cogs_quoted,
         COALESCE(AVG(total_hours), 0) as avg_manhours_per_project
-      FROM project_estimates
+      FROM project_estimates e WHERE ${latestEstimateFilter}
     `);
 
     // 4. Role Hours Breakdown: jam per orang (role_hours) dijumlah per KODE ROLE lewat snapshot tiap estimasi.
@@ -87,6 +96,7 @@ export async function GET(request: Request) {
       JOIN project_estimates pe ON pe.id = em.estimate_id
       CROSS JOIN LATERAL jsonb_each_text(COALESCE(et.role_hours, '{}'::jsonb)) AS rh(key, value)
       JOIN LATERAL jsonb_each(COALESCE(pe.rate_snapshots, '{}'::jsonb)) AS snap(key, value) ON snap.key = rh.key
+      WHERE ${latestEstimateFilter.replace(/\be\./g, 'pe.')}
       GROUP BY snap.value->>'code'
     `);
 

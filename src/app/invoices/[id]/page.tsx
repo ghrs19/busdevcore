@@ -124,7 +124,7 @@ function InvoiceDetailPageInner() {
       invoice_date: invoice.invoice_date ? invoice.invoice_date.split('T')[0] : '',
       due_date: invoice.due_date ? invoice.due_date.split('T')[0] : '',
       paid_date: invoice.paid_date ? invoice.paid_date.split('T')[0] : '',
-      paid_amount: Number(invoice.paid_amount) || Number(invoice.amount) || 0,
+      paid_amount: Number(invoice.paid_amount) || 0,
       proof_reference: invoice.proof_reference || '',
       notes: invoice.notes || '',
     });
@@ -381,7 +381,7 @@ function InvoiceDetailPageInner() {
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Status Realisasi Bayar</span>
                 <span style={{ fontSize: '12.5px', fontWeight: 700, color: isPaid ? '#10b981' : 'var(--text-tertiary)' }}>
-                  {isPaid ? `Lunas (${formatIDR(invoice.paid_amount || invoice.amount)})` : 'Belum Diterima'}
+                  {isPaid ? `Lunas (${formatIDR(invoice.paid_amount || invoice.amount)})` : Number(invoice.paid_amount) > 0 ? `Diterima ${formatIDR(Number(invoice.paid_amount) || 0)} · Sisa ${formatIDR(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)))}` : 'Belum Diterima'}
                 </span>
               </div>
 

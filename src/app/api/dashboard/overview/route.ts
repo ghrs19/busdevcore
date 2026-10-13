@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { latestEstimateFilter } from '@/lib/commercial-workflow';
 
 export async function GET() {
   try {
@@ -29,21 +30,37 @@ export async function GET() {
 
     // 2. Cashflow & Invoicing Stats
     const invoiceRes = await pool.query(`
-      SELECT 
-        COALESCE(SUM(amount), 0) as total_contract_value,
-        COALESCE(SUM(CASE WHEN billing_status = 'paid' THEN paid_amount ELSE 0 END), 0) as total_cash_received,
-        COALESCE(SUM(CASE WHEN billing_status = 'invoiced' THEN amount ELSE 0 END), 0) as total_pending_receivables,
-        COALESCE(SUM(CASE WHEN billing_status = 'overdue' THEN amount ELSE 0 END), 0) as total_overdue_receivables,
-        COALESCE(SUM(CASE WHEN billing_status = 'unbilled' THEN amount ELSE 0 END), 0) as total_unbilled_pipeline,
-        COUNT(CASE WHEN billing_status = 'paid' THEN 1 END)::int as paid_count,
-        COUNT(CASE WHEN billing_status = 'invoiced' THEN 1 END)::int as invoiced_count,
-        COUNT(CASE WHEN billing_status = 'overdue' THEN 1 END)::int as overdue_count
-      FROM payment_milestone_invoices
+      WITH latest_won AS (
+        SELECT cp.id, cp.proposal_number FROM commercial_proposals cp WHERE cp.deal_status = 'won'
+          AND cp.version = (SELECT MAX(cp2.version) FROM commercial_proposals cp2 WHERE cp2.proposal_number = cp.proposal_number)
+      ), current_rows AS (
+        SELECT pmi.*, CASE WHEN pmi.billing_status = 'paid' THEN 'paid'
+          WHEN pmi.billing_status = 'overdue' OR (pmi.billing_status = 'invoiced' AND pmi.due_date < CURRENT_DATE) THEN 'overdue'
+          ELSE pmi.billing_status END AS effective_status,
+          GREATEST(pmi.amount - COALESCE(pmi.paid_amount, 0), 0) AS outstanding_amount
+        FROM payment_milestone_invoices pmi JOIN commercial_proposals cp ON cp.id = pmi.proposal_id
+        JOIN latest_won lw ON lw.proposal_number = cp.proposal_number
+        WHERE (lw.id = cp.id AND NOT EXISTS (
+          SELECT 1 FROM payment_milestone_invoices history
+          JOIN commercial_proposals older ON older.id = history.proposal_id
+          WHERE older.proposal_number = cp.proposal_number AND older.id <> cp.id
+            AND history.billing_type = pmi.billing_type AND history.term_index = pmi.term_index
+            AND history.billing_status IN ('invoiced', 'paid', 'overdue')
+        )) OR pmi.billing_status IN ('invoiced', 'paid', 'overdue')
+      )
+      SELECT COALESCE(SUM(CASE WHEN effective_status IN ('paid', 'invoiced', 'overdue') THEN COALESCE(paid_amount, CASE WHEN effective_status = 'paid' THEN amount ELSE 0 END) ELSE 0 END), 0) AS total_cash_received,
+        COALESCE(SUM(CASE WHEN effective_status = 'invoiced' THEN outstanding_amount ELSE 0 END), 0) AS total_pending_receivables,
+        COALESCE(SUM(CASE WHEN effective_status = 'overdue' THEN outstanding_amount ELSE 0 END), 0) AS total_overdue_receivables,
+        COALESCE(SUM(CASE WHEN effective_status = 'unbilled' THEN amount ELSE 0 END), 0) AS total_unbilled_pipeline,
+        COUNT(*) FILTER (WHERE effective_status = 'paid')::int AS paid_count,
+        COUNT(*) FILTER (WHERE effective_status = 'invoiced')::int AS invoiced_count,
+        COUNT(*) FILTER (WHERE effective_status = 'overdue')::int AS overdue_count
+      FROM current_rows
     `);
 
     // 3. Estimates Count
     const estRes = await pool.query(`
-      SELECT COUNT(*)::int as total_estimates FROM project_estimates
+      SELECT COUNT(*)::int as total_estimates FROM project_estimates e WHERE ${latestEstimateFilter}
     `);
 
     // 4. Recent Deals Won
@@ -53,6 +70,7 @@ export async function GET() {
       JOIN companies c ON cp.company_id = c.id
       JOIN projects p ON cp.project_id = p.id
       WHERE cp.deal_status = 'won'
+        AND cp.version = (SELECT MAX(cp2.version) FROM commercial_proposals cp2 WHERE cp2.proposal_number = cp.proposal_number)
       ORDER BY cp.updated_at DESC
       LIMIT 5
     `);

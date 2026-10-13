@@ -3,6 +3,7 @@ import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { persistCommercialSchedule } from '@/lib/commercial-schedule';
 import { resolveCommercialPricing } from '@/lib/commercial-pricing-server';
+import { writeAudit } from '@/lib/audit';
 // Schedule reconciliation locks payment_milestone_invoices FOR UPDATE; protected billing_status NOT IN ('invoiced', 'paid'); MAX(term_index), nextTermIndex; INSERT ... ON CONFLICT (proposal_id, billing_type, term_index) DO NOTHING.
 
 export async function GET(
@@ -141,7 +142,7 @@ export async function PUT(
       await client.query('BEGIN');
     // 1. Fetch current proposal to determine root parent and proposal number
     const currentRes = await client.query(
-      `SELECT * FROM commercial_proposals WHERE id = $1`,
+      `SELECT * FROM commercial_proposals WHERE id = $1 FOR UPDATE`,
       [proposalId]
     );
 
@@ -153,6 +154,24 @@ export async function PUT(
     const currentProposal = currentRes.rows[0];
     const rootId = currentProposal.parent_id || currentProposal.id;
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`proposal-revision:${rootId}`]);
+    const latestRes = await client.query(`SELECT id FROM commercial_proposals WHERE proposal_number = $1 ORDER BY version DESC, id DESC LIMIT 1`, [currentProposal.proposal_number]);
+    if (latestRes.rows[0]?.id !== proposalId) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, error: 'Revisi lama tidak dapat direvisi; buka versi terbaru.' }, { status: 409 });
+    }
+    if (['won', 'lost'].includes(currentProposal.deal_status)) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, error: 'Proposal final tidak dapat direvisi. Gunakan proses addendum kontrak.' }, { status: 409 });
+    }
+    const issued = await client.query(`
+      SELECT COUNT(*)::int AS count FROM payment_milestone_invoices pmi
+      JOIN commercial_proposals cp ON cp.id = pmi.proposal_id
+      WHERE cp.proposal_number = $1 AND (pmi.billing_status IN ('invoiced', 'overdue', 'paid') OR pmi.proof_file_url IS NOT NULL)
+    `, [currentProposal.proposal_number]);
+    if (Number(issued.rows[0]?.count) > 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, error: 'Proposal dengan invoice terbit/pembayaran tidak dapat direvisi; perubahan kontrak perlu addendum agar tagihan tidak ganda.' }, { status: 409 });
+    }
 
     // 2. Determine highest version in this chain
     const maxVerRes = await client.query(
@@ -179,6 +198,24 @@ export async function PUT(
       category_pricing,
       show_marketing_fee_in_client_docs,
     } = body; // cogs/margin/base/subtotal/tax/grand total dari klien diabaikan; server menghitung ulang dari category_pricing
+
+    const revisedCompanyId = company_id || currentProposal.company_id;
+    const revisedProjectId = project_id || currentProposal.project_id;
+    const revisedEstimateId = estimate_id || currentProposal.estimate_id;
+    if (Number(revisedCompanyId) !== Number(currentProposal.company_id) || Number(revisedProjectId) !== Number(currentProposal.project_id)) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, error: 'Perusahaan dan proyek proposal tidak dapat diganti saat revisi; buat proposal baru untuk scope berbeda.' }, { status: 400 });
+    }
+    const source = await client.query(`
+      SELECT e.company_id, e.project_id, e.version,
+        p.company_id AS project_company_id,
+        (SELECT MAX(e2.version) FROM project_estimates e2 WHERE COALESCE(e2.parent_id, e2.id) = COALESCE(e.parent_id, e.id)) AS latest_version
+      FROM project_estimates e LEFT JOIN projects p ON p.id = e.project_id WHERE e.id = $1 FOR SHARE OF e
+    `, [revisedEstimateId]);
+    if (!source.rows.length || Number(source.rows[0].company_id) !== Number(revisedCompanyId) || Number(source.rows[0].project_id) !== Number(revisedProjectId) || Number(source.rows[0].project_company_id) !== Number(revisedCompanyId) || Number(source.rows[0].version) !== Number(source.rows[0].latest_version)) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, error: 'Estimasi harus versi terbaru dan harus cocok dengan perusahaan serta proyek proposal.' }, { status: 400 });
+    }
 
     const priced = resolveCommercialPricing({ category_pricing, discount_type, discount_value, is_tax_enabled });
     if (!priced.ok) {
@@ -236,6 +273,7 @@ export async function PUT(
 
     const estimateRes = await client.query('SELECT maintenance_config, infrastructure_items FROM project_estimates WHERE id = $1', [estimate_id || currentProposal.estimate_id]);
     await persistCommercialSchedule(client, insertRes.rows[0].id, { payment_terms, margin_percent: priced.totals.margin_percent, maintenance_margin_percent: priced.pricing.MAINTENANCE?.margin_percent, infrastructure_margin_percent: priced.pricing.INFRASTRUCTURE?.margin_percent, maintenance_billing_mode: maintenance_billing_mode || currentProposal.maintenance_billing_mode, created_at: insertRes.rows[0].created_at }, estimateRes.rows[0] || {}, user.id);
+    await writeAudit(client, { userId: user.id, entityType: 'commercial_proposal', entityId: insertRes.rows[0].id, action: 'REVISION_CREATE', details: { before: { proposal_id: currentProposal.id, version: currentProposal.version, status: currentProposal.deal_status, grand_total: currentProposal.grand_total }, after: { proposal_id: insertRes.rows[0].id, version: nextVersion, grand_total: priced.totals.grand_total }, proposal_number: currentProposal.proposal_number } });
     await client.query('COMMIT');
     return NextResponse.json({
       success: true,
@@ -270,12 +308,35 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'ID proposal tidak valid' }, { status: 400 });
     }
 
-    const delRes = await pool.query('DELETE FROM commercial_proposals WHERE id = $1', [proposalId]);
-    if (delRes.rowCount === 0) {
-      return NextResponse.json({ success: false, error: 'Proposal tidak ditemukan' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, message: 'Proposal berhasil dihapus' });
+    if (user.role !== 'admin') return NextResponse.json({ success: false, error: 'Hanya admin boleh menghapus proposal.' }, { status: 403 });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const found = await client.query('SELECT * FROM commercial_proposals WHERE id = $1 FOR UPDATE', [proposalId]);
+      if (!found.rows.length) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, error: 'Proposal tidak ditemukan' }, { status: 404 });
+      }
+      const proposal = found.rows[0];
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`proposal-revision:${proposal.parent_id || proposal.id}`]);
+      const latest = await client.query('SELECT id FROM commercial_proposals WHERE proposal_number = $1 ORDER BY version DESC, id DESC LIMIT 1', [proposal.proposal_number]);
+      if (latest.rows[0]?.id !== proposalId || proposal.deal_status !== 'draft') {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, error: 'Hanya proposal draft terbaru yang boleh dihapus.' }, { status: 409 });
+      }
+      const billing = await client.query("SELECT COUNT(*)::int AS count FROM payment_milestone_invoices WHERE proposal_id = $1 AND (billing_status != 'unbilled' OR proof_file_url IS NOT NULL)", [proposalId]);
+      if (billing.rows[0].count > 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, error: 'Proposal dengan invoice terbit, pembayaran, atau bukti tidak dapat dihapus.' }, { status: 409 });
+      }
+      await writeAudit(client, { userId: user.id, entityType: 'commercial_proposal', entityId: proposalId, action: 'DELETE', details: { proposal_number: proposal.proposal_number, version: proposal.version, status: proposal.deal_status, grand_total: proposal.grand_total } });
+      await client.query('DELETE FROM commercial_proposals WHERE id = $1', [proposalId]);
+      await client.query('COMMIT');
+      return NextResponse.json({ success: true, message: 'Proposal berhasil dihapus' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally { client.release(); }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Database error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

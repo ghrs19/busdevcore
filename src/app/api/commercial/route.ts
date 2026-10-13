@@ -3,6 +3,7 @@ import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { persistCommercialSchedule } from '@/lib/commercial-schedule';
 import { resolveCommercialPricing } from '@/lib/commercial-pricing-server';
+import { writeAudit } from '@/lib/audit';
 // Schedule reconciliation in persistCommercialSchedule: payment_milestone_invoices, FOR UPDATE,
 // billing_status NOT IN ('invoiced', 'paid'), MAX(term_index), nextTermIndex,
 // INSERT ... ON CONFLICT (proposal_id, billing_type, term_index) DO NOTHING.
@@ -107,6 +108,17 @@ export async function POST(req: Request) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      const source = await client.query(`
+        SELECT e.id, e.company_id, e.project_id, e.parent_id, e.version,
+          p.company_id AS project_company_id,
+          (SELECT MAX(e2.version) FROM project_estimates e2 WHERE COALESCE(e2.parent_id, e2.id) = COALESCE(e.parent_id, e.id)) AS latest_version
+        FROM project_estimates e LEFT JOIN projects p ON p.id = e.project_id
+        WHERE e.id = $1 FOR SHARE OF e
+      `, [estimate_id]);
+      if (!source.rows.length || Number(source.rows[0].company_id) !== Number(company_id) || Number(source.rows[0].project_id) !== Number(project_id) || Number(source.rows[0].project_company_id) !== Number(company_id) || Number(source.rows[0].version) !== Number(source.rows[0].latest_version)) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, error: 'Estimasi harus versi terbaru dan harus cocok dengan perusahaan serta proyek yang dipilih.' }, { status: 400 });
+      }
     // Generate Proposal Number: QUO/YYYY/MM/XXXX
     const now = new Date();
     const year = now.getFullYear();
@@ -165,6 +177,7 @@ export async function POST(req: Request) {
 
     const estimateRes = await client.query('SELECT maintenance_config, infrastructure_items FROM project_estimates WHERE id = $1', [estimate_id]);
     await persistCommercialSchedule(client, insertRes.rows[0].id, { payment_terms, margin_percent: priced.totals.margin_percent, maintenance_margin_percent: priced.pricing.MAINTENANCE?.margin_percent, infrastructure_margin_percent: priced.pricing.INFRASTRUCTURE?.margin_percent, maintenance_billing_mode, created_at: insertRes.rows[0].created_at }, estimateRes.rows[0] || {}, user.id);
+    await writeAudit(client, { userId: user.id, entityType: 'commercial_proposal', entityId: insertRes.rows[0].id, action: 'CREATE', details: { proposal_number, version: 1, estimate_id, company_id, project_id, grand_total: priced.totals.grand_total } });
     await client.query('COMMIT');
     return NextResponse.json({
       success: true,
