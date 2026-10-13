@@ -155,12 +155,15 @@ function NavbarContent() {
           <img
             src="/logo-pentacode.png"
             alt="PT Penta Code Digital"
-            style={{
-              height: '30px',
-              width: 'auto',
-              objectFit: 'contain',
-              display: 'block',
-            }}
+            className="brand-logo-dark"
+            style={{ height: '30px', width: 'auto', objectFit: 'contain', display: 'block' }}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-pentacode-light.jpg"
+            alt="PT Penta Code Digital"
+            className="brand-logo-light"
+            style={{ height: '30px', width: 'auto', objectFit: 'contain', display: 'none' }}
           />
         </Link>
 

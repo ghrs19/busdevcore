@@ -71,6 +71,15 @@ html {
   background-color: var(--bg-canvas);
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+.brand-logo-dark { display: block !important; }
+.brand-logo-light { display: none !important; }
+[data-theme="light"] .brand-logo-dark { display: none !important; }
+[data-theme="light"] .brand-logo-light { display: block !important; }
+
 body {
   min-height: 100%;
   background-color: var(--bg-canvas);
