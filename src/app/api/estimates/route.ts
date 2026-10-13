@@ -254,7 +254,9 @@ export async function POST(req: Request) {
     // Rate snapshot = daftar orang (role - nama - rate) yang dikirim dari form costing.
     // Role di master hanya dipakai untuk memvalidasi kode role yang dipilih user.
     const roleRows = await client.query('SELECT code FROM role_masters WHERE is_active = TRUE');
-    const parsedSnapshot = parseRateSnapshotInput(rate_snapshots, roleRows.rows.map((r: { code: string }) => r.code));
+    const workerRows = await client.query('SELECT id, name FROM workers WHERE is_active = TRUE');
+    const workerRegistry = new Map<number, string>(workerRows.rows.map((w: { id: number; name: string }) => [w.id, w.name]));
+    const parsedSnapshot = parseRateSnapshotInput(rate_snapshots, roleRows.rows.map((r: { code: string }) => r.code), workerRegistry);
     if (!parsedSnapshot.ok) {
       return NextResponse.json({ success: false, error: parsedSnapshot.error }, { status: 400 });
     }

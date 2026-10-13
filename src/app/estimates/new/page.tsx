@@ -97,6 +97,7 @@ function NewEstimateForm() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [roles, setRoles] = useState<RoleMaster[]>([]);
   const [people, setPeople] = useState<PersonRateSnapshot>({});
+  const [workers, setWorkers] = useState<Array<{ id: number; name: string; hourly_rate: number }>>([]);
   const rates = useMemo<RoleRateMap>(() => Object.fromEntries(Object.entries(people).map(([k, v]) => [k, v.rate])), [people]);
 
   // Project states
@@ -404,12 +405,15 @@ function NewEstimateForm() {
   // Load initial metadata
   const loadMetadata = useCallback(async () => {
     try {
-      const [res, rolesRes] = await Promise.all([
+      const [res, rolesRes, workersRes] = await Promise.all([
         fetch('/api/metadata'),
         fetch('/api/roles?active_only=true'),
+        fetch('/api/workers?active_only=true'),
       ]);
       const data = await res.json();
       const rolesData = await rolesRes.json();
+      const workersData = await workersRes.json().catch(() => ({}));
+      if (workersData.success && Array.isArray(workersData.workers)) setWorkers(workersData.workers);
 
       let activeRoles: RoleMaster[] = [];
       if (rolesData.success && Array.isArray(rolesData.roles)) {
@@ -584,9 +588,9 @@ function NewEstimateForm() {
         // 5. Rate snapshot = orang (role - nama - rate)
         const loadedPeople: PersonRateSnapshot = {};
         if (est.rate_snapshots && typeof est.rate_snapshots === 'object') {
-          Object.entries(est.rate_snapshots as Record<string, { code?: string; name?: string; rate?: number }>).forEach(([key, item]) => {
+          Object.entries(est.rate_snapshots as Record<string, { code?: string; name?: string; rate?: number; worker_id?: number }>).forEach(([key, item]) => {
             if (item && typeof item === 'object') {
-              loadedPeople[key] = { code: String(item.code || ''), name: String(item.name || ''), rate: Number(item.rate) || 0 };
+              loadedPeople[key] = { code: String(item.code || ''), name: String(item.name || ''), rate: Number(item.rate) || 0, ...(Number.isInteger(Number((item as { worker_id?: number }).worker_id)) ? { worker_id: Number((item as { worker_id?: number }).worker_id) } : {}) };
             }
           });
         }
@@ -1077,14 +1081,25 @@ function NewEstimateForm() {
 
   // ---- Rate Snapshot (orang): tambah / ubah / hapus ----
   const addPerson = () => {
+    if (workers.length === 0) {
+      setErrorMsg('Belum ada worker terdaftar. Tambahkan dulu di Master Data > Master Worker.');
+      return;
+    }
     setPeople((prev) => ({
       ...prev,
       [nextPersonKey(Object.keys(prev))]: { code: roles[0]?.code || '', name: '', rate: 0 },
     }));
   };
 
-  const updatePerson = (key: string, patch: Partial<{ code: string; name: string; rate: number }>) => {
+  const updatePerson = (key: string, patch: Partial<{ code: string; name: string; rate: number; worker_id: number }>) => {
     setPeople((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+  };
+
+  // Pilih worker dari master: nama dan rate default ikut terisi (rate masih bisa disesuaikan di estimasi ini).
+  const selectWorker = (key: string, workerId: number) => {
+    const w = workers.find((x) => x.id === workerId);
+    if (!w) return;
+    updatePerson(key, { worker_id: w.id, name: w.name, rate: w.hourly_rate });
   };
 
   const removePerson = (key: string) => {
@@ -1998,7 +2013,7 @@ function NewEstimateForm() {
                     </span>
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                    Daftar orang untuk costing: kode role, nama, dan rate per jam. Disimpan independen pada tiap estimate.
+                    Pilih kode role dan worker dari Master Worker; rate per jam terisi otomatis dan bisa disesuaikan. Disimpan independen pada tiap estimate.
                   </p>
                 </div>
               </div>
@@ -2037,7 +2052,7 @@ function NewEstimateForm() {
               >
                 {Object.keys(people).length === 0 && (
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', padding: '8px 0' }}>
-                    Belum ada orang. Klik &quot;+ Tambah Orang&quot; lalu pilih kode role, isi nama, dan rate per jam.
+                    Belum ada orang. Klik &quot;+ Tambah Orang&quot;, pilih kode role, lalu pilih worker dari Master Worker.
                   </div>
                 )}
                 {Object.entries(people).map(([key, person]) => (
@@ -2066,16 +2081,21 @@ function NewEstimateForm() {
                         <option key={r.code} value={r.code}>{r.code}</option>
                       ))}
                     </select>
-                    <input
-                      type="text"
+                    <select
                       className="linear-input"
-                      value={person.name}
-                      maxLength={100}
-                      placeholder="Nama orang"
-                      aria-label="Nama orang"
-                      onChange={(e) => updatePerson(key, { name: e.target.value })}
+                      value={person.worker_id ?? ''}
+                      onChange={(e) => selectWorker(key, Number(e.target.value))}
+                      aria-label="Worker"
                       style={{ fontSize: '12px', padding: '6px 8px' }}
-                    />
+                    >
+                      <option value="" disabled>— pilih worker —</option>
+                      {person.worker_id !== undefined && !workers.some((w) => w.id === person.worker_id) && (
+                        <option value={person.worker_id}>{person.name} (tidak aktif)</option>
+                      )}
+                      {workers.map((w) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Rp</span>
                       <input

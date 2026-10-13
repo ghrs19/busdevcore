@@ -39,7 +39,7 @@ interface WBSTemplate {
 }
 
 export default function MasterDataPage() {
-  const [activeTab, setActiveTab] = useState<'ROLES' | 'TEMPLATES' | 'USERS' | 'COMPANIES_CLIENT' | 'COMPANY_ISSUER' | 'AI_PROMPT'>('ROLES');
+  const [activeTab, setActiveTab] = useState<'ROLES' | 'WORKERS' | 'TEMPLATES' | 'USERS' | 'COMPANIES_CLIENT' | 'COMPANY_ISSUER' | 'AI_PROMPT'>('ROLES');
   // Company Issuer Settings State
   const [issuerSettings, setIssuerSettings] = useState<IssuerSettings | null>(null);
   const [loadingIssuer, setLoadingIssuer] = useState(false);
@@ -136,6 +136,38 @@ export default function MasterDataPage() {
   const [userForm, setUserForm] = useState<UserForm | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const fetchUsers = async () => { const [list, me] = await Promise.all([fetch('/api/users'), fetch('/api/auth/me')]); const data = await list.json(); const who = await me.json(); if (list.ok) setUsers(data.users); if (me.ok) setCurrentUserId(who.user.id); };
+
+  // Workers state (Master Worker: nama + rate per jam, tidak terhubung ke role)
+  interface WorkerItem { id: number; name: string; hourly_rate: number; is_active: boolean }
+  const [workers, setWorkers] = useState<WorkerItem[]>([]);
+  const [workerForm, setWorkerForm] = useState<{ id?: number; name: string; hourly_rate: string; is_active: boolean } | null>(null);
+  const [savingWorker, setSavingWorker] = useState(false);
+  const fetchWorkers = async () => {
+    const res = await fetch('/api/workers');
+    const data = await res.json();
+    if (res.ok && data.success) setWorkers(data.workers);
+    else setErrorMsg(data.error || 'Gagal memuat Master Worker.');
+  };
+  const handleSaveWorker = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workerForm) return;
+    setSavingWorker(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch('/api/workers', {
+        method: workerForm.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...workerForm, hourly_rate: Number(workerForm.hourly_rate) }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { setErrorMsg(data.error || 'Gagal menyimpan worker.'); return; }
+      setWorkerForm(null);
+      setSuccessMsg(`Worker '${data.worker.name}' berhasil disimpan.`);
+      fetchWorkers();
+    } finally {
+      setSavingWorker(false);
+    }
+  };
 
   // Roles state
   const [roles, setRoles] = useState<RoleMaster[]>([]);
@@ -411,6 +443,7 @@ export default function MasterDataPage() {
               >
                 Master Roles & Rates ({roles.length})
               </button>
+              <button type="button" onClick={() => { setActiveTab('WORKERS'); fetchWorkers(); setErrorMsg(null); setSuccessMsg(null); }} className={activeTab === 'WORKERS' ? 'btn-primary' : 'btn-ghost'} style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}>Master Worker ({workers.length})</button>
               <button type="button" onClick={() => { setActiveTab('USERS'); fetchUsers(); }} className={activeTab === 'USERS' ? 'btn-primary' : 'btn-ghost'} style={{ padding: '6px 16px', fontSize: '13px', borderRadius: '6px' }}>Manajemen User ({users.length})</button>
               <button
                 type="button"
@@ -463,6 +496,59 @@ export default function MasterDataPage() {
         )}
 
         {activeTab === 'USERS' && <section className="linear-card" style={{ padding: 24 }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}><h3>Manajemen User</h3><button className="btn-primary" onClick={() => setUserForm({ name: '', email: '', password: '', role: 'admin', is_active: true })}>+ Tambah User</button></div>{userForm && <form onSubmit={async e => { e.preventDefault(); const response = await fetch('/api/users', { method: userForm.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userForm) }); const result = await response.json(); if (!response.ok) { setErrorMsg(result.error); return; } setUserForm(null); fetchUsers(); }} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}><input className="linear-input" placeholder="Nama" required value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })}/><input className="linear-input" type="email" placeholder="Email" required value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })}/><input className="linear-input" type="password" placeholder={userForm.id ? 'Password baru (opsional)' : 'Password'} required={!userForm.id} value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })}/><select className="linear-input" value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })}><option value="admin">admin</option><option value="staff">staff</option><option value="user">user</option></select>{userForm.id && <label><input type="checkbox" checked={userForm.is_active} onChange={e => setUserForm({ ...userForm, is_active: e.target.checked })}/> Aktif</label>}<button className="btn-primary">Simpan</button><button type="button" className="btn-secondary" onClick={() => setUserForm(null)}>Batal</button></form>}<div style={{ overflowX: 'auto' }}><table className="linear-table" style={{ width: '100%' }}><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Status</th><th>Dibuat</th><th>Aksi</th></tr></thead><tbody>{users.map(user => <tr key={user.id}><td>{user.name}</td><td>{user.email}</td><td>{user.role}</td><td>{user.is_active ? 'Aktif' : 'Nonaktif'}</td><td>{new Date(user.created_at).toLocaleDateString('id-ID')}</td><td><button className="btn-secondary" onClick={() => setUserForm({ ...user, password: '' })}>Edit</button> <button className="btn-secondary" disabled={user.id === currentUserId} onClick={async () => { if (!confirm(`Hapus user ${user.email}?`)) return; const r = await fetch(`/api/users?id=${user.id}`, { method: 'DELETE' }); const d = await r.json(); if (!r.ok) setErrorMsg(d.error); else fetchUsers(); }}>Hapus</button></td></tr>)}</tbody></table></div></section>}
+
+        {/* TAB: MASTER WORKER */}
+        {activeTab === 'WORKERS' && (
+          <section className="linear-card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Master Worker</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  Daftar orang beserta rate per jam. Tidak terhubung ke role: kode role dipilih saat costing. Estimasi lama tidak berubah karena menyimpan snapshot sendiri.
+                </p>
+              </div>
+              {!workerForm && (
+                <button type="button" className="btn-primary" style={{ fontSize: 12 }} onClick={() => setWorkerForm({ name: '', hourly_rate: '', is_active: true })}>+ Tambah Worker</button>
+              )}
+            </div>
+            {workerForm && (
+              <form onSubmit={handleSaveWorker} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18, alignItems: 'center' }}>
+                <input className="linear-input" placeholder="Nama worker" required maxLength={100} value={workerForm.name} onChange={(e) => setWorkerForm({ ...workerForm, name: e.target.value })} style={{ minWidth: 240 }} />
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Rp</span>
+                <input className="linear-input font-mono-numbers" type="number" min="0" required placeholder="Rate per jam" value={workerForm.hourly_rate} onChange={(e) => setWorkerForm({ ...workerForm, hourly_rate: e.target.value })} style={{ width: 160, textAlign: 'right' }} />
+                {workerForm.id && (
+                  <label style={{ fontSize: 12 }}><input type="checkbox" checked={workerForm.is_active} onChange={(e) => setWorkerForm({ ...workerForm, is_active: e.target.checked })} /> Aktif</label>
+                )}
+                <button className="btn-primary" disabled={savingWorker}>{savingWorker ? 'Menyimpan...' : 'Simpan'}</button>
+                <button type="button" className="btn-secondary" onClick={() => setWorkerForm(null)}>Batal</button>
+              </form>
+            )}
+            <div style={{ overflowX: 'auto' }}>
+              <table className="linear-table" style={{ width: '100%' }}>
+                <thead><tr><th>Nama</th><th style={{ textAlign: 'right' }}>Rate / Jam</th><th>Status</th><th>Aksi</th></tr></thead>
+                <tbody>
+                  {workers.length === 0 && <tr><td colSpan={4} style={{ color: 'var(--text-tertiary)' }}>Belum ada worker.</td></tr>}
+                  {workers.map((w) => (
+                    <tr key={w.id}>
+                      <td>{w.name}</td>
+                      <td className="font-mono-numbers" style={{ textAlign: 'right' }}>{formatIDR(w.hourly_rate)}</td>
+                      <td>{w.is_active ? 'Aktif' : 'Nonaktif'}</td>
+                      <td>
+                        <button type="button" className="btn-secondary" onClick={() => setWorkerForm({ id: w.id, name: w.name, hourly_rate: String(w.hourly_rate), is_active: w.is_active })}>Edit</button>{' '}
+                        <button type="button" className="btn-secondary" onClick={async () => {
+                          if (!confirm(`Hapus worker ${w.name}? Estimasi yang sudah ada tidak berubah.`)) return;
+                          const r = await fetch(`/api/workers?id=${w.id}`, { method: 'DELETE' });
+                          const d = await r.json();
+                          if (!r.ok || !d.success) setErrorMsg(d.error || 'Gagal menghapus worker.'); else fetchWorkers();
+                        }}>Hapus</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {/* TAB 1: MASTER ROLES */}
         {activeTab === 'ROLES' && (

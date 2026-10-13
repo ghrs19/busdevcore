@@ -97,4 +97,23 @@ describe('rate snapshot (role - person - rate)', () => {
     assert.equal(est.cost_by_role.P1, 80000);
     assert.equal(est.cost_by_role.P2, 90000);
   });
+
+  it('with a worker registry: requires a registered worker and takes the name from the master', () => {
+    const reg = new Map([[7, 'Ade Isman Aji']]);
+    const ok = parseRateSnapshotInput({ P1: { code: 'WEB_DEV', name: 'spoofed', rate: 42771, worker_id: 7 } }, ROLES, reg);
+    assert.equal(ok.ok, true);
+    if (ok.ok) assert.deepEqual(ok.snapshot.P1, { code: 'WEB_DEV', name: 'Ade Isman Aji', rate: 42771, worker_id: 7 });
+    assert.equal(parseRateSnapshotInput({ P1: { code: 'WEB_DEV', name: 'A', rate: 1 } }, ROLES, reg).ok, false);
+    assert.equal(parseRateSnapshotInput({ P1: { code: 'WEB_DEV', name: 'A', rate: 1, worker_id: 99 } }, ROLES, reg).ok, false);
+    assert.equal(parseRateSnapshotInput({ P1: { code: 'WEB_DEV', name: 'A', rate: 1, worker_id: '7' } }, ROLES, reg).ok, false);
+  });
+  it('the same worker may hold two roles in one snapshot and labels stay distinguishable', () => {
+    const reg = new Map([[7, 'Ade Isman Aji']]);
+    const r = parseRateSnapshotInput({
+      P1: { code: 'WEB_DEV', name: 'x', rate: 1, worker_id: 7 },
+      P2: { code: 'UI_UX', name: 'x', rate: 1, worker_id: 7 },
+    }, ROLES, reg);
+    assert.equal(r.ok, true);
+    if (r.ok) assert.deepEqual(snapshotLabels(r.snapshot), { P1: 'WEB_DEV · AIA', P2: 'UI_UX · AIA' });
+  });
 });

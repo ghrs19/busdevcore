@@ -3,6 +3,7 @@ export interface PersonRateEntry {
   code: string;
   name: string;
   rate: number;
+  worker_id?: number;
 }
 export type PersonRateSnapshot = Record<string, PersonRateEntry>;
 
@@ -14,7 +15,13 @@ export type ParseResult =
   | { ok: true; snapshot: PersonRateSnapshot }
   | { ok: false; error: string };
 
-export function parseRateSnapshotInput(input: unknown, validRoleCodes: string[]): ParseResult {
+// `workers` (id -> master name): when given, every entry must reference a registered worker and the
+// stored name is taken from the master, not from the client.
+export function parseRateSnapshotInput(
+  input: unknown,
+  validRoleCodes: string[],
+  workers?: Map<number, string>
+): ParseResult {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return { ok: false, error: 'Rate snapshot wajib berupa daftar orang.' };
   }
@@ -33,9 +40,17 @@ export function parseRateSnapshotInput(input: unknown, validRoleCodes: string[])
     const name = typeof item.name === 'string' ? item.name.trim() : '';
     const rate = typeof item.rate === 'number' ? item.rate : Number.NaN;
     if (!roles.has(code)) return { ok: false, error: `Kode role tidak dikenal untuk ${key}.` };
-    if (!name || name.length > 100) return { ok: false, error: `Nama orang wajib diisi (maks 100 karakter) untuk ${key}.` };
+    let finalName = name;
+    let workerId: number | undefined;
+    if (workers) {
+      const wid = typeof item.worker_id === 'number' ? item.worker_id : Number.NaN;
+      if (!Number.isInteger(wid) || !workers.has(wid)) return { ok: false, error: `Worker belum dipilih atau tidak terdaftar untuk ${key}.` };
+      workerId = wid;
+      finalName = workers.get(wid) as string;
+    }
+    if (!finalName || finalName.length > 100) return { ok: false, error: `Nama orang wajib diisi (maks 100 karakter) untuk ${key}.` };
     if (!Number.isFinite(rate) || rate < 0 || rate > 100_000_000) return { ok: false, error: `Rate tidak valid untuk ${key}.` };
-    snapshot[key] = { code, name, rate };
+    snapshot[key] = workerId === undefined ? { code, name: finalName, rate } : { code, name: finalName, rate, worker_id: workerId };
   }
   return { ok: true, snapshot: { ...snapshot } };
 }

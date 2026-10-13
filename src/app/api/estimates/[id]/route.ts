@@ -194,7 +194,9 @@ export async function PUT(
     }
     if (bodySnapshot !== undefined) {
       const roleRows = await client.query('SELECT code FROM role_masters WHERE is_active = TRUE');
-      const parsed = parseRateSnapshotInput(bodySnapshot, roleRows.rows.map((r: { code: string }) => r.code));
+      const workerRows = await client.query('SELECT id, name FROM workers WHERE is_active = TRUE');
+      const workerRegistry = new Map<number, string>(workerRows.rows.map((w: { id: number; name: string }) => [w.id, w.name]));
+      const parsed = parseRateSnapshotInput(bodySnapshot, roleRows.rows.map((r: { code: string }) => r.code), workerRegistry);
       if (!parsed.ok) {
         await client.query('ROLLBACK');
         return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
