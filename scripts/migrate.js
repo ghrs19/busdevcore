@@ -3,20 +3,51 @@ const path = require('path');
 const { Pool } = require('pg');
 const { runMigrations } = require('./migration-runner');
 
-let databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  const envContent = fs.readFileSync(path.join(__dirname, '../.env'), 'utf-8');
-  for (const line of envContent.split('\n')) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('DATABASE_URL=')) {
-      databaseUrl = trimmed.substring('DATABASE_URL='.length).trim().replace(/^["']|["']$/g, '');
-      break;
+// Connection options mirror src/lib/db.ts: DATABASE_URL (any PostgreSQL,
+// e.g. Neon or self-hosted) wins; otherwise discrete DB_HOST / DB_PORT /
+// DB_NAME / DB_USER / DB_PASSWORD variables are used, each read from the
+// process environment first and then from the .env file. DB_SSL=true
+// enables TLS for the discrete-variable form.
+function readEnvFile() {
+  try {
+    const envContent = fs.readFileSync(path.join(__dirname, '../.env'), 'utf-8');
+    const values = {};
+    for (const line of envContent.split('\n')) {
+      const trimmed = line.trim();
+      const eq = trimmed.indexOf('=');
+      if (eq <= 0) continue;
+      const key = trimmed.substring(0, eq).trim();
+      const value = trimmed.substring(eq + 1).trim().replace(/^["']|["']$/g, '');
+      if (key) values[key] = value;
     }
+    return values;
+  } catch {
+    return {};
   }
 }
 
+function getPoolConfig() {
+  const fromFile = readEnvFile();
+  const pick = (name) => process.env[name] || fromFile[name] || undefined;
+
+  const databaseUrl = pick('DATABASE_URL');
+  if (databaseUrl) return { connectionString: databaseUrl };
+
+  const config = {
+    host: pick('DB_HOST') || 'localhost',
+    port: parseInt(pick('DB_PORT') || '5432', 10),
+    database: pick('DB_NAME') || 'busdevcore',
+    user: pick('DB_USER') || 'postgres',
+    password: pick('DB_PASSWORD') || 'postgres',
+  };
+  if ((pick('DB_SSL') || '').toLowerCase() === 'true') {
+    config.ssl = { rejectUnauthorized: false };
+  }
+  return config;
+}
+
 async function runMigration() {
-  const pool = new Pool({ connectionString: databaseUrl });
+  const pool = new Pool(getPoolConfig());
   const client = await pool.connect();
   try {
     const migrationsDir = path.join(__dirname, '../src/db/migrations');
