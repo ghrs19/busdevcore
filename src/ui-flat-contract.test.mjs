@@ -72,6 +72,18 @@ test('page, navbar and fixed action bars share Master width; audit JSON stays fl
   assert.doesNotMatch(audit, /audit-detail[^\"]*hover:bg-/);
 });
 
+test('Copilot uses a protected full page with server-side Hermes bridge, not a floating widget', () => {
+  const layout = readFileSync('src/app/layout.tsx', 'utf8');
+  const navbar = readFileSync('src/components/Navbar.tsx', 'utf8');
+  const page = readFileSync('src/app/copilot/page.tsx', 'utf8');
+  const middleware = readFileSync('src/middleware.ts', 'utf8');
+  assert.doesNotMatch(layout, /AIChatWidget/);
+  assert.match(navbar, /href: '\/copilot'.*adminOnly: true/);
+  assert.match(middleware, /pathname\.startsWith\('\/copilot'\)/);
+  assert.match(page, /fetch\('\/api\/ai\/chat'/);
+  assert.doesNotMatch(page, /HERMES_API_KEY|HERMES_API_URL/);
+});
+
 test('headings, fixed chrome and status chips use shared classes', () => {
   const offenders = [];
   for (const f of files) {

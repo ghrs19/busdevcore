@@ -37,13 +37,13 @@ export async function middleware(request: NextRequest) {
   const session = await parseValidSession(token);
 
   // Unauthenticated user
-  const protectedRoutes = pathname === '/' || pathname.startsWith('/estimates') || pathname.startsWith('/master') || pathname.startsWith('/profile') || pathname.startsWith('/commercial') || pathname.startsWith('/audit') || pathname.startsWith('/invoices') || pathname.startsWith('/dashboard') || pathname.startsWith('/costing');
+  const protectedRoutes = pathname === '/' || pathname.startsWith('/estimates') || pathname.startsWith('/master') || pathname.startsWith('/profile') || pathname.startsWith('/commercial') || pathname.startsWith('/audit') || pathname.startsWith('/invoices') || pathname.startsWith('/dashboard') || pathname.startsWith('/costing') || pathname.startsWith('/copilot');
   if (protectedRoutes && !session) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Master Data RBAC: Admin only
-  if (pathname === '/master' || pathname.startsWith('/master/')) {
+  // Admin-only pages
+  if (pathname === '/master' || pathname.startsWith('/master/') || pathname === '/copilot' || pathname.startsWith('/copilot/')) {
     if (!session) {
       return NextResponse.redirect(new URL('/login', request.url));
     }

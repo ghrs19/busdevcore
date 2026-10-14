@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  Bot,
   Calculator,
   ChevronDown,
   ClipboardList,
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/', label: 'Costing', icon: Calculator, match: (p) => p === '/' || p === '/costing' || p.startsWith('/estimates') },
   { href: '/commercial', label: 'Commercial', icon: FileSignature, match: (p) => p.startsWith('/commercial') },
   { href: '/invoices', label: 'Invoices', icon: Receipt, match: (p) => p.startsWith('/invoices') },
+  { href: '/copilot', label: 'AI Copilot', icon: Bot, match: (p) => p.startsWith('/copilot'), adminOnly: true },
   { href: '/audit', label: 'Logs', icon: ClipboardList, match: (p) => p.startsWith('/audit') },
   { href: '/master', label: 'Master Data', icon: Settings2, match: (p) => p.startsWith('/master'), adminOnly: true },
 ];
