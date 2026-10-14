@@ -143,7 +143,7 @@ function InvoiceDetailPageInner() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Bukti pembayaran berhasil diunggah ke MinIO Storage!');
+        alert('Bukti pembayaran berhasil diunggah ke penyimpanan file!');
         loadDetail();
       } else {
         alert(data.error || 'Gagal mengunggah file bukti');

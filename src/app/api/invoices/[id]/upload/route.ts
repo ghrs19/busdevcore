@@ -96,7 +96,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'Bukti transfer berhasil diunggah ke MinIO Object Storage',
+      message: 'Bukti transfer berhasil diunggah ke penyimpanan file',
       invoice: updated,
       file_url: fileUrl,
     });

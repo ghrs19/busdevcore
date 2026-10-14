@@ -238,7 +238,7 @@ function CommercialProposalDetailContent() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('File dokumen berhasil diunggah ke MinIO Object Storage!');
+        alert('File dokumen berhasil diunggah ke penyimpanan file!');
         loadAllData();
       } else {
         alert(data.error || 'Gagal mengunggah file');
@@ -869,7 +869,7 @@ function CommercialProposalDetailContent() {
                                     gap: '4px',
                                     color: 'var(--text-primary)',
                                   }}
-                                  title="Upload file hasil scan bertanda tangan / bermeterai ke MinIO"
+                                  title="Upload file hasil scan bertanda tangan / bermeterai"
                                 >
                                   <Upload style={{ width: '13px', height: '13px' }} />
                                   <span>{uploadingDocId === doc.id ? 'Mengunggah...' : 'Upload Scan TTD'}</span>

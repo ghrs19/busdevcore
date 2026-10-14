@@ -4,11 +4,15 @@ import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('./storage.ts', import.meta.url), 'utf8');
 
-test('MinIO config has no insecure credential or bucket defaults', () => {
+test('object storage lives in PostgreSQL, not a separate object store service', () => {
+  assert.doesNotMatch(source, /minio/i);
+  assert.doesNotMatch(source, /MINIO_/);
   assert.doesNotMatch(source, /minioadmin|miniopassword123/);
-  assert.match(source, /MINIO_ENDPOINT/);
-  assert.match(source, /MINIO_ACCESS_KEY/);
-  assert.match(source, /MINIO_SECRET_KEY/);
-  assert.match(source, /MINIO_BUCKET/);
-  assert.match(source, /requiredEnv/);
+  assert.match(source, /file_objects/);
+  assert.match(source, /@\/lib\/db/);
+});
+
+test('storage keeps the public file URL shape and guards upload size integrity', () => {
+  assert.match(source, /`\/api\/files\/\$\{encodeURIComponent\(objectName\)\}`/);
+  assert.match(source, /size !== storedSize/);
 });

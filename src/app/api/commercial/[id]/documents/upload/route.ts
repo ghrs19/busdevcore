@@ -106,7 +106,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'File fisik dokumen berhasil diunggah ke MinIO Storage',
+      message: 'File fisik dokumen berhasil diunggah ke penyimpanan file',
       document: updated,
     });
   } catch {
