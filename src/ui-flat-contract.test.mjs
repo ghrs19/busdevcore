@@ -84,6 +84,14 @@ test('Copilot uses a protected full page with server-side Hermes bridge, not a f
   assert.doesNotMatch(page, /HERMES_API_KEY|HERMES_API_URL/);
 });
 
+test('Copilot shows Hermes tool activity without executable model markup', () => {
+  const page = readFileSync('src/app/copilot/page.tsx', 'utf8');
+  assert.match(page, /result\.tools/);
+  assert.match(page, /m\.tools\?\.map/);
+  assert.doesNotMatch(page, /dangerouslySetInnerHTML/);
+  assert.doesNotMatch(page, /hanya baca|Tidak dapat mengubah data/);
+});
+
 test('headings, fixed chrome and status chips use shared classes', () => {
   const offenders = [];
   for (const f of files) {

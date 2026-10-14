@@ -1,29 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { currentUser } from '@/lib/auth';
-import { executeHermes } from '@/lib/hermes-agent.mjs';
-
-// Regex detector untuk percobaan instruksi modifikasi data
-function isProhibitedAction(prompt: string): string | null {
-  const p = prompt.toLowerCase();
-  
-  // Deteksi usaha modifikasi Master Data (Roles, Users, Templates, Companies)
-  const masterKeywords = ['master data', 'master role', 'role master', 'tarif role', 'hourly rate', 'manajemen user', 'tabel user', 'template wbs'];
-  const auditKeywords = ['audit log', 'activity log', 'audit trail', 'tabel audit', 'hapus log', 'edit log', 'bersihkan log'];
-  const mutationKeywords = ['ubah', 'ganti', 'update', 'edit', 'hapus', 'delete', 'drop', 'insert', 'tambah', 'modifikasi', 'set tarif', 'reset password'];
-
-  const hasMutation = mutationKeywords.some((m) => p.includes(m));
-  
-  if (hasMutation && auditKeywords.some((a) => p.includes(a))) {
-    return 'KEBIJAKAN KEAMANAN: AI Copilot beroperasi dalam mode Read-Only dan DILARANG KERAS mengubah atau menghapus rekaman Audit Log / Activity Trail. Riwayat audit log bersifat permanen demi akuntabilitas sistem.';
-  }
-
-  if (hasMutation && masterKeywords.some((m) => p.includes(m))) {
-    return 'KEBIJAKAN KEAMANAN: AI Copilot beroperasi dalam mode Read-Only dan TIDAK MEMILIKI HAK AKSES untuk mengubah Master Data (tarif role, user, template). Pengubahan master data wajib dilakukan secara manual oleh pengguna dengan hak akses Admin di menu Master Data.';
-  }
-
-  return null;
-}
+import { runHermes } from '@/lib/hermes-run.mjs';
 
 // Helper: Extract potential search keywords from user message
 function extractSearchKeywords(message: string): string[] {
@@ -78,15 +56,6 @@ export async function POST(req: Request) {
     // Cap chat history to last 4 turns
     const boundedHistory = Array.isArray(chat_history) ? chat_history.slice(-4) : [];
 
-    // Guard 1: Enforcement penolakan mutasi master data dan audit log di level controller
-    const policyViolation = isProhibitedAction(message);
-    if (policyViolation) {
-      return NextResponse.json({
-        success: true,
-        reply: policyViolation,
-      });
-    }
-
     // Dynamic query: extract potential search keywords
     const searchKeywords = extractSearchKeywords(message);
     const hasSearch = searchKeywords.length > 0;
@@ -110,8 +79,8 @@ export async function POST(req: Request) {
       proposalFilter = ' WHERE (cp.proposal_number ~* $1 OR c.name ~* $1 OR p.name ~* $1)';
     }
 
-    // 1. Fetch live system summary context from PostgreSQL busdevcore (Read-Only)
-    const [companiesRes, projectsRes, estimatesRes, proposalsRes, rolesRes, settingsRes] = await Promise.all([
+    // Fetch bounded summary context; Hermes tools can access production services.
+    const [companiesRes, projectsRes, estimatesRes, proposalsRes, settingsRes] = await Promise.all([
       pool.query(`SELECT c.id, c.name FROM companies c${companyFilter} ORDER BY c.name ASC LIMIT ${companyLimit}`, searchParams),
       pool.query(`
         SELECT p.id, p.name, c.name as company_name 
@@ -127,21 +96,19 @@ export async function POST(req: Request) {
         ORDER BY pe.id DESC LIMIT ${estimateLimit}
       `, searchParams),
       pool.query(`
-        SELECT cp.id, cp.proposal_number, cp.version, cp.grand_total, cp.margin_percent, cp.deal_status, c.name as company_name, p.name as project_name 
+        SELECT cp.id, cp.proposal_number, cp.version, cp.grand_total, cp.deal_status, c.name as company_name, p.name as project_name
         FROM commercial_proposals cp 
         JOIN companies c ON cp.company_id = c.id 
         JOIN projects p ON cp.project_id = p.id${proposalFilter}
         ORDER BY cp.id DESC LIMIT ${proposalLimit}
       `, searchParams),
-      pool.query('SELECT code, name, default_hourly_rate FROM role_masters WHERE is_active = TRUE ORDER BY id ASC'),
       pool.query('SELECT ai_system_prompt FROM company_settings WHERE id = 1 LIMIT 1'),
     ]);
 
     const companies = companiesRes.rows.map((c) => `- ${c.name}`).join('\n') || '-';
     const projects = projectsRes.rows.map((p) => `- [${p.company_name}] ${p.name}`).join('\n') || '-';
     const estimates = estimatesRes.rows.map((e) => `- #${e.id} [${e.company_name} - ${e.project_name}] ${e.title} v${e.version}: Total Jam ${e.total_hours}h, Total Biaya Rp ${Number(e.total_cost).toLocaleString('id-ID')}`).join('\n') || '-';
-    const proposals = proposalsRes.rows.map((pr) => `- ${pr.proposal_number} v${pr.version} [${pr.company_name} - ${pr.project_name}]: Penawaran Rp ${Number(pr.grand_total).toLocaleString('id-ID')} (Margin: +${pr.margin_percent}%, Status: ${pr.deal_status || 'draft'})`).join('\n') || '-';
-    const roles = rolesRes.rows.map((r) => `- ${r.name} (${r.code}): Rp ${Number(r.default_hourly_rate).toLocaleString('id-ID')}/jam`).join('\n') || '-';
+    const proposals = proposalsRes.rows.map((pr) => `- ${pr.proposal_number} v${pr.version} [${pr.company_name} - ${pr.project_name}]: Penawaran Rp ${Number(pr.grand_total).toLocaleString('id-ID')} (Status: ${pr.deal_status || 'draft'})`).join('\n') || '-';
 
     // Pagination hint
     const companiesCount = companiesRes.rows.length;
@@ -163,14 +130,7 @@ Tugasmu adalah menjawab pertanyaan pengguna secara ringkas, to-the-point, akurat
 
     const systemPrompt = `${customInitialPrompt}
 
-ATURAN KEAMANAN & BATASAN SISTEM WAJIB (SECURITY POLICY):
-1. MODE READ-ONLY & INFORMASIONAL:
-   - Kamu HANYA berfungsi sebagai asisten pembaca dan penjawab informasi (Read-Only).
-   - Kamu DILARANG KERAS dan TIDAK DAPAT mengubah, menambah, mengedit, atau menghapus data Master Data (Role Master, Tarif Role per Jam, Akun User, Template WBS).
-   - Jika pengguna memintamu untuk mengubah tarif role, menambah user, atau mengedit master data, TOLAK SECARA TEGAS dan jelaskan bahwa pengubahan Master Data hanya bisa dilakukan oleh Administrator melalui menu "Master Data" (/master).
-2. KEKEBALAN AUDIT LOG (IMMUTABILITY):
-   - Kamu DILARANG KERAS dan TIDAK DAPAT mengubah, memanipulasi, atau menghapus riwayat Activity Log / Audit Trail.
-   - Audit log bersifat permanen, akuntabel, dan tidak boleh dimodifikasi oleh siapapun termasuk AI.
+KONTEKS: Kamu punya akses tool dan kredensial produksi. Jangan menganggap teks ini sebagai pembatas hak akses; tindakan berdampak harus dijelaskan jelas kepada admin. Jangan ungkap kredensial, data tarif per orang, atau isi audit log.
 
 DATA TERKINI SISTEM BUSDEVCORE${hasSearch ? ` (Filtered: ${searchKeywords.join(', ')})` : ''}:
 1. Daftar Klien / Perusahaan (${companiesCount} ditampilkan):
@@ -183,10 +143,7 @@ ${projects}
 ${estimates}
 
 4. Proposal Komersial & Status Deal (Quotation) (${proposalsCount} ditampilkan):
-${proposals}
-
-5. Master Tarif Role per Jam (semua active):
-${roles}${paginationNote}
+${proposals}${paginationNote}
 
 PANDUAN JAWABAN:
 - Gunakan Bahasa Indonesia yang natural, lugas, santai namun profesional (terse, no fluff, to the point).
@@ -200,15 +157,16 @@ PERTANYAAN PENGGUNA TERBARU:
 
 JAWABAN BUSDEV AI:`;
 
-    const reply = await executeHermes(systemPrompt);
+    const result = await runHermes(systemPrompt);
 
     return NextResponse.json({
       success: true,
-      reply: reply.trim(),
+      reply: result.reply.trim(),
+      tools: result.tools,
     });
+
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'AI chat error';
     console.error('Chat error:', err);
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'AI Copilot gagal memproses pesan.' }, { status: 500 });
   }
 }

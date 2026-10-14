@@ -2,6 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+test('AI chat excludes private rate data from Hermes context', () => {
+  const route = readFileSync('src/app/api/ai/chat/route.ts', 'utf8');
+  assert.doesNotMatch(route, /default_hourly_rate|Master Tarif Role per Jam|margin_percent|Margin:|\$\{roles\}/);
+});
+
+test('AI chat does not advertise prompt-only read-only enforcement', () => {
+  const route = readFileSync('src/app/api/ai/chat/route.ts', 'utf8');
+  assert.doesNotMatch(route, /isProhibitedAction|MODE READ-ONLY|DILARANG KERAS|TIDAK DAPAT mengubah/);
+});
+
+test('AI chat returns structured Hermes tool activity', () => {
+  const route = readFileSync('src/app/api/ai/chat/route.ts', 'utf8');
+  assert.match(route, /runHermes\(systemPrompt\)/);
+  assert.match(route, /tools: result\.tools/);
+});
+
 test('AI chat company search uses a declared alias and parameterized pattern', () => {
   const route = readFileSync('src/app/api/ai/chat/route.ts', 'utf8');
   assert.match(route, /FROM companies c\$\{companyFilter\}/);
