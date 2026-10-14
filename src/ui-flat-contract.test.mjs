@@ -72,24 +72,27 @@ test('page, navbar and fixed action bars share Master width; audit JSON stays fl
   assert.doesNotMatch(audit, /audit-detail[^\"]*hover:bg-/);
 });
 
-test('Copilot uses a protected full page with server-side Hermes bridge, not a floating widget', () => {
+test('Copilot uses a protected full page wired to the AG-UI runtime, not a floating widget', () => {
   const layout = readFileSync('src/app/layout.tsx', 'utf8');
   const navbar = readFileSync('src/components/Navbar.tsx', 'utf8');
   const page = readFileSync('src/app/copilot/page.tsx', 'utf8');
+  const client = readFileSync('src/app/copilot/CopilotClient.tsx', 'utf8');
   const middleware = readFileSync('src/middleware.ts', 'utf8');
   assert.doesNotMatch(layout, /AIChatWidget/);
   assert.match(navbar, /href: '\/copilot'.*adminOnly: true/);
   assert.match(middleware, /pathname\.startsWith\('\/copilot'\)/);
-  assert.match(page, /fetch\('\/api\/ai\/chat'/);
-  assert.doesNotMatch(page, /HERMES_API_KEY|HERMES_API_URL/);
+  assert.match(page, /<Suspense fallback=/);
+  assert.match(client, /runtimeUrl="\/api\/copilotkit"/);
+  assert.match(client, /<CopilotChat\b/);
+  assert.doesNotMatch(client, /HERMES_API_KEY|HERMES_API_URL/);
 });
 
-test('Copilot shows Hermes tool activity without executable model markup', () => {
-  const page = readFileSync('src/app/copilot/page.tsx', 'utf8');
-  assert.match(page, /result\.tools/);
-  assert.match(page, /m\.tools\?\.map/);
-  assert.doesNotMatch(page, /dangerouslySetInnerHTML/);
-  assert.doesNotMatch(page, /hanya baca|Tidak dapat mengubah data/);
+test('Copilot renders model output through CopilotKit, never as executable markup', () => {
+  const client = readFileSync('src/app/copilot/CopilotClient.tsx', 'utf8');
+  assert.doesNotMatch(client, /dangerouslySetInnerHTML/);
+  assert.doesNotMatch(client, /fetch\('\/api\/ai\/chat'/);
+  assert.doesNotMatch(client, /hanya baca|Tidak dapat mengubah data/);
+  assert.match(client, /kredensial produksi/);
 });
 
 test('headings, fixed chrome and status chips use shared classes', () => {
