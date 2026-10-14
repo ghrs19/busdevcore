@@ -1,5 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+test('AI chat company search uses a declared alias and parameterized pattern', () => {
+  const route = readFileSync('src/app/api/ai/chat/route.ts', 'utf8');
+  assert.match(route, /FROM companies c\$\{companyFilter\}/);
+  assert.match(route, /companyFilter = [`' ]* WHERE c\.name ~\* \$1/);
+  assert.match(route, /pool\.query\(`SELECT c\.id, c\.name FROM companies c\$\{companyFilter\}[^`]*`, searchParams\)/);
+  assert.equal((route.match(/`, searchParams\)/g) || []).length, 4);
+  assert.doesNotMatch(route, /~\* '\$\{regexPattern\}'/);
+});
 
 test('AI chat rejects messages over 2000 characters', async () => {
   const longMessage = 'x'.repeat(2001);

@@ -102,38 +102,37 @@ export async function POST(req: Request) {
     let estimateFilter = '';
     let proposalFilter = '';
 
+    const searchParams = hasSearch ? [searchKeywords.map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')] : [];
     if (hasSearch) {
-      // Use regex case-insensitive search
-      const regexPattern = searchKeywords.map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-      companyFilter = ` WHERE c.name ~* '${regexPattern}'`;
-      projectFilter = ` WHERE (p.name ~* '${regexPattern}' OR c.name ~* '${regexPattern}')`;
-      estimateFilter = ` WHERE (pe.title ~* '${regexPattern}' OR c.name ~* '${regexPattern}' OR p.name ~* '${regexPattern}')`;
-      proposalFilter = ` WHERE (cp.proposal_number ~* '${regexPattern}' OR c.name ~* '${regexPattern}' OR p.name ~* '${regexPattern}')`;
+      companyFilter = ' WHERE c.name ~* $1';
+      projectFilter = ' WHERE (p.name ~* $1 OR c.name ~* $1)';
+      estimateFilter = ' WHERE (pe.title ~* $1 OR c.name ~* $1 OR p.name ~* $1)';
+      proposalFilter = ' WHERE (cp.proposal_number ~* $1 OR c.name ~* $1 OR p.name ~* $1)';
     }
 
     // 1. Fetch live system summary context from PostgreSQL busdevcore (Read-Only)
     const [companiesRes, projectsRes, estimatesRes, proposalsRes, rolesRes, settingsRes] = await Promise.all([
-      pool.query(`SELECT id, name FROM companies${companyFilter} ORDER BY name ASC LIMIT ${companyLimit}`),
+      pool.query(`SELECT c.id, c.name FROM companies c${companyFilter} ORDER BY c.name ASC LIMIT ${companyLimit}`, searchParams),
       pool.query(`
         SELECT p.id, p.name, c.name as company_name 
         FROM projects p 
         JOIN companies c ON p.company_id = c.id${projectFilter}
         ORDER BY p.id DESC LIMIT ${projectLimit}
-      `),
+      `, searchParams),
       pool.query(`
         SELECT pe.id, pe.title, pe.version, pe.total_cost, pe.total_hours, c.name as company_name, p.name as project_name 
         FROM project_estimates pe 
         JOIN companies c ON pe.company_id = c.id 
         JOIN projects p ON pe.project_id = p.id${estimateFilter}
         ORDER BY pe.id DESC LIMIT ${estimateLimit}
-      `),
+      `, searchParams),
       pool.query(`
         SELECT cp.id, cp.proposal_number, cp.version, cp.grand_total, cp.margin_percent, cp.deal_status, c.name as company_name, p.name as project_name 
         FROM commercial_proposals cp 
         JOIN companies c ON cp.company_id = c.id 
         JOIN projects p ON cp.project_id = p.id${proposalFilter}
         ORDER BY cp.id DESC LIMIT ${proposalLimit}
-      `),
+      `, searchParams),
       pool.query('SELECT code, name, default_hourly_rate FROM role_masters WHERE is_active = TRUE ORDER BY id ASC'),
       pool.query('SELECT ai_system_prompt FROM company_settings WHERE id = 1 LIMIT 1'),
     ]);
