@@ -65,10 +65,13 @@ function ThreadChat({ threadId, initialMessages, onNew, onSelect, onSaved, conve
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <select aria-label="Pilih percakapan" value={threadId} onChange={(e) => onSelect(e.target.value)}>
-            {conversations.map((c) => <option key={c.thread_id} value={c.thread_id}>{c.title}</option>)}
-            {!conversations.some((c) => c.thread_id === threadId) && <option value={threadId}>Percakapan baru</option>}
-          </select>
+          <label className="copilot-thread-select">
+            <span className="sr-only">Pilih percakapan</span>
+            <select aria-label="Pilih percakapan" value={threadId} onChange={(e) => onSelect(e.target.value)}>
+              {conversations.map((c) => <option key={c.thread_id} value={c.thread_id}>{c.title}</option>)}
+              {!conversations.some((c) => c.thread_id === threadId) && <option value={threadId}>Percakapan baru</option>}
+            </select>
+          </label>
           <button type="button" className="btn-secondary" onClick={onNew}>
             <Plus className="size-4" aria-hidden /> Percakapan baru
           </button>
