@@ -58,6 +58,9 @@ test('HermesAgent posts to /v1/responses with bearer auth and streams input', as
   const sent = JSON.parse(request.options.body);
   assert.equal(sent.stream, true);
   assert.match(sent.instructions, /jumlah.*proposal.*busdevcore_read_db/i);
+  assert.match(sent.instructions, /CopilotKit dengan OpenGenerativeUI.*generateSandboxedUi/i);
+  assert.match(sent.instructions, /tren.*grafik/);
+  assert.match(sent.instructions, /jangan fetch server.*storage/i);
   assert.deepEqual(sent.input, [{ role: 'user', content: 'halo' }]);
   assert.deepEqual(events.map((e) => e.type), [
     EventType.RUN_STARTED,
