@@ -34,7 +34,13 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'ID invoice tidak valid' }, { status: 400 });
     }
 
-    const invoiceCheck = await pool.query('SELECT id FROM payment_milestone_invoices WHERE id = $1', [invoiceId]);
+    const invoiceCheck = await pool.query(`
+      SELECT i.id, i.billing_type, i.invoice_date, c.name AS company_name
+      FROM payment_milestone_invoices i
+      LEFT JOIN commercial_proposals cp ON cp.id = i.proposal_id
+      LEFT JOIN companies c ON c.id = cp.company_id
+      WHERE i.id = $1
+    `, [invoiceId]);
     if (!invoiceCheck.rows.length) {
       return NextResponse.json({ success: false, error: 'Invoice tidak ditemukan' }, { status: 404 });
     }
@@ -59,7 +65,40 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'File content does not match type' }, { status: 415 });
     }
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const objectKey = `payments/inv_${invoiceId}_${Date.now()}_${sanitizedName}`;
+    // Payment proofs are grouped per client company:
+    // payments/<Company Name>/<file>. With the Google Drive storage
+    // driver each segment becomes a real folder; the name is therefore
+    // stripped of path separators and length-capped here.
+    const rawCompanyName = (invoiceCheck.rows[0].company_name as string | null)?.trim();
+    const companySegment = (rawCompanyName || 'Tanpa Perusahaan')
+      .replace(/[/\\]+/g, '-')
+      .replace(/\s+/g, ' ')
+      .slice(0, 80);
+    // File name format: yyyy_mm_dd_<termin|retainer>_<original name>.
+    // The date is the invoice date, falling back to today (Asia/Jakarta)
+    // when the invoice has not been issued yet; "termin" covers the
+    // milestone billing type, "retainer" the recurring monthly one.
+    const invoiceDate = invoiceCheck.rows[0].invoice_date as Date | string | null;
+    const isoDate = invoiceDate
+      ? (invoiceDate instanceof Date ? invoiceDate.toISOString().slice(0, 10) : String(invoiceDate).slice(0, 10))
+      : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+    const dateSegment = isoDate.replace(/-/g, '_');
+    const kindSegment = invoiceCheck.rows[0].billing_type === 'recurring_monthly' ? 'retainer' : 'termin';
+    let fileSegment = `${dateSegment}_${kindSegment}_${sanitizedName}`;
+    let objectKey = `payments/${companySegment}/${fileSegment}`;
+    // Collision guard: another invoice of the same company could produce
+    // the identical key (same date, kind and original file name). Only in
+    // that case is the invoice id folded into the name, so one invoice's
+    // proof can never silently replace another invoice's proof.
+    const expectedUrl = `/api/files/${encodeURIComponent(objectKey)}`;
+    const clash = await pool.query(
+      'SELECT id FROM payment_milestone_invoices WHERE proof_file_url = $1 AND id <> $2 LIMIT 1',
+      [expectedUrl, invoiceId]
+    );
+    if (clash.rows.length) {
+      fileSegment = `${dateSegment}_${kindSegment}_inv${invoiceId}_${sanitizedName}`;
+      objectKey = `payments/${companySegment}/${fileSegment}`;
+    }
 
     const fileUrl = await uploadFile(objectKey, buffer, file.size, file.type || 'image/jpeg');
 

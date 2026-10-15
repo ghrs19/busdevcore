@@ -6,8 +6,8 @@ const route = await readFile(new URL('./[id]/upload/route.ts', import.meta.url),
 const boundedRequest = await readFile(new URL('../../../lib/bounded-request.mjs', import.meta.url), 'utf8');
 
 test('invoice proof upload checks invoice access before accepting file', () => {
-  assert.match(route, /SELECT id FROM payment_milestone_invoices WHERE id = \$1/);
-  assert.ok(route.indexOf('SELECT id FROM payment_milestone_invoices') < route.indexOf('const boundedRequest'));
+  assert.match(route, /FROM payment_milestone_invoices i/);
+  assert.ok(route.indexOf('FROM payment_milestone_invoices') < route.indexOf('const boundedRequest'));
 });
 
 test('invoice proof upload rejects oversized requests before parsing and validates magic bytes', () => {

@@ -25,6 +25,13 @@ test('Google Drive driver maps object names through storage_objects and carries 
   assert.doesNotMatch(source, /ya29\./);
 });
 
+test('Google Drive driver turns object path segments into real folders', () => {
+  assert.match(source, /gdriveFindOrCreateFolder/);
+  assert.match(source, /gdriveResolveParent/);
+  assert.match(source, /application\/vnd\.google-apps\.folder/);
+  assert.match(source, /supportsAllDrives=true/);
+});
+
 test('MinIO driver keeps required env config with no insecure defaults', () => {
   assert.doesNotMatch(source, /minioadmin|miniopassword123/);
   assert.match(source, /MINIO_ENDPOINT/);

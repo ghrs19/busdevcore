@@ -287,10 +287,64 @@ async function gdriveUploadFile(objectName: string, buffer: Buffer, contentType:
   await gdriveRemember(objectName, existingId, mime, buffer.length);
 }
 
+// Object names use '/' as a path separator (e.g.
+// "payments/PT Example/inv_1_..._proof.pdf"). In Drive these segments
+// become REAL folders under the configured root folder, so the Drive
+// UI mirrors the object-name structure; the postgres and minio drivers
+// keep the flat namespace semantics they already have.
+const gdriveFolderCache = new Map<string, string>();
+
+function gdriveEscapeQueryValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+async function gdriveFindOrCreateFolder(parentId: string, name: string): Promise<string> {
+  const cacheKey = `${parentId}\n${name}`;
+  const cached = gdriveFolderCache.get(cacheKey);
+  if (cached) return cached;
+
+  const query = [
+    `name = '${gdriveEscapeQueryValue(name)}'`,
+    `'${parentId}' in parents`,
+    `mimeType = 'application/vnd.google-apps.folder'`,
+    'trashed = false',
+  ].join(' and ');
+  const listUrl =
+    `${GDRIVE_API}/files?q=${encodeURIComponent(query)}` +
+    '&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives';
+  const listResponse = await gdriveFetch(listUrl);
+  await gdriveEnsureOk(listResponse, 'folder lookup');
+  const listed = (await listResponse.json()) as { files?: Array<{ id: string }> };
+  let folderId = listed.files?.[0]?.id;
+
+  if (!folderId) {
+    const createResponse = await gdriveFetch(`${GDRIVE_API}/files?supportsAllDrives=true&fields=id`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] }),
+    });
+    await gdriveEnsureOk(createResponse, 'folder create');
+    folderId = ((await createResponse.json()) as { id: string }).id;
+  }
+
+  gdriveFolderCache.set(cacheKey, folderId);
+  return folderId;
+}
+
+async function gdriveResolveParent(objectName: string): Promise<{ parentId: string; fileName: string }> {
+  const segments = objectName.split('/').filter((segment) => segment.length > 0);
+  const fileName = segments.length > 0 ? segments[segments.length - 1] : objectName;
+  let parentId = requiredEnv('GOOGLE_DRIVE_FOLDER_ID');
+  for (const segment of segments.slice(0, -1)) {
+    parentId = await gdriveFindOrCreateFolder(parentId, segment);
+  }
+  return { parentId, fileName };
+}
+
 async function gdriveCreateFile(objectName: string, buffer: Buffer, mime: string): Promise<string> {
-  const folderId = requiredEnv('GOOGLE_DRIVE_FOLDER_ID');
+  const { parentId, fileName } = await gdriveResolveParent(objectName);
   const boundary = `busdevcore-${Date.now().toString(36)}`;
-  const metadata = JSON.stringify({ name: objectName, parents: [folderId], mimeType: mime });
+  const metadata = JSON.stringify({ name: fileName, parents: [parentId], mimeType: mime });
   const head = Buffer.from(
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
     `--${boundary}\r\nContent-Type: ${mime}\r\n\r\n`,
