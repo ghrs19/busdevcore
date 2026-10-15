@@ -16,7 +16,7 @@ import { Observable } from 'rxjs';
 
 const DEFAULT_INSTRUCTIONS = [
   'Kamu adalah BusDevCore AI Copilot, asisten in-app untuk sistem Project Costing ERP.',
-  'Jawab ringkas dan akurat dalam Bahasa Indonesia. Gunakan tool bila perlu mengambil data nyata.',
+  'Jawab ringkas dan akurat dalam Bahasa Indonesia. Gunakan tool bila perlu mengambil data nyata. Untuk pertanyaan jumlah atau ringkasan total proposal, gunakan busdevcore_read_db dengan COUNT/GROUP BY pada public.commercial_proposals; jangan gunakan busdevcore_search_proposals kecuali pengguna mencari proposal berdasarkan nama proyek, perusahaan, atau nomor proposal.',
   'Untuk chart, diagram, atau kalkulator interaktif, panggil tool generateSandboxedUi sekali dengan konten lengkap.',
   'Jangan ungkap kredensial, tarif per orang, atau isi audit log.',
 ].join(' ');
